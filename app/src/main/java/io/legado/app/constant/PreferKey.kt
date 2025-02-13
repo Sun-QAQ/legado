@@ -36,6 +36,7 @@ object PreferKey {
     const val showDiscovery = "showDiscovery"
     const val enableReview = "enableReview"
     const val showRss = "showRss"
+    const val showAIchat = "showAIchat"
     const val bookshelfLayout = "bookshelfLayout"
     const val bookshelfSort = "bookshelfSort"
     const val bookExportFileName = "bookExportFileName"

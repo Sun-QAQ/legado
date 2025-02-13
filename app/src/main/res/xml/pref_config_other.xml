@@ -42,6 +42,12 @@
             android:title="@string/show_rss"
             app:iconSpaceReserved="false" />
 
+        <io.legado.app.lib.prefs.SwitchPreference
+            android:defaultValue="false"
+            android:key="showAIchat"
+            android:title="@string/show_AIchat"
+            app:iconSpaceReserved="false" />
+
         <io.legado.app.lib.prefs.NameListPreference
             android:defaultValue="bookshelf"
             android:key="defaultHomePage"

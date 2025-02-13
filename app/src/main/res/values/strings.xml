@@ -1187,4 +1187,10 @@
     <string name="menu_download_all">Download all chapter</string>
     <string name="error_occurred" translatable="false">打开失败</string>
     <string name="confirmation_message" translatable="false">%s正在请求跳转外部链接/应用，是否跳转？</string>
+    <string name="show_AIchat" translatable="false">显示AI对话(beta)</string>
+    <string name="chat" translatable="false">对话</string>
+    <string name="send" translatable="false">发送</string>
+    <string name="input_hint" translatable="false">在这里输入消息...</string>
+    <string name="menu_clear_history">清除历史</string>
+    <string name="menu_api_settings">API设置</string>
 </resources>

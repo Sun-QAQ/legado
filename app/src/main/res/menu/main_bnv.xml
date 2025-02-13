@@ -12,6 +12,10 @@
         android:icon="@drawable/ic_bottom_explore"
         android:title="@string/discovery" />
     <item
+        android:id="@+id/menu_aichat"
+        android:icon="@drawable/ic_bottom_aichat"
+        android:title="@string/chat" />
+    <item
         android:id="@+id/menu_rss"
         android:icon="@drawable/ic_bottom_rss_feed"
         android:title="@string/rss" />

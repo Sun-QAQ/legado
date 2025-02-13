@@ -195,7 +195,7 @@ class OtherConfigFragment : PreferenceFragment(),
                 setProcessTextEnable(it.getBoolean(key, true))
             }
 
-            PreferKey.showDiscovery, PreferKey.showRss -> postEvent(EventBus.NOTIFY_MAIN, true)
+            PreferKey.showDiscovery, PreferKey.showRss, PreferKey.showAIchat -> postEvent(EventBus.NOTIFY_MAIN, true)
             PreferKey.language -> listView.postDelayed(1000) {
                 appCtx.restart()
             }

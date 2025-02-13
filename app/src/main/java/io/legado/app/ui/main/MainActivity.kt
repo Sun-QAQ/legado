@@ -42,6 +42,7 @@ import io.legado.app.ui.main.bookshelf.style2.BookshelfFragment2
 import io.legado.app.ui.main.explore.ExploreFragment
 import io.legado.app.ui.main.my.MyFragment
 import io.legado.app.ui.main.rss.RssFragment
+import io.legado.app.ui.main.aichat.AIchatFragment
 import io.legado.app.ui.widget.dialog.TextDialog
 import io.legado.app.utils.hideSoftInput
 import io.legado.app.utils.isCreated
@@ -72,15 +73,16 @@ class MainActivity : VMBaseActivity<ActivityMainBinding, MainViewModel>(),
     private val idBookshelf1 = 11
     private val idBookshelf2 = 12
     private val idExplore = 1
-    private val idRss = 2
-    private val idMy = 3
+    private val idAIchat = 2
+    private val idRss = 3
+    private val idMy = 4
     private var exitTime: Long = 0
     private var bookshelfReselected: Long = 0
     private var exploreReselected: Long = 0
     private var pagePosition = 0
     private val fragmentMap = hashMapOf<Int, Fragment>()
     private var bottomMenuCount = 4
-    private val realPositions = arrayOf(idBookshelf, idExplore, idRss, idMy)
+    private val realPositions = arrayOf(idBookshelf, idExplore, idAIchat, idRss, idMy)
     private val adapter by lazy {
         TabFragmentPageAdapter(supportFragmentManager)
     }
@@ -163,6 +165,9 @@ class MainActivity : VMBaseActivity<ActivityMainBinding, MainViewModel>(),
 
             R.id.menu_rss ->
                 viewPagerMain.setCurrentItem(realPositions.indexOf(idRss), false)
+
+            R.id.menu_aichat ->
+                viewPagerMain.setCurrentItem(realPositions.indexOf(idAIchat), false)
 
             R.id.menu_my_config ->
                 viewPagerMain.setCurrentItem(realPositions.indexOf(idMy), false)
@@ -370,9 +375,11 @@ class MainActivity : VMBaseActivity<ActivityMainBinding, MainViewModel>(),
     private fun upBottomMenu() {
         val showDiscovery = AppConfig.showDiscovery
         val showRss = AppConfig.showRSS
+        val showAIchat = AppConfig.showAIchat
         binding.bottomNavigationView.menu.let { menu ->
             menu.findItem(R.id.menu_discovery).isVisible = showDiscovery
             menu.findItem(R.id.menu_rss).isVisible = showRss
+            menu.findItem(R.id.menu_aichat).isVisible = showAIchat
         }
         var index = 0
         if (showDiscovery) {
@@ -382,6 +389,10 @@ class MainActivity : VMBaseActivity<ActivityMainBinding, MainViewModel>(),
         if (showRss) {
             index++
             realPositions[index] = idRss
+        }
+        if (showAIchat) {
+            index++
+            realPositions[index] = idAIchat
         }
         index++
         realPositions[index] = idMy
@@ -398,6 +409,10 @@ class MainActivity : VMBaseActivity<ActivityMainBinding, MainViewModel>(),
 
             "rss" -> if (AppConfig.showRSS) {
                 binding.viewPagerMain.setCurrentItem(realPositions.indexOf(idRss), false)
+            }
+
+            "aichat" -> if (AppConfig.showAIchat) {
+                binding.viewPagerMain.setCurrentItem(realPositions.indexOf(idAIchat), false)
             }
 
             "my" -> binding.viewPagerMain.setCurrentItem(realPositions.indexOf(idMy), false)
@@ -438,6 +453,7 @@ class MainActivity : VMBaseActivity<ActivityMainBinding, MainViewModel>(),
                 || (fragmentId == idBookshelf2 && any is BookshelfFragment2)
                 || (fragmentId == idExplore && any is ExploreFragment)
                 || (fragmentId == idRss && any is RssFragment)
+                || (fragmentId == idAIchat && any is AIchatFragment)
                 || (fragmentId == idMy && any is MyFragment)
             ) {
                 return POSITION_UNCHANGED
@@ -451,6 +467,7 @@ class MainActivity : VMBaseActivity<ActivityMainBinding, MainViewModel>(),
                 idBookshelf2 -> BookshelfFragment2(position)
                 idExplore -> ExploreFragment(position)
                 idRss -> RssFragment(position)
+                idAIchat -> AIchatFragment(position)
                 else -> MyFragment(position)
             }
         }
