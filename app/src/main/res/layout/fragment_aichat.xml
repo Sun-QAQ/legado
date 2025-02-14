@@ -21,7 +21,9 @@
         app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
         app:layout_constraintBottom_toTopOf="@+id/input_layout"
         app:layout_constraintTop_toBottomOf="@id/title_bar"
-        tools:listitem="@layout/item_message"/>
+        app:layout_constraintVertical_bias="0.0"
+        tools:layout_editor_absoluteX="0dp"
+        tools:listitem="@layout/item_message" />
 
     <LinearLayout
         android:id="@+id/input_layout"
