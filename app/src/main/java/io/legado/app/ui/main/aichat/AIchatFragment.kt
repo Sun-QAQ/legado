@@ -1,224 +1,114 @@
 package io.legado.app.ui.main.aichat
 
+import android.app.AlertDialog
+import android.os.Build
 import android.os.Bundle
-import android.view.Menu
-import android.view.MenuItem
-import android.view.SubMenu
 import android.view.View
-import androidx.appcompat.widget.SearchView
+import android.webkit.WebChromeClient
+import android.webkit.WebResourceRequest
+import android.webkit.WebSettings
+import android.webkit.WebView
+import android.webkit.WebViewClient
+import android.widget.ProgressBar
 import androidx.fragment.app.viewModels
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.lifecycleScope
 import io.legado.app.R
 import io.legado.app.base.VMBaseFragment
-import io.legado.app.constant.AppLog
-import io.legado.app.data.AppDatabase
-import io.legado.app.data.appDb
-import io.legado.app.data.entities.RssSource
-import io.legado.app.databinding.FragmentRssBinding
-import io.legado.app.databinding.ItemRssBinding
-import io.legado.app.lib.dialogs.alert
-import io.legado.app.lib.theme.primaryColor
-import io.legado.app.lib.theme.primaryTextColor
+import io.legado.app.databinding.FragmentAichatBinding
 import io.legado.app.ui.main.MainFragmentInterface
-import io.legado.app.ui.main.rss.RssAdapter
-import io.legado.app.ui.main.rss.RssViewModel
-import io.legado.app.ui.rss.article.RssSortActivity
-import io.legado.app.ui.rss.favorites.RssFavoritesActivity
-import io.legado.app.ui.rss.read.ReadRssActivity
-import io.legado.app.ui.rss.source.edit.RssSourceEditActivity
-import io.legado.app.ui.rss.source.manage.RssSourceActivity
-import io.legado.app.ui.rss.subscription.RuleSubActivity
-import io.legado.app.utils.applyTint
-import io.legado.app.utils.cnCompare
-import io.legado.app.utils.flowWithLifecycleAndDatabaseChange
-import io.legado.app.utils.openUrl
-import io.legado.app.utils.setEdgeEffectColor
-import io.legado.app.utils.startActivity
+import io.legado.app.utils.toastOnUi
 import io.legado.app.utils.viewbindingdelegate.viewBinding
-import kotlinx.coroutines.Dispatchers.IO
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.conflate
-import kotlinx.coroutines.flow.flowOn
-import kotlinx.coroutines.launch
 
+class AIchatFragment private constructor() :
+    VMBaseFragment<AIChatViewModel>(R.layout.fragment_aichat),
+    MainFragmentInterface {
 
-/**
- * 订阅界面
- */
-class AIchatFragment() : VMBaseFragment<RssViewModel>(R.layout.fragment_rss),
-    MainFragmentInterface,
-    RssAdapter.CallBack {
+    private val binding by viewBinding(FragmentAichatBinding::bind)
+    private var progressDialog: AlertDialog? = null
+    override val position: Int? get() = arguments?.getInt("position")
+    override val viewModel: AIChatViewModel by viewModels()
+
+    // 主构造函数
+    init {
+        // 这里可以添加需要主构造函数初始化的逻辑
+    }
 
     constructor(position: Int) : this() {
-        val bundle = Bundle()
-        bundle.putInt("position", position)
-        arguments = bundle
+        arguments = Bundle().apply {
+            putInt("position", position)
+        }
     }
-
-    override val position: Int? get() = arguments?.getInt("position")
-
-    private val binding by viewBinding(FragmentRssBinding::bind)
-    override val viewModel by viewModels<RssViewModel>()
-    private val adapter by lazy { RssAdapter(requireContext(), this, viewLifecycleOwner.lifecycle) }
-    private val searchView: SearchView by lazy {
-        binding.titleBar.findViewById(R.id.search_view)
-    }
-    private var groupsFlowJob: Job? = null
-    private var rssFlowJob: Job? = null
-    private val groups = linkedSetOf<String>()
-    private var groupsMenu: SubMenu? = null
 
     override fun onFragmentCreated(view: View, savedInstanceState: Bundle?) {
-        setSupportToolbar(binding.titleBar.toolbar)
-        initSearchView()
-        initRecyclerView()
-        initGroupData()
-        upRssFlowJob()
-    }
 
-    override fun onCompatCreateOptionsMenu(menu: Menu) {
-        menuInflater.inflate(R.menu.main_rss, menu)
-        groupsMenu = menu.findItem(R.id.menu_group)?.subMenu
-        upGroupsMenu()
-    }
-
-    override fun onCompatOptionsItemSelected(item: MenuItem) {
-        super.onCompatOptionsItemSelected(item)
-        when (item.itemId) {
-            R.id.menu_rss_config -> startActivity<RssSourceActivity>()
-            R.id.menu_rss_star -> startActivity<RssFavoritesActivity>()
-            else -> if (item.groupId == R.id.menu_group_text) {
-                searchView.setQuery("group:${item.title}", true)
-            }
+        binding.titleBar.apply {
+            setTitle(R.string.aichat)
         }
-    }
 
-    override fun onPause() {
-        super.onPause()
-        searchView.clearFocus()
-    }
-
-    private fun upGroupsMenu() = groupsMenu?.let { subMenu ->
-        subMenu.removeGroup(R.id.menu_group_text)
-        groups.sortedWith { o1, o2 ->
-            o1.cnCompare(o2)
-        }.forEach {
-            subMenu.add(R.id.menu_group_text, Menu.NONE, Menu.NONE, it)
-        }
-    }
-
-    private fun initSearchView() {
-        searchView.applyTint(primaryTextColor)
-        searchView.isSubmitButtonEnabled = true
-        searchView.queryHint = getString(R.string.rss)
-        searchView.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
-            override fun onQueryTextSubmit(query: String?): Boolean {
-                return false
-            }
-
-            override fun onQueryTextChange(newText: String?): Boolean {
-                upRssFlowJob(newText)
-                return false
-            }
-        })
-    }
-
-    private fun initRecyclerView() {
-        binding.recyclerView.setEdgeEffectColor(primaryColor)
-        binding.recyclerView.adapter = adapter
-        adapter.addHeaderView {
-            ItemRssBinding.inflate(layoutInflater, it, false).apply {
-                tvName.setText(R.string.rule_subscription)
-                ivIcon.setImageResource(R.drawable.image_legado)
-                root.setOnClickListener {
-                    startActivity<RuleSubActivity>()
+        binding.webView.apply {
+            settings.apply {
+                javaScriptEnabled = true
+                domStorageEnabled = true
+                allowFileAccess = true
+                allowContentAccess = true
+                setSupportZoom(true)
+                builtInZoomControls = true
+                displayZoomControls = false
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                    mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
                 }
             }
-        }
-    }
-
-    private fun initGroupData() {
-        groupsFlowJob?.cancel()
-        groupsFlowJob = viewLifecycleOwner.lifecycleScope.launch {
-            appDb.rssSourceDao.flowEnabledGroups().catch {
-                AppLog.put("订阅界面获取分组数据失败\n${it.localizedMessage}", it)
-            }.flowWithLifecycleAndDatabaseChange(
-                viewLifecycleOwner.lifecycle,
-                Lifecycle.State.RESUMED,
-                AppDatabase.RSS_SOURCE_TABLE_NAME
-            ).conflate().collect {
-                groups.clear()
-                groups.addAll(it)
-                upGroupsMenu()
-            }
-        }
-    }
-
-    private fun upRssFlowJob(searchKey: String? = null) {
-        rssFlowJob?.cancel()
-        rssFlowJob = viewLifecycleOwner.lifecycleScope.launch {
-            when {
-                searchKey.isNullOrEmpty() -> appDb.rssSourceDao.flowEnabled()
-                searchKey.startsWith("group:") -> {
-                    val key = searchKey.substringAfter("group:")
-                    appDb.rssSourceDao.flowEnabledByGroup(key)
+            webViewClient = object : WebViewClient() {
+                override fun shouldOverrideUrlLoading(
+                    view: WebView?,
+                    request: WebResourceRequest
+                ): Boolean {
+                    view?.loadUrl(request.url.toString())
+                    return true
                 }
 
-                else -> appDb.rssSourceDao.flowEnabled(searchKey)
-            }.flowWithLifecycleAndDatabaseChange(
-                viewLifecycleOwner.lifecycle,
-                Lifecycle.State.RESUMED,
-                AppDatabase.RSS_SOURCE_TABLE_NAME
-            ).catch {
-                AppLog.put("订阅界面更新数据出错", it)
-            }.flowOn(IO).collect {
-                adapter.setItems(it)
+                override fun onReceivedError(
+                    view: WebView?,
+                    errorCode: Int,
+                    description: String?,
+                    failingUrl: String?
+                ) {
+                    context?.toastOnUi("加载失败: $description")
+                }
             }
-        }
-    }
 
-    override fun openRss(rssSource: RssSource) {
-        if (rssSource.singleUrl) {
-            viewModel.getSingleUrl(rssSource) { url ->
-                if (url.startsWith("http", true)) {
-                    startActivity<ReadRssActivity> {
-                        putExtra("title", rssSource.sourceName)
-                        putExtra("origin", url)
+            webChromeClient = object : WebChromeClient() {
+                override fun onProgressChanged(view: WebView?, newProgress: Int) {
+                    if (newProgress < 100) {
+                        showProgressDialog(newProgress)
+                    } else {
+                        dismissProgressDialog()
                     }
-                } else {
-                    context?.openUrl(url)
                 }
             }
-        } else {
-            startActivity<RssSortActivity> {
-                putExtra("url", rssSource.sourceUrl)
-            }
+
+            loadUrl("https://chat.deepseek.com/")
         }
     }
 
-    override fun toTop(rssSource: RssSource) {
-        viewModel.topSource(rssSource)
+
+    override fun onDestroyView() {
+        binding.webView.destroy()
+        super.onDestroyView()
     }
 
-    override fun edit(rssSource: RssSource) {
-        startActivity<RssSourceEditActivity> {
-            putExtra("sourceUrl", rssSource.sourceUrl)
+    private fun showProgressDialog(progress: Int) {
+        if (progressDialog == null) {
+            progressDialog = AlertDialog.Builder(requireContext())
+                .setView(R.layout.dialog_web_progress)
+                .setCancelable(false)
+                .show()
         }
+        progressDialog?.findViewById<ProgressBar>(R.id.progressBar)?.progress = progress
     }
 
-    override fun del(rssSource: RssSource) {
-        alert(R.string.draw) {
-            setMessage(getString(R.string.sure_del) + "\n" + rssSource.sourceName)
-            noButton()
-            yesButton {
-                viewModel.del(rssSource)
-            }
-        }
+    private fun dismissProgressDialog() {
+        progressDialog?.dismiss()
+        progressDialog = null
     }
 
-    override fun disable(rssSource: RssSource) {
-        viewModel.disable(rssSource)
-    }
 }

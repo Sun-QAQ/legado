@@ -47,7 +47,7 @@ android {
         }
     }
     defaultConfig {
-        applicationId "io.legado.app"
+        applicationId 'io.legado.app.AI'
         minSdk 21
         targetSdk 35
         versionCode 10000 + gitCommits
