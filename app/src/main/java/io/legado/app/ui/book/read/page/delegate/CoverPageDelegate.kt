@@ -23,27 +23,27 @@ class CoverPageDelegate(readView: ReadView) : HorizontalPageDelegate(readView) {
         if (!isRunning) return
         val offsetX = touchX - startX
 
-        if ((mDirection == PageDirection.NEXT && offsetX > 0)
-            || (mDirection == PageDirection.PREV && offsetX < 0)
+        if ((animationDirection == PageDirection.NEXT && offsetX > 0)
+            || (animationDirection == PageDirection.PREV && offsetX < 0)
         ) {
             return
         }
 
         val distanceX = if (offsetX > 0) offsetX - viewWidth else offsetX + viewWidth
-        if (mDirection == PageDirection.PREV) {
+        if (animationDirection == PageDirection.PREV) {
             if (offsetX <= viewWidth) {
                 canvas.withTranslation(distanceX) {
-                    prevRecorder.draw(canvas)
+                    targetRecorder.draw(canvas)
                 }
                 addShadow(distanceX, canvas)
             } else {
-                prevRecorder.draw(canvas)
+                targetRecorder.draw(canvas)
             }
-        } else if (mDirection == PageDirection.NEXT) {
-            val width = nextRecorder.width.toFloat()
-            val height = nextRecorder.height.toFloat()
+        } else if (animationDirection == PageDirection.NEXT) {
+            val width = targetRecorder.width.toFloat()
+            val height = targetRecorder.height.toFloat()
             canvas.withClip(width + offsetX, 0f, width, height) {
-                nextRecorder.draw(this)
+                targetRecorder.draw(this)
             }
             canvas.withTranslation(distanceX - viewWidth) {
                 curRecorder.draw(this)
@@ -53,6 +53,7 @@ class CoverPageDelegate(readView: ReadView) : HorizontalPageDelegate(readView) {
     }
 
     override fun setBitmap() {
+        curPage.screenshot(curRecorder)
         when (mDirection) {
             PageDirection.PREV -> {
                 prevPage.screenshot(prevRecorder)
@@ -60,7 +61,6 @@ class CoverPageDelegate(readView: ReadView) : HorizontalPageDelegate(readView) {
 
             PageDirection.NEXT -> {
                 nextPage.screenshot(nextRecorder)
-                curPage.screenshot(curRecorder)
             }
 
             else -> Unit
@@ -92,7 +92,7 @@ class CoverPageDelegate(readView: ReadView) : HorizontalPageDelegate(readView) {
 
     override fun onAnimStart(animationSpeed: Int) {
         val distanceX: Float
-        when (mDirection) {
+        when (animationDirection) {
             PageDirection.NEXT -> distanceX =
                 if (isCancel) {
                     var dis = viewWidth - startX + touchX

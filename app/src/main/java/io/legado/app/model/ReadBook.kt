@@ -890,6 +890,8 @@ object ReadBook : CoroutineScope by MainScope() {
         return book?.getPageAnim() ?: ReadBookConfig.pageAnim
     }
 
+    fun reversePageSwipe(): Boolean = book?.getReversePageSwipe() ?: false
+
     fun setCharset(charset: String) {
         book?.let {
             it.charset = charset

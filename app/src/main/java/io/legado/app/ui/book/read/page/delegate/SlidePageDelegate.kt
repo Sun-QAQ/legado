@@ -9,7 +9,7 @@ class SlidePageDelegate(readView: ReadView) : HorizontalPageDelegate(readView) {
 
     override fun onAnimStart(animationSpeed: Int) {
         val distanceX: Float
-        when (mDirection) {
+        when (animationDirection) {
             PageDirection.NEXT -> distanceX =
                 if (isCancel) {
                     var dis = viewWidth - startX + touchX
@@ -34,21 +34,21 @@ class SlidePageDelegate(readView: ReadView) : HorizontalPageDelegate(readView) {
     override fun onDraw(canvas: Canvas) {
         val offsetX = touchX - startX
 
-        if ((mDirection == PageDirection.NEXT && offsetX > 0)
-            || (mDirection == PageDirection.PREV && offsetX < 0)
+        if ((animationDirection == PageDirection.NEXT && offsetX > 0)
+            || (animationDirection == PageDirection.PREV && offsetX < 0)
         ) return
         val distanceX = if (offsetX > 0) offsetX - viewWidth else offsetX + viewWidth
         if (!isRunning) return
-        if (mDirection == PageDirection.PREV) {
+        if (animationDirection == PageDirection.PREV) {
             canvas.withTranslation(distanceX + viewWidth) {
                 curRecorder.draw(this)
             }
             canvas.withTranslation(distanceX) {
-                prevRecorder.draw(this)
+                targetRecorder.draw(this)
             }
-        } else if (mDirection == PageDirection.NEXT) {
+        } else if (animationDirection == PageDirection.NEXT) {
             canvas.withTranslation(distanceX) {
-                nextRecorder.draw(this)
+                targetRecorder.draw(this)
             }
             canvas.withTranslation(distanceX - viewWidth) {
                 curRecorder.draw(this)

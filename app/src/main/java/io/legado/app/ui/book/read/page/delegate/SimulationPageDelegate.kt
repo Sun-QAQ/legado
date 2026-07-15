@@ -142,15 +142,14 @@ class SimulationPageDelegate(readView: ReadView) : HorizontalPageDelegate(readVi
     }
 
     override fun setBitmap() {
+        curBitmap = curPage.screenshot(curBitmap, canvas)
         when (mDirection) {
             PageDirection.PREV -> {
                 prevBitmap = prevPage.screenshot(prevBitmap, canvas)
-                curBitmap = curPage.screenshot(curBitmap, canvas)
             }
 
             PageDirection.NEXT -> {
                 nextBitmap = nextPage.screenshot(nextBitmap, canvas)
-                curBitmap = curPage.screenshot(curBitmap, canvas)
             }
 
             else -> Unit
@@ -171,13 +170,13 @@ class SimulationPageDelegate(readView: ReadView) : HorizontalPageDelegate(readVi
 
             MotionEvent.ACTION_MOVE -> {
                 if ((startY > viewHeight / 3 && startY < viewHeight * 2 / 3)
-                    || mDirection == PageDirection.PREV
+                    || animationDirection == PageDirection.PREV
                 ) {
                     readView.touchY = viewHeight.toFloat()
                 }
 
                 if (startY > viewHeight / 3 && startY < viewHeight / 2
-                    && mDirection == PageDirection.NEXT
+                    && animationDirection == PageDirection.NEXT
                 ) {
                     readView.touchY = 1f
                 }
@@ -205,17 +204,29 @@ class SimulationPageDelegate(readView: ReadView) : HorizontalPageDelegate(readVi
         }
     }
 
+    override fun setDirection(direction: PageDirection, physicalDirection: PageDirection) {
+        super.setDirection(direction, physicalDirection)
+        when (physicalDirection) {
+            PageDirection.PREV ->
+                if (startX > viewWidth / 2) calcCornerXY(startX, viewHeight.toFloat())
+                else calcCornerXY(viewWidth - startX, viewHeight.toFloat())
+            PageDirection.NEXT ->
+                if (viewWidth / 2 > startX) calcCornerXY(viewWidth - startX, startY)
+            else -> Unit
+        }
+    }
+
     override fun onAnimStart(animationSpeed: Int) {
         var dx: Float
         val dy: Float
         // dy 垂直方向滑动的距离，负值会使滚动向上滚动
         if (isCancel) {
-            dx = if (mCornerX > 0 && mDirection == PageDirection.NEXT) {
+            dx = if (mCornerX > 0 && animationDirection == PageDirection.NEXT) {
                 (viewWidth - touchX)
             } else {
                 -touchX
             }
-            if (mDirection != PageDirection.NEXT) {
+            if (animationDirection != PageDirection.NEXT) {
                 dx = -(viewWidth + touchX)
             }
             dy = if (mCornerY > 0) {
@@ -224,7 +235,7 @@ class SimulationPageDelegate(readView: ReadView) : HorizontalPageDelegate(readVi
                 -touchY // 防止mTouchY最终变为0
             }
         } else {
-            dx = if (mCornerX > 0 && mDirection == PageDirection.NEXT) {
+            dx = if (mCornerX > 0 && animationDirection == PageDirection.NEXT) {
                 -(viewWidth + touchX)
             } else {
                 viewWidth - touchX
@@ -246,21 +257,22 @@ class SimulationPageDelegate(readView: ReadView) : HorizontalPageDelegate(readVi
 
     override fun onDraw(canvas: Canvas) {
         if (!isRunning) return
-        when (mDirection) {
+        val targetBitmap = if (mDirection == PageDirection.NEXT) nextBitmap else prevBitmap
+        when (animationDirection) {
             PageDirection.NEXT -> {
                 calcPoints()
                 drawCurrentPageArea(canvas, curBitmap)
-                drawNextPageAreaAndShadow(canvas, nextBitmap)
+                drawNextPageAreaAndShadow(canvas, targetBitmap)
                 drawCurrentPageShadow(canvas)
                 drawCurrentBackArea(canvas, curBitmap)
             }
 
             PageDirection.PREV -> {
                 calcPoints()
-                drawCurrentPageArea(canvas, prevBitmap)
+                drawCurrentPageArea(canvas, targetBitmap)
                 drawNextPageAreaAndShadow(canvas, curBitmap)
                 drawCurrentPageShadow(canvas)
-                drawCurrentBackArea(canvas, prevBitmap)
+                drawCurrentBackArea(canvas, targetBitmap)
             }
 
             else -> return

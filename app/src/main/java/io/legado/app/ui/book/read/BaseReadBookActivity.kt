@@ -368,9 +368,15 @@ abstract class BaseReadBookActivity :
         items.add(getString(R.string.page_anim_simulation))
         items.add(getString(R.string.page_anim_scroll))
         items.add(getString(R.string.page_anim_none))
+        items.add(getString(R.string.reverse_page_swipe) + if (ReadBook.reversePageSwipe()) " [ON]" else "")
         selector(R.string.page_anim, items) { _, i ->
-            ReadBook.book?.setPageAnim(i - 1)
-            success()
+            if (i == items.lastIndex) {
+                ReadBook.book?.setReversePageSwipe(!ReadBook.reversePageSwipe())
+                success()
+            } else {
+                ReadBook.book?.setPageAnim(i - 1)
+                success()
+            }
         }
     }
 

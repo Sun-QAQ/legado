@@ -230,6 +230,12 @@ data class Book(
         return pageAnim
     }
 
+    fun setReversePageSwipe(reverse: Boolean) {
+        config.reversePageSwipe = reverse
+    }
+
+    fun getReversePageSwipe(): Boolean = config.reversePageSwipe
+
     fun setImageStyle(imageStyle: String?) {
         config.imageStyle = imageStyle
     }
@@ -393,6 +399,7 @@ data class Book(
     data class ReadConfig(
         var reverseToc: Boolean = false,
         var pageAnim: Int? = null,
+        var reversePageSwipe: Boolean = false,
         var reSegment: Boolean = false,
         var imageStyle: String? = null,
         var useReplaceRule: Boolean? = null,// 正文使用净化替换规则

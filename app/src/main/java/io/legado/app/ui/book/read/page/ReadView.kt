@@ -52,6 +52,9 @@ class ReadView(context: Context, attrs: AttributeSet) :
     FrameLayout(context, attrs),
     DataSource, LayoutProgressListener {
 
+    val reversePageSwipe: Boolean
+        get() = ReadBook.reversePageSwipe()
+
     val callBack: CallBack get() = activity as CallBack
     var pageFactory: TextPageFactory = TextPageFactory(this)
     var pageDelegate: PageDelegate? = null

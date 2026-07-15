@@ -8,13 +8,24 @@ import io.legado.app.utils.screenshot
 
 abstract class HorizontalPageDelegate(readView: ReadView) : PageDelegate(readView) {
 
+    protected var animationDirection = PageDirection.NONE
+
     protected var curRecorder = CanvasRecorderFactory.create()
     protected var prevRecorder = CanvasRecorderFactory.create()
     protected var nextRecorder = CanvasRecorderFactory.create()
+    protected val targetRecorder
+        get() = if (mDirection == PageDirection.NEXT) nextRecorder else prevRecorder
     private val slopSquare get() = readView.pageSlopSquare2
 
     override fun setDirection(direction: PageDirection) {
         super.setDirection(direction)
+        animationDirection = direction
+        setBitmap()
+    }
+
+    open fun setDirection(direction: PageDirection, physicalDirection: PageDirection) {
+        super.setDirection(direction)
+        animationDirection = physicalDirection
         setBitmap()
     }
 
@@ -83,26 +94,28 @@ abstract class HorizontalPageDelegate(readView: ReadView) : PageDelegate(readVie
             val distance = deltaX * deltaX + deltaY * deltaY
             isMoved = distance > slopSquare
             if (isMoved) {
-                if (sumX - startX > 0) {
+                val swipeRight = sumX - startX > 0
+                val reverse = readView.reversePageSwipe
+                if (swipeRight == reverse) {
                     //如果上一页不存在
-                    if (!hasPrev()) {
-                        noNext = true
-                        return
-                    }
-                    setDirection(PageDirection.PREV)
-                } else {
-                    //如果不存在表示没有下一页了
                     if (!hasNext()) {
                         noNext = true
                         return
                     }
-                    setDirection(PageDirection.NEXT)
+                    setDirection(PageDirection.NEXT, if (swipeRight) PageDirection.PREV else PageDirection.NEXT)
+                } else {
+                    //如果不存在表示没有下一页了
+                    if (!hasPrev()) {
+                        noNext = true
+                        return
+                    }
+                    setDirection(PageDirection.PREV, if (swipeRight) PageDirection.PREV else PageDirection.NEXT)
                 }
                 readView.setStartPoint(event.x, event.y, false)
             }
         }
         if (isMoved) {
-            isCancel = if (mDirection == PageDirection.NEXT) sumX > lastX else sumX < lastX
+            isCancel = if (animationDirection == PageDirection.NEXT) sumX > lastX else sumX < lastX
             isRunning = true
             //设置触摸点
             readView.setTouchPoint(sumX, sumY)
