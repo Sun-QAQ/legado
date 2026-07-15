@@ -1,11 +1,5 @@
 pluginManagement {
     repositories {
-        // 1. 优先走国内阿里云镜像（插件库）
-        maven { url 'https://maven.aliyun.com/repository/google' }
-        maven { url 'https://maven.aliyun.com/repository/public' }
-        maven { url 'https://maven.aliyun.com/repository/gradle-plugin' }
-
-        // 原仓库
         google {
             content {
                 includeGroupByRegex("com\\.android.*")
@@ -13,19 +7,22 @@ pluginManagement {
                 includeGroupByRegex("androidx.*")
             }
         }
+        //原仓库
         gradlePluginPortal()
         mavenCentral()
+        //镜像仓库,无法连接源仓库自行启用镜像仓库,不要提交修改
+        //maven { url "https://maven-central-asia.storage-download.googleapis.com/maven2/" }
+        //maven { url 'https://maven.aliyun.com/repository/google' }
+        //maven { url 'https://maven.aliyun.com/repository/public' }
+        //maven { url 'https://maven.aliyun.com/repository/gradle-plugin' }
+        //maven { url 'https://repo.huaweicloud.com/repository/maven/' }
     }
 }
 
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
     repositories {
-        // 2. 优先走国内阿里云镜像（依赖库）
-        maven { url 'https://maven.aliyun.com/repository/google' }
-        maven { url 'https://maven.aliyun.com/repository/public' }
-
-        // 原仓库
+        //原仓库
         google {
             content {
                 includeGroupByRegex("com\\.android.*")
@@ -40,6 +37,12 @@ dependencyResolutionManagement {
             }
         }
         mavenCentral()
+
+        //镜像仓库,无法连接源仓库自行启用镜像仓库,不要提交修改
+        //maven { url "https://maven-central-asia.storage-download.googleapis.com/maven2/" }
+        //maven { url 'https://maven.aliyun.com/repository/google' }
+        //maven { url 'https://maven.aliyun.com/repository/public' }
+        //maven { url 'https://repo.huaweicloud.com/repository/maven/' }
     }
 }
 rootProject.name = 'legado'
