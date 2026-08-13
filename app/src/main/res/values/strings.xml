@@ -647,6 +647,8 @@
     <string name="ai_source_manage">AI suppliers</string>
     <string name="ai_source_manage_desc">Add, edit and manage AI suppliers</string>
     <string name="ai_source">AI supplier</string>
+    <string name="ai_source_supplier">Supplier</string>
+    <string name="ai_source_custom">Custom</string>
     <string name="ai_source_name">Supplier name</string>
     <string name="ai_source_base_url">API address</string>
     <string name="ai_source_api_key">API key</string>
@@ -668,6 +670,8 @@
     <string name="agent_searching">Searching books…</string>
     <string name="agent_waiting">Waiting for reply…</string>
     <string name="agent_no_result">No books found</string>
+    <string name="agent_invalid_response">Invalid API response format</string>
+    <string name="agent_api_error">API error: %s</string>
     <string name="agent_send">Send</string>
     <string name="service_stop">Service stopped</string>
     <string name="service_start">Starting service\nChecking notification bar for details</string>

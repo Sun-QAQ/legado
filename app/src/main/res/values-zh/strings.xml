@@ -646,6 +646,8 @@
     <string name="ai_source_manage">AI供应商管理</string>
     <string name="ai_source_manage_desc">添加、编辑和管理AI供应商</string>
     <string name="ai_source">AI供应商</string>
+    <string name="ai_source_supplier">供应商</string>
+    <string name="ai_source_custom">自定义</string>
     <string name="ai_source_name">供应商名称</string>
     <string name="ai_source_base_url">接口地址</string>
     <string name="ai_source_api_key">API密钥</string>
@@ -667,6 +669,8 @@
     <string name="agent_searching">正在搜索书籍…</string>
     <string name="agent_waiting">正在等待回复…</string>
     <string name="agent_no_result">未找到相关书籍</string>
+    <string name="agent_invalid_response">接口返回内容格式不正确</string>
+    <string name="agent_api_error">接口返回错误：%s</string>
     <string name="agent_send">发送</string>
     <string name="service_stop">服务已停止</string>
     <string name="service_start">正在启动服务\n具体信息请查看通知栏</string>

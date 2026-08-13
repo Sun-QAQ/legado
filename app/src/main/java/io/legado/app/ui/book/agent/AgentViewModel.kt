@@ -127,10 +127,9 @@ class AgentViewModel(application: Application) : BaseViewModel(application) {
             for (round in 0 until 3) {
                 if (finished) break
                 val request = buildChatRequest(supplier)
-                val response = withContext(Dispatchers.IO) {
+                val message = withContext(Dispatchers.IO) {
                     chatCompletion(supplier, request)
                 }
-                val message = response.get("message").asJsonObject
                 val content = message.get("content")?.takeIf { !it.isJsonNull }?.asString.orEmpty()
                 if (content.isNotBlank()) {
                     finalText = content
@@ -145,7 +144,10 @@ class AgentViewModel(application: Application) : BaseViewModel(application) {
                     val callObject = call.asJsonObject
                     val toolCallId =
                         callObject.get("id")?.takeIf { !it.isJsonNull }?.asString.orEmpty()
-                    val function = callObject.get("function").asJsonObject
+                    val function = callObject.get("function")
+                        ?.takeIf { it.isJsonObject }
+                        ?.asJsonObject
+                        ?: throw invalidResponseException(null)
                     val name = function.get("name")?.takeIf { !it.isJsonNull }?.asString.orEmpty()
                     val arguments =
                         function.get("arguments")?.takeIf { !it.isJsonNull }?.asString.orEmpty()
@@ -173,7 +175,8 @@ class AgentViewModel(application: Application) : BaseViewModel(application) {
             }
         } catch (e: Exception) {
             AppLog.put("Agent 对话出错", e)
-            addAgentMessage(e.localizedMessage ?: e.message ?: "请求失败")
+            val message = e.localizedMessage ?: e.message ?: "请求失败"
+            addAgentMessage("${supplier.name}: $message")
         } finally {
             _waiting.value = false
         }
@@ -251,9 +254,51 @@ class AgentViewModel(application: Application) : BaseViewModel(application) {
             url(supplier.baseUrl.trimEnd('/') + "/chat/completions")
             post(body.toString().toRequestBody("application/json; charset=UTF-8".toMediaType()))
         }
-        val json = JsonParser.parseString(response.body).asJsonObject
-        val choice = json.getAsJsonArray("choices")[0].asJsonObject
-        return choice.getAsJsonObject("message")
+        val bodyText = response.body
+        val json = bodyText?.takeIf { it.isNotBlank() }?.let {
+            runCatching { JsonParser.parseString(it) }
+                .getOrNull()
+                ?.takeIf { it.isJsonObject }
+                ?.asJsonObject
+        }
+        if (json == null) {
+            throw invalidResponseException(bodyText, response.code())
+        }
+        json.get("error")?.takeIf { !it.isJsonNull }?.let { error ->
+            val message = error.takeIf { it.isJsonObject }
+                ?.asJsonObject
+                ?.get("message")
+                ?.takeIf { !it.isJsonNull }
+                ?.asString
+            throw Exception(message ?: getString(R.string.agent_api_error, error.toString()))
+        }
+        if (!response.isSuccessful()) {
+            AppLog.put("Agent 接口返回 HTTP ${response.code()}\n${bodyText.orEmpty()}")
+            throw Exception("HTTP ${response.code()}\n${bodyText?.take(1000).orEmpty()}")
+        }
+        val choices = json.getAsJsonArray("choices")
+        if (choices == null || choices.size() == 0) {
+            throw invalidResponseException(bodyText, response.code())
+        }
+        val choice = choices[0].takeIf { it.isJsonObject }?.asJsonObject
+            ?: throw invalidResponseException(bodyText, response.code())
+        choice.get("message")?.takeIf { it.isJsonObject }?.asJsonObject?.let {
+            return it
+        }
+        val text = choice.get("text")?.takeIf { !it.isJsonNull }?.asString
+        if (!text.isNullOrBlank()) {
+            return JsonObject().apply {
+                addProperty("content", text)
+            }
+        }
+        throw invalidResponseException(bodyText, response.code())
+    }
+
+    private fun invalidResponseException(bodyText: String?, code: Int? = null): Exception {
+        AppLog.put("Agent 接口返回内容格式不正确 HTTP $code\n${bodyText.orEmpty()}")
+        val prefix = code?.let { "HTTP $it\n" }.orEmpty()
+        val detail = bodyText?.take(1000)?.let { "\n$it" }.orEmpty()
+        return Exception(prefix + getString(R.string.agent_invalid_response) + detail)
     }
 
     /**
@@ -327,8 +372,8 @@ class AgentViewModel(application: Application) : BaseViewModel(application) {
         )
     }
 
-    private fun getString(resId: Int): String {
-        return context.getString(resId)
+    private fun getString(resId: Int, vararg formatArgs: Any): String {
+        return context.getString(resId, *formatArgs)
     }
 
     data class ChatTurn(

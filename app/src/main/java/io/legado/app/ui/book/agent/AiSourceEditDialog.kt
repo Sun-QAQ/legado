@@ -33,6 +33,13 @@ class AiSourceEditDialog() : BaseDialogFragment(R.layout.dialog_ai_source_edit, 
     private val binding by viewBinding(DialogAiSourceEditBinding::bind)
     private val viewModel by viewModels<AiSourceEditViewModel>()
     private var aiSource = AiSource()
+    private val presets by lazy {
+        listOf(
+            AiSourcePreset("DeepSeek", "https://api.deepseek.com/v1", "deepseek-chat"),
+            AiSourcePreset("OpenCodeGO", "https://opencode.ai/zen/go/v1", "glm-5.2"),
+            AiSourcePreset("", "", "", getString(R.string.ai_source_custom))
+        )
+    }
 
     override fun onStart() {
         super.onStart()
@@ -48,14 +55,53 @@ class AiSourceEditDialog() : BaseDialogFragment(R.layout.dialog_ai_source_edit, 
             aiSource = it
             initView()
         }
+        if (arguments?.getLong("id") == null) {
+            initView()
+        }
     }
 
     private fun initView() {
+        initPresetSelector()
         binding.tvName.setText(aiSource.name)
         binding.tvBaseUrl.setText(aiSource.baseUrl)
         binding.tvApiKey.setText(aiSource.apiKey)
         binding.tvModel.setText(aiSource.model)
         binding.tvHeaders.setText(aiSource.headers)
+        if (aiSource.name.isBlank() && aiSource.baseUrl.isBlank()) {
+            applyPreset(0)
+        } else {
+            binding.tvSupplier.setText(presets[detectPreset(aiSource)].displayName)
+        }
+    }
+
+    private fun initPresetSelector() {
+        binding.tvSupplier.isFocusable = false
+        binding.tvSupplier.isClickable = true
+        binding.tvSupplier.setOnClickListener {
+            context?.selector(
+                getString(R.string.ai_source_supplier),
+                presets.map { it.displayName }
+            ) { _, index ->
+                applyPreset(index)
+            }
+        }
+    }
+
+    private fun applyPreset(index: Int) {
+        val preset = presets[index]
+        binding.tvSupplier.setText(preset.displayName)
+        binding.tvName.setText(preset.name)
+        binding.tvBaseUrl.setText(preset.baseUrl)
+        binding.tvModel.setText(preset.model)
+    }
+
+    private fun detectPreset(source: AiSource): Int {
+        val index = presets.indexOfFirst { preset ->
+            preset.baseUrl.isNotBlank() &&
+                (source.baseUrl.trimEnd('/').startsWith(preset.baseUrl.trimEnd('/')) ||
+                    source.name.equals(preset.name, ignoreCase = true))
+        }
+        return if (index >= 0) index else presets.lastIndex
     }
 
     override fun onMenuItemClick(item: MenuItem?): Boolean {
@@ -126,5 +172,12 @@ class AiSourceEditDialog() : BaseDialogFragment(R.layout.dialog_ai_source_edit, 
             }
         )
     }
+
+    private data class AiSourcePreset(
+        val name: String,
+        val baseUrl: String,
+        val model: String,
+        val displayName: String = name
+    )
 
 }
