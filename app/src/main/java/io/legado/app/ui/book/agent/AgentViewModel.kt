@@ -47,6 +47,9 @@ class AgentViewModel(application: Application) : BaseViewModel(application) {
     private val history = arrayListOf<ChatTurn>()
     private var selectedSupplierId: Long = 0L
     private var lastBooks: List<SearchBook> = emptyList()
+    private val _status = MutableStateFlow<String?>(null)
+    val status: StateFlow<String?> = _status
+    private val statusSteps = arrayListOf<String>()
 
     fun selectSupplier(id: Long, name: String) {
         selectedSupplierId = id
@@ -55,6 +58,8 @@ class AgentViewModel(application: Application) : BaseViewModel(application) {
     }
 
     fun clearChat() {
+        statusSteps.clear()
+        _status.value = null
         history.clear()
         _messages.value = emptyList()
     }
@@ -95,8 +100,22 @@ class AgentViewModel(application: Application) : BaseViewModel(application) {
         _messages.value = _messages.value + AgentMessage(false, text, books)
     }
 
+    private fun appendStatus(step: String) {
+        statusSteps.add(step)
+        _status.value = statusSteps.joinToString(" → ")
+        _messages.value = _messages.value.filterNot { it.isStatus } +
+            AgentMessage(status = _status.value)
+    }
+
+    private fun clearStatus() {
+        statusSteps.clear()
+        _status.value = null
+        _messages.value = _messages.value.filterNot { it.isStatus }
+    }
+
     private suspend fun searchDirect(key: String, searchKey: String = key) {
         _waiting.value = true
+        appendStatus(getString(R.string.agent_status_searching, searchKey))
         try {
             val books = withContext(Dispatchers.IO) {
                 searchBooks(searchKey, 1)
@@ -110,6 +129,7 @@ class AgentViewModel(application: Application) : BaseViewModel(application) {
             context.toastOnUi(e.localizedMessage ?: e.message ?: "搜索失败")
             addAgentMessage(e.localizedMessage ?: "搜索失败")
         } finally {
+            clearStatus()
             _waiting.value = false
         }
     }
@@ -126,6 +146,10 @@ class AgentViewModel(application: Application) : BaseViewModel(application) {
             var finished = false
             for (round in 0 until 3) {
                 if (finished) break
+                if (round > 0) {
+                    appendStatus(getString(R.string.agent_status_generating))
+                }
+                appendStatus(getString(R.string.agent_status_requesting))
                 val request = buildChatRequest(supplier)
                 val message = withContext(Dispatchers.IO) {
                     chatCompletion(supplier, request)
@@ -140,6 +164,7 @@ class AgentViewModel(application: Application) : BaseViewModel(application) {
                     finished = true
                     break
                 }
+                appendStatus(getString(R.string.agent_status_tool_calling))
                 history.add(
                     ChatTurn(
                         ROLE_ASSISTANT,
@@ -161,6 +186,7 @@ class AgentViewModel(application: Application) : BaseViewModel(application) {
                     if (name == "search_books") {
                         val query = parseQuery(arguments)
                         val books = if (query.isNotBlank()) {
+                            appendStatus(getString(R.string.agent_status_searching, query))
                             withContext(Dispatchers.IO) {
                                 searchBooks(query, 1)
                             }
@@ -187,6 +213,7 @@ class AgentViewModel(application: Application) : BaseViewModel(application) {
             val message = e.localizedMessage ?: e.message ?: "请求失败"
             addAgentMessage("${supplier.name}: $message")
         } finally {
+            clearStatus()
             _waiting.value = false
         }
     }

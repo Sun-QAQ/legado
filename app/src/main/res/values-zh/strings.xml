@@ -671,6 +671,10 @@
     <string name="agent_no_result">未找到相关书籍</string>
     <string name="agent_invalid_response">接口返回内容格式不正确</string>
     <string name="agent_api_error">接口返回错误：%s</string>
+    <string name="agent_status_requesting">正在请求AI…</string>
+    <string name="agent_status_tool_calling">AI正在调用搜索工具…</string>
+    <string name="agent_status_searching">正在搜索：%s…</string>
+    <string name="agent_status_generating">AI正在生成回复…</string>
     <string name="agent_send">发送</string>
     <string name="service_stop">服务已停止</string>
     <string name="service_start">正在启动服务\n具体信息请查看通知栏</string>

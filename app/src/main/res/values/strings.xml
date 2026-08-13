@@ -672,6 +672,10 @@
     <string name="agent_no_result">No books found</string>
     <string name="agent_invalid_response">Invalid API response format</string>
     <string name="agent_api_error">API error: %s</string>
+    <string name="agent_status_requesting">Requesting AI…</string>
+    <string name="agent_status_tool_calling">AI is calling the search tool…</string>
+    <string name="agent_status_searching">Searching: %s…</string>
+    <string name="agent_status_generating">AI is generating a reply…</string>
     <string name="agent_send">Send</string>
     <string name="service_stop">Service stopped</string>
     <string name="service_start">Starting service\nChecking notification bar for details</string>

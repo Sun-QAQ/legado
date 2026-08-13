@@ -12,6 +12,7 @@ import io.legado.app.data.entities.SearchBook
 import io.legado.app.databinding.ItemAgentMessageBinding
 import io.legado.app.databinding.ItemAgentReplyBinding
 import io.legado.app.databinding.ItemSearchBinding
+import io.legado.app.databinding.ItemAgentStatusBinding
 import io.legado.app.help.config.AppConfig
 import io.legado.app.utils.visible
 
@@ -39,7 +40,11 @@ class AgentAdapter(
     }
 
     override fun getItemViewType(position: Int): Int {
-        return if (items[position].isUser) TYPE_USER else TYPE_REPLY
+        return when {
+            items[position].isStatus -> TYPE_STATUS
+            items[position].isUser -> TYPE_USER
+            else -> TYPE_REPLY
+        }
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ItemViewHolder {
@@ -49,8 +54,12 @@ class AgentAdapter(
                 ItemAgentMessageBinding.inflate(inflater, parent, false)
             )
 
-            else -> ItemViewHolder(
+            TYPE_REPLY -> ItemViewHolder(
                 ItemAgentReplyBinding.inflate(inflater, parent, false)
+            )
+
+            else -> ItemViewHolder(
+                ItemAgentStatusBinding.inflate(inflater, parent, false)
             )
         }
     }
@@ -60,7 +69,10 @@ class AgentAdapter(
     override fun onBindViewHolder(holder: ItemViewHolder, position: Int) {
         val item = items[position]
         val binding = holder.itemView
-        if (item.isUser) {
+        if (item.isStatus) {
+            val viewBinding = ItemAgentStatusBinding.bind(binding)
+            viewBinding.tvStatus.text = item.status
+        } else if (item.isUser) {
             val viewBinding = ItemAgentMessageBinding.bind(binding)
             viewBinding.tvMessage.text = item.text
         } else {
@@ -180,6 +192,7 @@ class AgentAdapter(
     companion object {
         private const val TYPE_USER = 0
         private const val TYPE_REPLY = 1
+        private const val TYPE_STATUS = 2
     }
 
 }
