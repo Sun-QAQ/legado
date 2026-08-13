@@ -78,6 +78,11 @@ class AgentAdapter(
         } else {
             val viewBinding = ItemAgentReplyBinding.bind(binding)
             viewBinding.tvMessage.text = item.text
+            viewBinding.btnLoadMore.visibility =
+                if (item.canLoadMore) View.VISIBLE else View.GONE
+            viewBinding.btnLoadMore.setOnClickListener {
+                callBack.onLoadMore()
+            }
             if (item.books.isEmpty()) {
                 viewBinding.llBookResult.visibility = android.view.View.GONE
             } else {
@@ -89,9 +94,9 @@ class AgentAdapter(
                         item.books.size
                     )
                 val bookAdapter = BookListAdapter(context, callBack)
+                bookAdapter.setItems(item.books)
                 viewBinding.rvBooks.layoutManager = WrapContentLinearLayoutManager(context)
                 viewBinding.rvBooks.adapter = bookAdapter
-                bookAdapter.setItems(item.books)
             }
         }
     }
@@ -143,6 +148,7 @@ class AgentAdapter(
 
     interface CallBack {
         fun openBook(book: SearchBook)
+        fun onLoadMore()
     }
 
     /**
@@ -160,7 +166,7 @@ class AgentAdapter(
             if (heightSpec == ViewGroup.LayoutParams.WRAP_CONTENT ||
                 View.MeasureSpec.getMode(heightSpec) == View.MeasureSpec.UNSPECIFIED
             ) {
-                val totalHeight = getTotalHeight(recycler)
+                val totalHeight = getTotalHeight(recycler, state.itemCount)
                 super.onMeasure(
                     recycler,
                     state,
@@ -172,17 +178,18 @@ class AgentAdapter(
             }
         }
 
-        private fun getTotalHeight(recycler: RecyclerView.Recycler): Int {
+        private fun getTotalHeight(recycler: RecyclerView.Recycler, count: Int): Int {
             var totalHeight = paddingTop + paddingBottom
-            for (i in 0 until itemCount) {
-                val viewHolder = recycler.getViewForPosition(i)
+            for (i in 0 until count) {
+                val viewHolder = runCatching { recycler.getViewForPosition(i) }.getOrNull()
+                    ?: continue
                 measureChildWithMargins(
                     viewHolder,
                     View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
                     View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
                 )
                 totalHeight += getDecoratedMeasuredHeight(viewHolder)
-                recycler.recycleView(viewHolder)
+                runCatching { recycler.recycleView(viewHolder) }
             }
             return totalHeight
         }

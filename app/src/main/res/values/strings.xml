@@ -670,11 +670,15 @@
     <string name="agent_searching">Searching books…</string>
     <string name="agent_waiting">Waiting for reply…</string>
     <string name="agent_no_result">No books found</string>
+    <string name="agent_source_need_ai">Configure an AI supplier first to create book sources.</string>
+    <string name="agent_load_more">Search more</string>
+    <string name="agent_no_more_results">No more results</string>
     <string name="agent_invalid_response">Invalid API response format</string>
     <string name="agent_api_error">API error: %s</string>
     <string name="agent_status_requesting">Requesting AI…</string>
-    <string name="agent_status_tool_calling">AI is calling the search tool…</string>
+    <string name="agent_status_tool_calling">AI is calling a tool…</string>
     <string name="agent_status_searching">Searching: %s…</string>
+    <string name="agent_status_creating_source">AI is creating and validating the book source…</string>
     <string name="agent_status_generating">AI is generating a reply…</string>
     <string name="agent_send">Send</string>
     <string name="service_stop">Service stopped</string>

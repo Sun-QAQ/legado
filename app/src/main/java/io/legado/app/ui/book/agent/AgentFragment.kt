@@ -51,6 +51,9 @@ class AgentFragment() : BaseFragment(R.layout.fragment_agent), MainFragmentInter
         override fun openBook(book: SearchBook) {
             openBookInfo(book)
         }
+        override fun onLoadMore() {
+            viewModel.continueSearch()
+        }
     }) }
 
     override fun onFragmentCreated(view: View, savedInstanceState: Bundle?) {

@@ -10,22 +10,36 @@ import io.legado.app.base.BaseViewModel
 import io.legado.app.constant.AppLog
 import io.legado.app.R
 import io.legado.app.data.appDb
+import io.legado.app.data.entities.BookSource
 import io.legado.app.data.entities.SearchBook
+import io.legado.app.exception.NoStackTraceException
+import io.legado.app.help.config.AppConfig
 import io.legado.app.help.http.addHeaders
 import io.legado.app.help.http.newCallStrResponse
 import io.legado.app.help.http.okHttpClient
 import io.legado.app.model.webBook.WebBook
 import io.legado.app.utils.GSON
+import io.legado.app.utils.fromJsonArray
+import io.legado.app.utils.fromJsonObject
 import io.legado.app.utils.toastOnUi
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asFlow
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.flatMapMerge
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody.Companion.toRequestBody
 import java.util.concurrent.TimeUnit
+import kotlin.math.min
 
 /**
  * Agent 对话
@@ -47,6 +61,10 @@ class AgentViewModel(application: Application) : BaseViewModel(application) {
     private val history = arrayListOf<ChatTurn>()
     private var selectedSupplierId: Long = 0L
     private var lastBooks: List<SearchBook> = emptyList()
+    private var lastSearchKey = ""
+    private var searchedSourceCount = 0
+    private var accumulatedSearchBooks: List<SearchBook> = emptyList()
+    private var canLoadMoreSearch = false
     private val _status = MutableStateFlow<String?>(null)
     val status: StateFlow<String?> = _status
     private val statusSteps = arrayListOf<String>()
@@ -62,6 +80,10 @@ class AgentViewModel(application: Application) : BaseViewModel(application) {
         _status.value = null
         history.clear()
         _messages.value = emptyList()
+        lastSearchKey = ""
+        searchedSourceCount = 0
+        accumulatedSearchBooks = emptyList()
+        canLoadMoreSearch = false
     }
 
     fun send(text: String) {
@@ -75,7 +97,11 @@ class AgentViewModel(application: Application) : BaseViewModel(application) {
                 appDb.aiSourceDao.allEnabled.firstOrNull()
             }
             if (supplier == null || supplier.model.isBlank()) {
-                searchDirect(key, extractSearchKey(key))
+                if (isCreateSourceRequest(key)) {
+                    addAgentMessage(getString(R.string.agent_source_need_ai))
+                } else {
+                    searchDirect(key, extractSearchKey(key))
+                }
             } else {
                 agentLoop(supplier, key)
             }
@@ -90,14 +116,56 @@ class AgentViewModel(application: Application) : BaseViewModel(application) {
         }
     }
 
-    private fun addUserMessage(text: String) {
-        history.add(ChatTurn(ROLE_USER, text))
-        _messages.value = _messages.value + AgentMessage(true, text)
+    fun continueSearch() {
+        if (_waiting.value || !canLoadMoreSearch || lastSearchKey.isBlank()) return
+        viewModelScope.launch {
+            _waiting.value = true
+            appendStatus(getString(R.string.agent_status_searching, lastSearchKey))
+            try {
+                val start = searchedSourceCount
+                val end = start + SEARCH_SOURCE_BATCH_SIZE
+                val result = withContext(Dispatchers.IO) {
+                    searchBooks(lastSearchKey, start, end)
+                }
+                searchedSourceCount = result.searchedSources
+                canLoadMoreSearch = result.canLoadMore
+                val mergedBooks = mergeSearchBooks(
+                    accumulatedSearchBooks,
+                    result.allBooks,
+                    lastSearchKey
+                )
+                accumulatedSearchBooks = mergedBooks
+                val topBooks = mergedBooks.take(SEARCH_PAGE_SIZE)
+                if (topBooks.isEmpty()) {
+                    canLoadMoreSearch = false
+                    addAgentMessage(getString(R.string.agent_no_more_results))
+                } else {
+                    _messages.value = _messages.value.map { it.copy(canLoadMore = false) } +
+                        AgentMessage(false, "", topBooks, canLoadMore = canLoadMoreSearch)
+                }
+            } catch (e: Exception) {
+                context.toastOnUi(e.localizedMessage ?: e.message ?: "搜索失败")
+                addAgentMessage(e.localizedMessage ?: "搜索失败")
+            } finally {
+                clearStatus()
+                _waiting.value = false
+            }
+        }
     }
 
-    private fun addAgentMessage(text: String, books: List<SearchBook> = emptyList()) {
+    private fun addUserMessage(text: String) {
+        history.add(ChatTurn(ROLE_USER, text))
+        _messages.value = _messages.value.map { it.copy(canLoadMore = false) } +
+            AgentMessage(true, text)
+    }
+
+    private fun addAgentMessage(
+        text: String,
+        books: List<SearchBook> = emptyList(),
+        canLoadMore: Boolean = false
+    ) {
         history.add(ChatTurn(ROLE_ASSISTANT, text))
-        _messages.value = _messages.value + AgentMessage(false, text, books)
+        _messages.value = _messages.value + AgentMessage(false, text, books, canLoadMore = canLoadMore)
     }
 
     private fun appendStatus(step: String) {
@@ -117,13 +185,17 @@ class AgentViewModel(application: Application) : BaseViewModel(application) {
         _waiting.value = true
         appendStatus(getString(R.string.agent_status_searching, searchKey))
         try {
-            val books = withContext(Dispatchers.IO) {
-                searchBooks(searchKey, 1)
+            val result = withContext(Dispatchers.IO) {
+                searchBooks(searchKey, 0, FIRST_SEARCH_SOURCE_LIMIT)
             }
-            if (books.isEmpty()) {
+            lastSearchKey = searchKey
+            searchedSourceCount = result.searchedSources
+            accumulatedSearchBooks = result.allBooks
+            canLoadMoreSearch = result.canLoadMore
+            if (result.books.isEmpty()) {
                 addAgentMessage(getString(R.string.agent_no_result))
             } else {
-                addAgentMessage("", books)
+                addAgentMessage("", result.books, canLoadMoreSearch)
             }
         } catch (e: Exception) {
             context.toastOnUi(e.localizedMessage ?: e.message ?: "搜索失败")
@@ -160,7 +232,11 @@ class AgentViewModel(application: Application) : BaseViewModel(application) {
                 }
                 val toolCalls = message.get("tool_calls")?.takeIf { it.isJsonArray }
                 if (toolCalls == null || toolCalls.asJsonArray.size() == 0) {
-                    addAgentMessage(finalText, if (hasBooks) lastBooks else emptyList())
+                    addAgentMessage(
+                        finalText,
+                        if (hasBooks) lastBooks else emptyList(),
+                        canLoadMore = hasBooks && canLoadMoreSearch
+                    )
                     finished = true
                     break
                 }
@@ -185,20 +261,43 @@ class AgentViewModel(application: Application) : BaseViewModel(application) {
                         function.get("arguments")?.takeIf { !it.isJsonNull }?.asString.orEmpty()
                     if (name == "search_books") {
                         val query = parseQuery(arguments)
-                        val books = if (query.isNotBlank()) {
+                        val searchResult = if (query.isNotBlank()) {
                             appendStatus(getString(R.string.agent_status_searching, query))
                             withContext(Dispatchers.IO) {
-                                searchBooks(query, 1)
+                                searchBooks(query, 0, FIRST_SEARCH_SOURCE_LIMIT)
                             }
                         } else {
-                            emptyList()
+                            SearchResult(emptyList(), emptyList(), 0, 0, false)
                         }
+                        val books = searchResult.books
                         hasBooks = hasBooks || books.isNotEmpty()
                         lastBooks = books
+                        lastSearchKey = query
+                        searchedSourceCount = searchResult.searchedSources
+                        accumulatedSearchBooks = searchResult.allBooks
+                        canLoadMoreSearch = searchResult.canLoadMore
                         history.add(
                             ChatTurn(
                                 ROLE_TOOL,
                                 GSON.toJson(books.map { it.toToolResult() }),
+                                toolCallId
+                            )
+                        )
+                    }
+                    if (name == "create_book_source") {
+                        val url = parseToolUrl(arguments)
+                        val result = if (url.isNotBlank()) {
+                            appendStatus(getString(R.string.agent_status_creating_source))
+                            withContext(Dispatchers.IO) {
+                                createBookSource(supplier, url)
+                            }
+                        } else {
+                            "书源网址为空"
+                        }
+                        history.add(
+                            ChatTurn(
+                                ROLE_TOOL,
+                                result,
                                 toolCallId
                             )
                         )
@@ -243,11 +342,11 @@ class AgentViewModel(application: Application) : BaseViewModel(application) {
             )
         }
         root.add("messages", messages)
-        root.add("tools", searchTools())
+        root.add("tools", agentTools())
         return root
     }
 
-    private fun searchTools(): JsonArray {
+    private fun agentTools(): JsonArray {
         val tools = JsonArray()
         val function = JsonObject()
         function.addProperty("name", "search_books")
@@ -268,6 +367,26 @@ class AgentViewModel(application: Application) : BaseViewModel(application) {
         tools.add(JsonObject().apply {
             addProperty("type", "function")
             add("function", function)
+        })
+        val sourceFunction = JsonObject()
+        sourceFunction.addProperty("name", "create_book_source")
+        sourceFunction.addProperty("description", "根据网站地址编写Legado书源，并自动调试保存")
+        val sourceParameters = JsonObject()
+        val sourceProperties = JsonObject()
+        sourceProperties.add(
+            "url",
+            JsonObject().apply {
+                addProperty("type", "string")
+                addProperty("description", "网站首页地址，例如 https://www.example.com")
+            }
+        )
+        sourceParameters.add("properties", sourceProperties)
+        sourceParameters.add("required", JsonArray().apply { add("url") })
+        sourceParameters.addProperty("type", "object")
+        sourceFunction.add("parameters", sourceParameters)
+        tools.add(JsonObject().apply {
+            addProperty("type", "function")
+            add("function", sourceFunction)
         })
         return tools
     }
@@ -343,29 +462,124 @@ class AgentViewModel(application: Application) : BaseViewModel(application) {
     /**
      * 搜索书籍，返回合并后的结果
      */
-    private suspend fun searchBooks(key: String, page: Int): List<SearchBook> {
+    @OptIn(ExperimentalCoroutinesApi::class)
+    private suspend fun searchBooks(
+        key: String,
+        sourceStart: Int,
+        sourceEnd: Int
+    ): SearchResult {
         val sources = appDb.bookSourceDao.allEnabled
-        if (sources.isEmpty()) return emptyList()
+        val totalSources = sources.size
+        if (totalSources == 0) {
+            AppLog.put("Agent 搜索: 没有启用书源 key=$key")
+            return SearchResult(emptyList(), emptyList(), 0, 0, false)
+        }
+        val end = min(sourceEnd, totalSources)
+        if (sourceStart >= end) {
+            AppLog.put("Agent 搜索: 没有更多书源 key=$key 已搜索=$sourceStart")
+            return SearchResult(emptyList(), emptyList(), sourceStart, totalSources, false)
+        }
+        AppLog.put(
+            "Agent 搜索开始: key=$key 书源区间=$sourceStart..$end 书源总数=$totalSources " +
+                "并发=${AppConfig.threadCount}"
+        )
         val result = arrayListOf<SearchBook>()
-        withTimeout(120_000L) {
-            sources.forEach { source ->
-                kotlin.runCatching {
-                    val books = WebBook.searchBookAwait(source, key, page)
-                    if (books.isNotEmpty()) {
-                        result.addAll(books)
+        val searchStart = System.currentTimeMillis()
+        try {
+            withTimeout(120_000L) {
+                sources.subList(sourceStart, end).asFlow()
+                    .flatMapMerge(AppConfig.threadCount) { source ->
+                        flow {
+                            val sourceStartTime = System.currentTimeMillis()
+                            AppLog.put(
+                                "Agent 搜索开始书源: ${source.bookSourceName} " +
+                                    source.bookSourceUrl
+                            )
+                            try {
+                                val books = withTimeout(30_000L) {
+                                    WebBook.searchBookAwait(source, key, 1)
+                                }
+                                val elapsed = System.currentTimeMillis() - sourceStartTime
+                                AppLog.put(
+                                    "Agent 搜索完成: ${source.bookSourceName} " +
+                                        "${source.bookSourceUrl} 耗时=${elapsed}ms " +
+                                        "结果数=${books.size}"
+                                )
+                                emitAll(books.asFlow())
+                            } catch (e: Exception) {
+                                val elapsed = System.currentTimeMillis() - sourceStartTime
+                                if (currentCoroutineContext().isActive) {
+                                    AppLog.put(
+                                        "Agent 搜索失败: ${source.bookSourceName} " +
+                                            "${source.bookSourceUrl} 耗时=${elapsed}ms",
+                                        e
+                                    )
+                                }
+                            }
+                        }
                     }
-                }.onFailure {
-                    AppLog.put("Agent 搜索出错 ${source.bookSourceName}", it)
-                }
-                if (result.size >= 30) {
-                    return@forEach
-                }
+                    .collect { result.add(it) }
             }
+        } catch (e: Exception) {
+            AppLog.put(
+                "Agent 搜索超时/取消: key=$key 书源区间=$sourceStart..$end 已获取${result.size}条 " +
+                    "总耗时=${System.currentTimeMillis() - searchStart}ms",
+                e
+            )
+            throw e
         }
         kotlin.runCatching {
             appDb.searchBookDao.insert(*result.toTypedArray())
         }
-        return result.sortedByDescending { it.originOrder }.take(30)
+        val ranked = rankBooks(result, key)
+        val finalResult = ranked.take(SEARCH_PAGE_SIZE)
+        val canLoadMore = end < totalSources
+        AppLog.put(
+            "Agent 搜索返回: key=$key 搜索书源=$end/$totalSources 原始结果=${result.size}条 " +
+                "去重后=${ranked.size}条 展示=${finalResult.size}条 " +
+                "总耗时=${System.currentTimeMillis() - searchStart}ms"
+        )
+        return SearchResult(finalResult, ranked, end, totalSources, canLoadMore)
+    }
+
+    private fun mergeSearchBooks(
+        existing: List<SearchBook>,
+        newBooks: List<SearchBook>,
+        key: String
+    ): List<SearchBook> {
+        return rankBooks(existing + newBooks, key)
+    }
+
+    private fun rankBooks(books: List<SearchBook>, key: String): List<SearchBook> {
+        val merged = LinkedHashMap<String, SearchBook>()
+        books.forEach { book ->
+            val id = "${book.name.trim()}|${book.author.trim()}".lowercase()
+            val existing = merged[id]
+            if (existing == null) {
+                merged[id] = book
+            } else {
+                existing.addOrigin(book.origin)
+            }
+        }
+        return merged.values.sortedWith(
+            compareByDescending<SearchBook> { relevanceScore(it, key) }
+                .thenByDescending { it.origins.size }
+                .thenByDescending { it.originOrder }
+        )
+    }
+
+    private fun relevanceScore(book: SearchBook, key: String): Int {
+        val name = book.name.trim()
+        val author = book.author.trim()
+        val k = key.trim()
+        var score = 0
+        if (name.equals(k, ignoreCase = true)) score += 100
+        if (author.equals(k, ignoreCase = true)) score += 90
+        if (name.contains(k, ignoreCase = true)) score += 60
+        if (author.contains(k, ignoreCase = true)) score += 50
+        val intro = book.intro
+        if (!intro.isNullOrBlank() && intro.contains(k, ignoreCase = true)) score += 20
+        return score
     }
 
     private fun parseQuery(arguments: String): String {
@@ -373,6 +587,169 @@ class AgentViewModel(application: Application) : BaseViewModel(application) {
             val obj = JsonParser.parseString(arguments).asJsonObject
             obj.get("query")?.takeIf { !it.isJsonNull }?.asString.orEmpty()
         }.getOrDefault("")
+    }
+
+    private fun parseToolUrl(arguments: String): String {
+        return kotlin.runCatching {
+            val obj = JsonParser.parseString(arguments).asJsonObject
+            obj.get("url")?.takeIf { !it.isJsonNull }?.asString.orEmpty()
+        }.getOrDefault("")
+    }
+
+    private suspend fun createBookSource(
+        supplier: io.legado.app.data.entities.AiSource,
+        url: String
+    ): String {
+        val siteUrl = url.trim().trimEnd('/')
+        val (finalUrl, html) = fetchSiteHtml(siteUrl)
+        var lastError = ""
+        for (attempt in 0 until SOURCE_CREATE_ATTEMPTS) {
+            val messages = JsonArray()
+            messages.add(
+                JsonObject().apply {
+                    addProperty("role", "system")
+                    addProperty("content", SOURCE_CREATE_PROMPT)
+                }
+            )
+            val userContent = buildString {
+                append("请为网站编写书源。\n网站地址：$finalUrl\n首页HTML片段：\n$html\n\n请直接输出书源JSON。")
+                if (attempt > 0) {
+                    append("\n\n上次书源校验失败：$lastError\n请修复后重新输出完整书源JSON。")
+                }
+            }
+            messages.add(
+                JsonObject().apply {
+                    addProperty("role", "user")
+                    addProperty("content", userContent)
+                }
+            )
+            val request = JsonObject().apply {
+                addProperty("model", supplier.model)
+                add("messages", messages)
+            }
+            val reply = try {
+                chatCompletion(supplier, request)
+            } catch (e: Exception) {
+                lastError = "请求AI失败: ${e.localizedMessage}"
+                continue
+            }
+            val content = reply.get("content")?.takeIf { !it.isJsonNull }?.asString.orEmpty()
+            val jsonText = extractJson(content)
+            val source = try {
+                parseBookSource(jsonText)
+            } catch (e: Exception) {
+                lastError = "书源JSON解析失败: ${e.localizedMessage}"
+                if (attempt < SOURCE_CREATE_ATTEMPTS - 1) {
+                    continue
+                }
+                return "书源创建失败：$lastError"
+            }
+            source.bookSourceGroup = "AI生成"
+            source.enabled = true
+            source.lastUpdateTime = System.currentTimeMillis()
+            try {
+                validateBookSource(source)
+                appDb.bookSourceDao.insert(source)
+                return "书源创建成功：${source.bookSourceName}，地址：${source.bookSourceUrl}，" +
+                    "已保存到AI生成分组"
+            } catch (e: Exception) {
+                lastError = e.localizedMessage ?: e.message ?: "校验失败"
+                AppLog.put("AI书源校验失败: ${source.bookSourceName}", e)
+                if (attempt < SOURCE_CREATE_ATTEMPTS - 1) {
+                    continue
+                }
+                return "书源创建失败：$lastError"
+            }
+        }
+        return "书源创建失败：$lastError"
+    }
+
+    private suspend fun fetchSiteHtml(url: String): Pair<String, String> {
+        val candidates = if (url.startsWith("http://") || url.startsWith("https://")) {
+            listOf(url)
+        } else {
+            listOf("https://$url", "http://$url")
+        }
+        for (candidate in candidates) {
+            try {
+                val response = okHttpClient.newCallStrResponse {
+                    url(candidate)
+                }
+                val html = response.body.orEmpty()
+                if (html.isNotBlank()) {
+                    val cleanHtml = html
+                        .replace(Regex("<script[\\s\\S]*?</script>", RegexOption.IGNORE_CASE), " ")
+                        .replace(Regex("<style[\\s\\S]*?</style>", RegexOption.IGNORE_CASE), " ")
+                        .replace(Regex("\\s+"), " ")
+                        .take(40_000)
+                    return response.url() to cleanHtml
+                }
+            } catch (e: Exception) {
+                AppLog.put("Agent 获取网站HTML失败: $candidate", e)
+            }
+        }
+        throw NoStackTraceException("无法访问网站 $url")
+    }
+
+    private fun extractJson(text: String): String {
+        val fenced = Regex("```(?:json)?\\s*([\\s\\S]*?)```", RegexOption.IGNORE_CASE)
+            .find(text)
+        if (fenced != null) return fenced.groupValues[1].trim()
+        val start = text.indexOf('{')
+        val end = text.lastIndexOf('}')
+        return if (start >= 0 && end > start) text.substring(start, end + 1) else text.trim()
+    }
+
+    private fun parseBookSource(json: String): BookSource {
+        val source = if (json.trimStart().startsWith("[")) {
+            GSON.fromJsonArray<BookSource>(json).getOrNull()?.firstOrNull()
+        } else {
+            GSON.fromJsonObject<BookSource>(json).getOrNull()
+        }
+            ?: throw NoStackTraceException("书源JSON格式错误")
+        if (source.bookSourceUrl.isBlank()) {
+            throw NoStackTraceException("bookSourceUrl为空")
+        }
+        if (source.bookSourceName.isBlank()) {
+            throw NoStackTraceException("bookSourceName为空")
+        }
+        return source
+    }
+
+    private suspend fun validateBookSource(source: BookSource) {
+        val keyword = source.getCheckKeyword("斗破苍穹")
+        val books = withTimeout(30_000L) {
+            WebBook.searchBookAwait(source, keyword)
+        }
+        if (books.isEmpty()) {
+            throw NoStackTraceException("搜索无结果")
+        }
+        val book = books.first().toBook()
+        if (book.tocUrl.isBlank()) {
+            withTimeout(30_000L) {
+                WebBook.getBookInfoAwait(source, book)
+            }
+        }
+        val toc = withTimeout(30_000L) {
+            WebBook.getChapterListAwait(source, book).getOrThrow()
+        }
+        if (toc.isEmpty()) {
+            throw NoStackTraceException("目录为空")
+        }
+        val firstChapter = toc.first()
+        val nextChapterUrl = toc.getOrNull(1)?.url ?: firstChapter.url
+        val content = withTimeout(30_000L) {
+            WebBook.getContentAwait(
+                bookSource = source,
+                book = book,
+                bookChapter = firstChapter,
+                nextChapterUrl = nextChapterUrl,
+                needSave = false
+            )
+        }
+        if (content.isBlank() || content == firstChapter.url) {
+            throw NoStackTraceException("正文内容为空")
+        }
     }
 
     /**
@@ -393,6 +770,10 @@ class AgentViewModel(application: Application) : BaseViewModel(application) {
             if (key.isNotBlank()) return key
         }
         return text
+    }
+
+    private fun isCreateSourceRequest(text: String): Boolean {
+        return text.contains("书源") && text.contains("网站")
     }
 
     private fun SearchBook.toToolResult(): Map<String, Any?> {
@@ -422,14 +803,41 @@ class AgentViewModel(application: Application) : BaseViewModel(application) {
         val toolCalls: JsonElement? = null
     )
 
+    data class SearchResult(
+        val books: List<SearchBook>,
+        val allBooks: List<SearchBook>,
+        val searchedSources: Int,
+        val totalSources: Int,
+        val canLoadMore: Boolean
+    )
+
     companion object {
         private const val ROLE_USER = "user"
         private const val ROLE_ASSISTANT = "assistant"
         private const val ROLE_TOOL = "tool"
+        private const val SEARCH_PAGE_SIZE = 10
+        private const val FIRST_SEARCH_SOURCE_LIMIT = 100
+        private const val SEARCH_SOURCE_BATCH_SIZE = 100
+        private const val SOURCE_CREATE_ATTEMPTS = 3
         private const val SYSTEM_PROMPT =
             "你是阅读App中的AI助手，可以用中文与用户对话。" +
                     "当用户要求搜索书籍时，调用 search_books 工具并简要说明搜索结果。" +
-                    "工具结果会以卡片形式展示给用户，回答时不要重复完整书籍列表。"
+                    "当用户要求编写书源时，调用 create_book_source 工具，根据网站编写并调试书源。" +
+                    "工具结果会以卡片形式展示给用户，回答时不要重复完整书籍列表。" +
+                    "每次展示相关性最高的10条结果，如需更多结果用户会点击继续搜索。"
+        private const val SOURCE_CREATE_PROMPT =
+            "你是Legado(阅读)的书源开发专家。" +
+                    "根据用户提供的网站首页HTML，编写一个完整可用的Legado书源JSON。" +
+                    "要求：1. 只输出一个JSON对象，不要输出解释、注释或markdown代码块。" +
+                    "2. JSON至少包含 bookSourceName、bookSourceUrl、searchUrl、ruleSearch；" +
+                    "详情、目录、正文规则尽量补齐：ruleBookInfo、ruleToc、ruleContent。" +
+                    "3. 规则使用Legado规则语法，例如 ruleSearch 中 bookList 使用XPath或CSS选择器，" +
+                    "name、author、bookUrl、coverUrl、intro、lastChapter 使用规则表达式。" +
+                    "ruleSearch、ruleBookInfo、ruleToc、ruleContent 必须使用JSON对象格式，不要使用字符串格式。" +
+                    "4. searchUrl 使用 {{key}} 表示搜索关键字，{{page}} 表示页码，" +
+                    "POST请求使用类似 https://example.com/search,POST,body=keyword={{key}} 的格式。" +
+                    "5. bookUrlPattern 填写详情页URL特征。" +
+                    "6. 输出必须是有效的JSON字符串。"
     }
 
 }

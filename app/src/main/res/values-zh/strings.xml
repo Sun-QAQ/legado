@@ -669,11 +669,15 @@
     <string name="agent_searching">正在搜索书籍…</string>
     <string name="agent_waiting">正在等待回复…</string>
     <string name="agent_no_result">未找到相关书籍</string>
+    <string name="agent_source_need_ai">需要先配置AI供应商才能编写书源</string>
+    <string name="agent_load_more">继续搜索</string>
+    <string name="agent_no_more_results">没有更多结果</string>
     <string name="agent_invalid_response">接口返回内容格式不正确</string>
     <string name="agent_api_error">接口返回错误：%s</string>
     <string name="agent_status_requesting">正在请求AI…</string>
-    <string name="agent_status_tool_calling">AI正在调用搜索工具…</string>
+    <string name="agent_status_tool_calling">AI正在调用工具…</string>
     <string name="agent_status_searching">正在搜索：%s…</string>
+    <string name="agent_status_creating_source">正在编写并调试书源…</string>
     <string name="agent_status_generating">AI正在生成回复…</string>
     <string name="agent_send">发送</string>
     <string name="service_stop">服务已停止</string>
