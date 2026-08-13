@@ -16,6 +16,10 @@
         android:icon="@drawable/ic_bottom_rss_feed"
         android:title="@string/rss" />
     <item
+        android:id="@+id/menu_ai"
+        android:icon="@drawable/ic_bottom_ai"
+        android:title="@string/agent" />
+    <item
         android:id="@+id/menu_my_config"
         android:icon="@drawable/ic_bottom_person"
         android:title="@string/my" />

@@ -12,6 +12,13 @@
         app:iconSpaceReserved="false" />
 
     <io.legado.app.lib.prefs.Preference
+        android:icon="@drawable/ic_bottom_ai_s"
+        android:key="aiSourceManage"
+        android:summary="@string/ai_source_manage_desc"
+        android:title="@string/ai_source_manage"
+        app:iconSpaceReserved="false" />
+
+    <io.legado.app.lib.prefs.Preference
         android:icon="@drawable/ic_cfg_source"
         android:key="txtTocRuleManage"
         android:summary="@string/config_txt_toc_rule"

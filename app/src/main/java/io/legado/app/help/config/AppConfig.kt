@@ -222,6 +222,9 @@ object AppConfig : SharedPreferences.OnSharedPreferenceChangeListener {
     val showRSS: Boolean
         get() = appCtx.getPrefBoolean(PreferKey.showRss, true)
 
+    val showAI: Boolean
+        get() = appCtx.getPrefBoolean(PreferKey.showAi, false)
+
     val autoRefreshBook: Boolean
         get() = appCtx.getPrefBoolean(PreferKey.autoRefresh)
 

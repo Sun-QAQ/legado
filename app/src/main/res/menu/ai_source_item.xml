@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <item
+        android:id="@+id/menu_fetch_models"
+        android:title="@string/fetch_models" />
+
+    <item
+        android:id="@+id/menu_del"
+        android:title="@string/delete" />
+
+</menu>

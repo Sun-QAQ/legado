@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:gravity="start"
+    android:orientation="vertical"
+    android:paddingTop="4dp"
+    android:paddingBottom="4dp">
+
+    <TextView
+        android:id="@+id/tv_message"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:background="@drawable/bg_chat_bubble_agent"
+        android:padding="10dp"
+        android:textColor="@color/primaryText"
+        android:textSize="15sp"
+        tools:text="Agent reply" />
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/ll_book_result"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@drawable/bg_chat_bubble_agent"
+        android:padding="4dp"
+        android:visibility="gone"
+        tools:visibility="visible">
+
+        <TextView
+            android:id="@+id/tv_result_title"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_margin="8dp"
+            android:text="@string/agent_search_book"
+            android:textColor="@color/primaryText"
+            android:textSize="15sp"
+            android:textStyle="bold"
+            app:layout_constraintLeft_toLeftOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <TextView
+            android:id="@+id/tv_result_count"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_margin="8dp"
+            android:textColor="@color/secondaryText"
+            android:textSize="12sp"
+            app:layout_constraintBottom_toBottomOf="@id/tv_result_title"
+            app:layout_constraintRight_toRightOf="parent"
+            tools:text="3 results" />
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rv_books"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:nestedScrollingEnabled="false"
+            app:layout_constraintTop_toBottomOf="@id/tv_result_title"
+            tools:listitem="@layout/item_search" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+</LinearLayout>
