@@ -379,13 +379,13 @@ class MainActivity : VMBaseActivity<ActivityMainBinding, MainViewModel>(),
             index++
             realPositions[index] = idExplore
         }
-        if (showRss) {
-            index++
-            realPositions[index] = idRss
-        }
         if (showAi) {
             index++
             realPositions[index] = idAgent
+        }
+        if (showRss) {
+            index++
+            realPositions[index] = idRss
         }
         index++
         realPositions[index] = idMy
