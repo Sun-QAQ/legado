@@ -44,7 +44,7 @@ import kotlin.math.min
 /**
  * Agent 对话
  */
-class AgentViewModel(application: Application) : BaseViewModel(application) {
+class AgentViewModel(application: Application) : BaseViewModel(application), AgentToolContext {
 
     private val _messages = MutableStateFlow<List<AgentMessage>>(emptyList())
     val messages: StateFlow<List<AgentMessage>> = _messages
@@ -65,6 +65,8 @@ class AgentViewModel(application: Application) : BaseViewModel(application) {
     private var searchedSourceCount = 0
     private var accumulatedSearchBooks: List<SearchBook> = emptyList()
     private var canLoadMoreSearch = false
+    private var hasBooks = false
+    private var currentSupplier: io.legado.app.data.entities.AiSource? = null
     private val _status = MutableStateFlow<String?>(null)
     val status: StateFlow<String?> = _status
     private val statusSteps = arrayListOf<String>()
@@ -84,6 +86,7 @@ class AgentViewModel(application: Application) : BaseViewModel(application) {
         searchedSourceCount = 0
         accumulatedSearchBooks = emptyList()
         canLoadMoreSearch = false
+        hasBooks = false
     }
 
     fun send(text: String) {
@@ -168,7 +171,7 @@ class AgentViewModel(application: Application) : BaseViewModel(application) {
         _messages.value = _messages.value + AgentMessage(false, text, books, canLoadMore = canLoadMore)
     }
 
-    private fun appendStatus(step: String) {
+    override fun appendStatus(step: String) {
         statusSteps.add(step)
         _status.value = statusSteps.joinToString(" → ")
         _messages.value = _messages.value.filterNot { it.isStatus } +
@@ -212,9 +215,10 @@ class AgentViewModel(application: Application) : BaseViewModel(application) {
     private suspend fun agentLoop(supplier: io.legado.app.data.entities.AiSource, key: String) {
         _waiting.value = true
         try {
-            var hasBooks = false
+            currentSupplier = supplier
             var finalText = ""
             lastBooks = emptyList()
+            hasBooks = false
             var finished = false
             for (round in 0 until 3) {
                 if (finished) break
@@ -259,49 +263,14 @@ class AgentViewModel(application: Application) : BaseViewModel(application) {
                     val name = function.get("name")?.takeIf { !it.isJsonNull }?.asString.orEmpty()
                     val arguments =
                         function.get("arguments")?.takeIf { !it.isJsonNull }?.asString.orEmpty()
-                    if (name == "search_books") {
-                        val query = parseQuery(arguments)
-                        val searchResult = if (query.isNotBlank()) {
-                            appendStatus(getString(R.string.agent_status_searching, query))
-                            withContext(Dispatchers.IO) {
-                                searchBooks(query, 0, FIRST_SEARCH_SOURCE_LIMIT)
-                            }
-                        } else {
-                            SearchResult(emptyList(), emptyList(), 0, 0, false)
-                        }
-                        val books = searchResult.books
-                        hasBooks = hasBooks || books.isNotEmpty()
-                        lastBooks = books
-                        lastSearchKey = query
-                        searchedSourceCount = searchResult.searchedSources
-                        accumulatedSearchBooks = searchResult.allBooks
-                        canLoadMoreSearch = searchResult.canLoadMore
-                        history.add(
-                            ChatTurn(
-                                ROLE_TOOL,
-                                GSON.toJson(books.map { it.toToolResult() }),
-                                toolCallId
-                            )
+                    val result = executeTool(name, arguments)
+                    history.add(
+                        ChatTurn(
+                            ROLE_TOOL,
+                            result,
+                            toolCallId
                         )
-                    }
-                    if (name == "create_book_source") {
-                        val url = parseToolUrl(arguments)
-                        val result = if (url.isNotBlank()) {
-                            appendStatus(getString(R.string.agent_status_creating_source))
-                            withContext(Dispatchers.IO) {
-                                createBookSource(supplier, url)
-                            }
-                        } else {
-                            "书源网址为空"
-                        }
-                        history.add(
-                            ChatTurn(
-                                ROLE_TOOL,
-                                result,
-                                toolCallId
-                            )
-                        )
-                    }
+                    )
                 }
             }
             if (!finished) {
@@ -312,8 +281,42 @@ class AgentViewModel(application: Application) : BaseViewModel(application) {
             val message = e.localizedMessage ?: e.message ?: "请求失败"
             addAgentMessage("${supplier.name}: $message")
         } finally {
+            currentSupplier = null
             clearStatus()
             _waiting.value = false
+        }
+    }
+
+    override suspend fun searchBooks(key: String): String {
+        val result = withContext(Dispatchers.IO) {
+            searchBooks(key, 0, FIRST_SEARCH_SOURCE_LIMIT)
+        }
+        lastBooks = result.books
+        hasBooks = hasBooks || result.books.isNotEmpty()
+        lastSearchKey = key
+        searchedSourceCount = result.searchedSources
+        accumulatedSearchBooks = result.allBooks
+        canLoadMoreSearch = result.canLoadMore
+        return GSON.toJson(result.books.map { it.toToolResult() })
+    }
+
+    override suspend fun createBookSource(url: String): String {
+        val supplier = currentSupplier ?: return "没有可用的AI供应商"
+        return createBookSource(supplier, url)
+    }
+
+    private suspend fun executeTool(name: String, arguments: String): String {
+        val tool = AgentTools.find(name)
+        if (tool == null) {
+            return "未知工具: $name"
+        }
+        val parsed = runCatching { JsonParser.parseString(arguments).asJsonObject }
+            .getOrDefault(JsonObject())
+        return try {
+            tool.execute(this, parsed)
+        } catch (e: Exception) {
+            val message = e.localizedMessage ?: e.message ?: "未知错误"
+            "工具执行失败: $message"
         }
     }
 
@@ -342,53 +345,8 @@ class AgentViewModel(application: Application) : BaseViewModel(application) {
             )
         }
         root.add("messages", messages)
-        root.add("tools", agentTools())
+        root.add("tools", AgentTools.toJsonArray())
         return root
-    }
-
-    private fun agentTools(): JsonArray {
-        val tools = JsonArray()
-        val function = JsonObject()
-        function.addProperty("name", "search_books")
-        function.addProperty("description", "根据书名搜索书籍，返回搜索结果列表")
-        val parameters = JsonObject()
-        val properties = JsonObject()
-        properties.add(
-            "query",
-            JsonObject().apply {
-                addProperty("type", "string")
-                addProperty("description", "书名关键字")
-            }
-        )
-        parameters.add("properties", properties)
-        parameters.add("required", JsonArray().apply { add("query") })
-        parameters.addProperty("type", "object")
-        function.add("parameters", parameters)
-        tools.add(JsonObject().apply {
-            addProperty("type", "function")
-            add("function", function)
-        })
-        val sourceFunction = JsonObject()
-        sourceFunction.addProperty("name", "create_book_source")
-        sourceFunction.addProperty("description", "根据网站地址编写Legado书源，并自动调试保存")
-        val sourceParameters = JsonObject()
-        val sourceProperties = JsonObject()
-        sourceProperties.add(
-            "url",
-            JsonObject().apply {
-                addProperty("type", "string")
-                addProperty("description", "网站首页地址，例如 https://www.example.com")
-            }
-        )
-        sourceParameters.add("properties", sourceProperties)
-        sourceParameters.add("required", JsonArray().apply { add("url") })
-        sourceParameters.addProperty("type", "object")
-        sourceFunction.add("parameters", sourceParameters)
-        tools.add(JsonObject().apply {
-            addProperty("type", "function")
-            add("function", sourceFunction)
-        })
-        return tools
     }
 
     private suspend fun chatCompletion(
@@ -580,20 +538,6 @@ class AgentViewModel(application: Application) : BaseViewModel(application) {
         val intro = book.intro
         if (!intro.isNullOrBlank() && intro.contains(k, ignoreCase = true)) score += 20
         return score
-    }
-
-    private fun parseQuery(arguments: String): String {
-        return kotlin.runCatching {
-            val obj = JsonParser.parseString(arguments).asJsonObject
-            obj.get("query")?.takeIf { !it.isJsonNull }?.asString.orEmpty()
-        }.getOrDefault("")
-    }
-
-    private fun parseToolUrl(arguments: String): String {
-        return kotlin.runCatching {
-            val obj = JsonParser.parseString(arguments).asJsonObject
-            obj.get("url")?.takeIf { !it.isJsonNull }?.asString.orEmpty()
-        }.getOrDefault("")
     }
 
     private suspend fun createBookSource(
@@ -792,7 +736,7 @@ class AgentViewModel(application: Application) : BaseViewModel(application) {
         )
     }
 
-    private fun getString(resId: Int, vararg formatArgs: Any): String {
+    override fun getString(resId: Int, vararg formatArgs: Any): String {
         return context.getString(resId, *formatArgs)
     }
 
