@@ -140,6 +140,13 @@ class AgentViewModel(application: Application) : BaseViewModel(application) {
                     finished = true
                     break
                 }
+                history.add(
+                    ChatTurn(
+                        ROLE_ASSISTANT,
+                        content,
+                        toolCalls = message.get("tool_calls")
+                    )
+                )
                 for (call: JsonElement in toolCalls.asJsonArray) {
                     val callObject = call.asJsonObject
                     val toolCallId =
@@ -153,20 +160,22 @@ class AgentViewModel(application: Application) : BaseViewModel(application) {
                         function.get("arguments")?.takeIf { !it.isJsonNull }?.asString.orEmpty()
                     if (name == "search_books") {
                         val query = parseQuery(arguments)
-                        if (query.isNotBlank()) {
-                            val books = withContext(Dispatchers.IO) {
+                        val books = if (query.isNotBlank()) {
+                            withContext(Dispatchers.IO) {
                                 searchBooks(query, 1)
                             }
-                            hasBooks = hasBooks || books.isNotEmpty()
-                            lastBooks = books
-                            history.add(
-                                ChatTurn(
-                                    ROLE_TOOL,
-                                    GSON.toJson(books.map { it.toToolResult() }),
-                                    toolCallId
-                                )
-                            )
+                        } else {
+                            emptyList()
                         }
+                        hasBooks = hasBooks || books.isNotEmpty()
+                        lastBooks = books
+                        history.add(
+                            ChatTurn(
+                                ROLE_TOOL,
+                                GSON.toJson(books.map { it.toToolResult() }),
+                                toolCallId
+                            )
+                        )
                     }
                 }
             }
@@ -199,6 +208,9 @@ class AgentViewModel(application: Application) : BaseViewModel(application) {
                     addProperty("content", turn.content)
                     if (turn.role == ROLE_TOOL) {
                         addProperty("tool_call_id", turn.toolCallId.orEmpty())
+                    }
+                    turn.toolCalls?.takeIf { it.isJsonArray }?.let {
+                        add("tool_calls", it)
                     }
                 }
             )
@@ -274,7 +286,7 @@ class AgentViewModel(application: Application) : BaseViewModel(application) {
         }
         if (!response.isSuccessful()) {
             AppLog.put("Agent 接口返回 HTTP ${response.code()}\n${bodyText.orEmpty()}")
-            throw Exception("HTTP ${response.code()}\n${bodyText?.take(1000).orEmpty()}")
+            throw Exception("HTTP ${response.code()}\n${bodyText.take(1000)}")
         }
         val choices = json.getAsJsonArray("choices")
         if (choices == null || choices.size() == 0) {
@@ -379,7 +391,8 @@ class AgentViewModel(application: Application) : BaseViewModel(application) {
     data class ChatTurn(
         val role: String,
         val content: String,
-        val toolCallId: String? = null
+        val toolCallId: String? = null,
+        val toolCalls: JsonElement? = null
     )
 
     companion object {
