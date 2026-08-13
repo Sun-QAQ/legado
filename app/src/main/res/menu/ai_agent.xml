@@ -21,4 +21,10 @@
         android:title="@string/agent_clear_chat"
         app:showAsAction="never" />
 
+    <item
+        android:id="@+id/menu_log"
+        android:icon="@drawable/ic_cfg_about"
+        android:title="@string/log"
+        app:showAsAction="never" />
+
 </menu>

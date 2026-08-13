@@ -18,10 +18,12 @@ import io.legado.app.databinding.DialogEditTextBinding
 import io.legado.app.databinding.FragmentAgentBinding
 import io.legado.app.lib.dialogs.alert
 import io.legado.app.lib.dialogs.selector
+import io.legado.app.ui.about.AppLogDialog
 import io.legado.app.ui.book.info.BookInfoActivity
 import io.legado.app.ui.main.MainFragmentInterface
 import io.legado.app.ui.widget.recycler.VerticalDivider
 import io.legado.app.utils.applyTint
+import io.legado.app.utils.showDialogFragment
 import io.legado.app.utils.startActivity
 import io.legado.app.utils.toastOnUi
 import io.legado.app.utils.viewbindingdelegate.viewBinding
@@ -125,6 +127,7 @@ class AgentFragment() : BaseFragment(R.layout.fragment_agent), MainFragmentInter
                 viewModel.clearChat()
                 toastOnUi(R.string.agent_clear_chat)
             }
+            R.id.menu_log -> showDialogFragment<AppLogDialog>()
         }
     }
 
