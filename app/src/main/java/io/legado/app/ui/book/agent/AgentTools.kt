@@ -94,7 +94,22 @@ object AgentTools {
         }
     )
 
-    private val allTools = listOf(searchBooksTool, createBookSourceTool, readingReportTool)
+    private val libraryStatsTool = AgentTool(
+        name = "library_stats",
+        description = "查询当前书源数量、订阅源数量、书源分组及各组数量、书籍总数、书架分组及各组书籍数量",
+        parameters = objectParameters(
+            properties = JsonObject(),
+            required = arrayOf()
+        ),
+        execute = { getLibraryStats() }
+    )
+
+    private val allTools = listOf(
+        searchBooksTool,
+        createBookSourceTool,
+        readingReportTool,
+        libraryStatsTool
+    )
     private val toolMap = allTools.associateBy { it.name }
 
     fun find(name: String): AgentTool? = toolMap[name]

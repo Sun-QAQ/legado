@@ -311,6 +311,12 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
         }
     }
 
+    override suspend fun getLibraryStats(): String {
+        return withContext(Dispatchers.IO) {
+            LibraryStats.build()
+        }
+    }
+
     private suspend fun executeTool(name: String, arguments: String): String {
         val tool = AgentTools.find(name)
         if (tool == null) {
@@ -774,6 +780,7 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
                     "当用户要求搜索书籍时，调用 search_books 工具并简要说明搜索结果。" +
                     "当用户要求编写书源时，调用 create_book_source 工具，根据网站编写并调试书源。" +
                     "当用户要求生成阅读周报或月报时，调用 reading_report 工具，根据返回的统计数据生成报告。" +
+                    "当用户询问书源数量、订阅源数量、书源分组、书籍总数或书架分组等统计信息时，调用 library_stats 工具，根据返回的统计数据回答。" +
                     "工具结果会以卡片形式展示给用户，回答时不要重复完整书籍列表。" +
                     "每次展示相关性最高的10条结果，如需更多结果用户会点击继续搜索。"
         private const val SOURCE_CREATE_PROMPT =
