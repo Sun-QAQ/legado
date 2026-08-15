@@ -2,7 +2,6 @@ package io.legado.app.ui.book.agent
 
 import com.google.gson.JsonArray
 import com.google.gson.JsonObject
-import io.legado.app.R
 import io.legado.app.utils.GSON
 
 /**
@@ -38,7 +37,6 @@ object AgentTools {
             if (query.isBlank()) {
                 GSON.toJson(emptyList<Any>())
             } else {
-                appendStatus(getString(R.string.agent_status_searching, query))
                 searchBooks(query, group)
             }
         }
@@ -64,7 +62,6 @@ object AgentTools {
             if (url.isBlank()) {
                 "书源网址为空"
             } else {
-                appendStatus(getString(R.string.agent_status_creating_source))
                 createBookSource(url)
             }
         }

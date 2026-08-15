@@ -13,10 +13,6 @@ interface AgentToolContext {
     suspend fun readingReport(period: String): String
 
     suspend fun getLibraryStats(): String
-
-    fun appendStatus(status: String)
-
-    fun getString(resId: Int, vararg args: Any): String
 }
 
 /**

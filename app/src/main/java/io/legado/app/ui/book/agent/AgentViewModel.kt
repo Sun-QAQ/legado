@@ -68,9 +68,9 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
     private var canLoadMoreSearch = false
     private var hasBooks = false
     private var currentSupplier: io.legado.app.data.entities.AiSource? = null
-    private val _status = MutableStateFlow<String?>(null)
-    val status: StateFlow<String?> = _status
-    private val statusSteps = arrayListOf<String>()
+    private val activeSteps = arrayListOf<AgentStep>()
+    private val stepStartTimes = HashMap<String, Long>()
+    private var stepSequence = 0L
 
     fun selectSupplier(id: Long, name: String) {
         selectedSupplierId = id
@@ -79,8 +79,8 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
     }
 
     fun clearChat() {
-        statusSteps.clear()
-        _status.value = null
+        activeSteps.clear()
+        stepStartTimes.clear()
         history.clear()
         _messages.value = emptyList()
         lastSearchKey = ""
@@ -125,7 +125,7 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
         if (_waiting.value || !canLoadMoreSearch || lastSearchKey.isBlank()) return
         viewModelScope.launch {
             _waiting.value = true
-            appendStatus(getString(R.string.agent_status_searching, lastSearchKey))
+            val stepId = startStep(getString(R.string.agent_step_continue_search))
             try {
                 val start = searchedSourceCount
                 val end = start + SEARCH_SOURCE_BATCH_SIZE
@@ -141,18 +141,26 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
                 )
                 accumulatedSearchBooks = mergedBooks
                 val topBooks = mergedBooks.take(SEARCH_PAGE_SIZE)
+                finishStep(
+                    stepId,
+                    summary = getString(
+                        R.string.agent_step_search_done,
+                        result.searchedSources,
+                        mergedBooks.size
+                    )
+                )
+                _messages.value = _messages.value.map { it.copy(canLoadMore = false) }
                 if (topBooks.isEmpty()) {
                     canLoadMoreSearch = false
-                    addAgentMessage(getString(R.string.agent_no_more_results))
+                    finishAgentReply(getString(R.string.agent_no_more_results))
                 } else {
-                    _messages.value = _messages.value.map { it.copy(canLoadMore = false) } +
-                        AgentMessage(false, "", topBooks, canLoadMore = canLoadMoreSearch)
+                    finishAgentReply("", topBooks, canLoadMoreSearch)
                 }
             } catch (e: Exception) {
+                failStep(stepId, e)
                 context.toastOnUi(e.localizedMessage ?: e.message ?: "搜索失败")
-                addAgentMessage(e.localizedMessage ?: "搜索失败")
+                finishAgentReply(e.localizedMessage ?: "搜索失败")
             } finally {
-                clearStatus()
                 _waiting.value = false
             }
         }
@@ -173,22 +181,82 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
         _messages.value = _messages.value + AgentMessage(false, text, books, canLoadMore = canLoadMore)
     }
 
-    override fun appendStatus(step: String) {
-        statusSteps.add(step)
-        _status.value = statusSteps.joinToString(" → ")
-        _messages.value = _messages.value.filterNot { it.isStatus } +
-            AgentMessage(status = _status.value)
+    private fun startStep(title: String, detail: String? = null): String {
+        val id = "step-${System.currentTimeMillis()}-${stepSequence++}"
+        activeSteps.add(AgentStep(id, title, AgentStepState.RUNNING, detail))
+        stepStartTimes[id] = System.currentTimeMillis()
+        emitSteps()
+        return id
     }
 
-    private fun clearStatus() {
-        statusSteps.clear()
-        _status.value = null
-        _messages.value = _messages.value.filterNot { it.isStatus }
+    private fun finishStep(stepId: String, summary: String? = null) {
+        val index = activeSteps.indexOfFirst { it.id == stepId }
+        if (index >= 0) {
+            val step = activeSteps[index]
+            val start = stepStartTimes.remove(stepId) ?: 0L
+            activeSteps[index] = step.copy(
+                state = AgentStepState.DONE,
+                summary = summary ?: step.summary,
+                durationMs = start.takeIf { it > 0 }?.let { System.currentTimeMillis() - it }
+            )
+            emitSteps()
+        }
+    }
+
+    private fun failStep(stepId: String, e: Exception) {
+        val index = activeSteps.indexOfFirst { it.id == stepId }
+        if (index >= 0) {
+            val step = activeSteps[index]
+            val start = stepStartTimes.remove(stepId) ?: 0L
+            activeSteps[index] = step.copy(
+                state = AgentStepState.FAILED,
+                summary = e.localizedMessage ?: e.message ?: "未知错误",
+                durationMs = start.takeIf { it > 0 }?.let { System.currentTimeMillis() - it }
+            )
+            emitSteps()
+        }
+    }
+
+    private fun failActiveSteps(e: Exception) {
+        val message = e.localizedMessage ?: e.message ?: "未知错误"
+        activeSteps.indices.forEach { index ->
+            val step = activeSteps[index]
+            if (step.state == AgentStepState.RUNNING) {
+                val start = stepStartTimes.remove(step.id) ?: 0L
+                activeSteps[index] = step.copy(
+                    state = AgentStepState.FAILED,
+                    summary = message,
+                    durationMs = start.takeIf { it > 0 }?.let { System.currentTimeMillis() - it }
+                )
+            }
+        }
+        stepStartTimes.clear()
+        emitSteps()
+    }
+
+    private fun emitSteps() {
+        _messages.value = _messages.value.filterNot { it.placeholder } +
+            AgentMessage(steps = activeSteps.toList(), placeholder = true)
+    }
+
+    private fun finishAgentReply(
+        text: String,
+        books: List<SearchBook> = emptyList(),
+        canLoadMore: Boolean = false,
+        steps: List<AgentStep> = activeSteps.toList()
+    ) {
+        _messages.value = _messages.value.filterNot { it.placeholder } +
+            AgentMessage(false, text, books, steps, canLoadMore = canLoadMore)
+        activeSteps.clear()
+        stepStartTimes.clear()
     }
 
     private suspend fun searchDirect(key: String, searchKey: String = key) {
         _waiting.value = true
-        appendStatus(getString(R.string.agent_status_searching, searchKey))
+        val stepId = startStep(
+            getString(R.string.agent_step_searching),
+            getString(R.string.agent_step_detail_search, searchKey)
+        )
         try {
             lastSearchGroup = ""
             val result = withContext(Dispatchers.IO) {
@@ -198,16 +266,24 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
             searchedSourceCount = result.searchedSources
             accumulatedSearchBooks = result.allBooks
             canLoadMoreSearch = result.canLoadMore
+            finishStep(
+                stepId,
+                summary = getString(
+                    R.string.agent_step_search_done,
+                    result.searchedSources,
+                    result.allBooks.size
+                )
+            )
             if (result.books.isEmpty()) {
-                addAgentMessage(getString(R.string.agent_no_result))
+                finishAgentReply(getString(R.string.agent_no_result))
             } else {
-                addAgentMessage("", result.books, canLoadMoreSearch)
+                finishAgentReply("", result.books, canLoadMoreSearch)
             }
         } catch (e: Exception) {
+            failStep(stepId, e)
             context.toastOnUi(e.localizedMessage ?: e.message ?: "搜索失败")
-            addAgentMessage(e.localizedMessage ?: "搜索失败")
+            finishAgentReply(e.localizedMessage ?: "搜索失败")
         } finally {
-            clearStatus()
             _waiting.value = false
         }
     }
@@ -225,10 +301,14 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
             var finished = false
             for (round in 0 until 3) {
                 if (finished) break
-                if (round > 0) {
-                    appendStatus(getString(R.string.agent_status_generating))
-                }
-                appendStatus(getString(R.string.agent_status_requesting))
+                val requestStepId = startStep(
+                    if (round == 0) {
+                        getString(R.string.agent_step_requesting)
+                    } else {
+                        getString(R.string.agent_step_generating)
+                    },
+                    "model=${supplier.model}"
+                )
                 val request = buildChatRequest(supplier)
                 val message = withContext(Dispatchers.IO) {
                     chatCompletion(supplier, request)
@@ -239,15 +319,25 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
                 }
                 val toolCalls = message.get("tool_calls")?.takeIf { it.isJsonArray }
                 if (toolCalls == null || toolCalls.asJsonArray.size() == 0) {
-                    addAgentMessage(
+                    finishStep(
+                        requestStepId,
+                        summary = getString(R.string.agent_step_reply_done)
+                    )
+                    finishAgentReply(
                         finalText,
                         if (hasBooks) lastBooks else emptyList(),
-                        canLoadMore = hasBooks && canLoadMoreSearch
+                        hasBooks && canLoadMoreSearch
                     )
                     finished = true
                     break
                 }
-                appendStatus(getString(R.string.agent_status_tool_calling))
+                finishStep(
+                    requestStepId,
+                    summary = getString(
+                        R.string.agent_step_request_tool,
+                        toolCalls.asJsonArray.size()
+                    )
+                )
                 history.add(
                     ChatTurn(
                         ROLE_ASSISTANT,
@@ -277,20 +367,29 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
                 }
             }
             if (!finished) {
-                addAgentMessage(finalText.ifBlank { getString(R.string.agent_waiting) })
+                finishAgentReply(
+                    finalText.ifBlank { getString(R.string.agent_waiting) },
+                    if (hasBooks) lastBooks else emptyList(),
+                    hasBooks && canLoadMoreSearch
+                )
             }
         } catch (e: Exception) {
             AppLog.put("Agent 对话出错", e)
             val message = e.localizedMessage ?: e.message ?: "请求失败"
-            addAgentMessage("${supplier.name}: $message")
+            failActiveSteps(e)
+            finishAgentReply("${supplier.name}: $message")
         } finally {
             currentSupplier = null
-            clearStatus()
             _waiting.value = false
         }
     }
 
     override suspend fun searchBooks(key: String, group: String): String {
+        val groupDetail = group.takeIf { it.isNotBlank() }?.let { ", group=$it" }.orEmpty()
+        val stepId = startStep(
+            getString(R.string.agent_step_searching),
+            getString(R.string.agent_step_detail_search, key) + groupDetail
+        )
         val result = withContext(Dispatchers.IO) {
             val sources = getSearchSources(group)
             if (sources.isEmpty()) {
@@ -300,7 +399,8 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
             }
         }
         if (result == null) {
-            return "未找到书源分组或书源：$group"
+            failStep(stepId, NoStackTraceException(getString(R.string.agent_no_source_group, group)))
+            return getString(R.string.agent_no_source_group, group)
         }
         lastBooks = result.books
         hasBooks = hasBooks || result.books.isNotEmpty()
@@ -309,23 +409,57 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
         searchedSourceCount = result.searchedSources
         accumulatedSearchBooks = result.allBooks
         canLoadMoreSearch = result.canLoadMore
+        finishStep(
+            stepId,
+            summary = getString(
+                R.string.agent_step_search_done,
+                result.searchedSources,
+                result.allBooks.size
+            )
+        )
         return GSON.toJson(result.books.map { it.toToolResult() })
     }
 
     override suspend fun createBookSource(url: String): String {
-        val supplier = currentSupplier ?: return "没有可用的AI供应商"
+        val supplier = currentSupplier ?: return getString(R.string.agent_no_supplier)
         return createBookSource(supplier, url)
     }
 
     override suspend fun readingReport(period: String): String {
-        return withContext(Dispatchers.IO) {
-            ReadingReport.build(period)
+        val stepId = startStep(
+            getString(R.string.agent_step_reading_report, periodLabel(period))
+        )
+        return try {
+            val result = withContext(Dispatchers.IO) {
+                ReadingReport.build(period)
+            }
+            finishStep(stepId, summary = getString(R.string.agent_step_reading_report_done))
+            result
+        } catch (e: Exception) {
+            failStep(stepId, e)
+            throw e
         }
     }
 
     override suspend fun getLibraryStats(): String {
-        return withContext(Dispatchers.IO) {
-            LibraryStats.build()
+        val stepId = startStep(getString(R.string.agent_step_library_stats))
+        return try {
+            val result = withContext(Dispatchers.IO) {
+                LibraryStats.build()
+            }
+            val summary = runCatching {
+                val json = JsonParser.parseString(result).asJsonObject
+                getString(
+                    R.string.agent_step_library_stats_done,
+                    json.get("bookSourceCount")?.asInt ?: 0,
+                    json.get("bookCount")?.asInt ?: 0
+                )
+            }.getOrElse { getString(R.string.agent_step_library_stats_done_short) }
+            finishStep(stepId, summary = summary)
+            result
+        } catch (e: Exception) {
+            failStep(stepId, e)
+            throw e
         }
     }
 
@@ -336,11 +470,70 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
         }
         val parsed = runCatching { JsonParser.parseString(arguments).asJsonObject }
             .getOrDefault(JsonObject())
+        val stepId = startStep(
+            getString(R.string.agent_step_tool_calling, name),
+            summarizeToolArguments(name, parsed)
+        )
         return try {
-            tool.execute(this, parsed)
+            val result = tool.execute(this, parsed)
+            val summary = summarizeToolResult(name, result)
+            if (isToolFailure(name, result)) {
+                failStep(stepId, Exception(summary ?: result))
+            } else {
+                finishStep(stepId, summary = summary)
+            }
+            result
         } catch (e: Exception) {
+            failStep(stepId, e)
             val message = e.localizedMessage ?: e.message ?: "未知错误"
             "工具执行失败: $message"
+        }
+    }
+
+    private fun isToolFailure(name: String, result: String): Boolean {
+        return name == "create_book_source" && result.startsWith("书源创建失败")
+    }
+
+    private fun summarizeToolArguments(name: String, args: JsonObject): String? {
+        return when (name) {
+            "search_books" -> buildString {
+                args.get("query")?.takeIf { !it.isJsonNull }?.asString?.let {
+                    append("query=$it")
+                }
+                args.get("group")?.takeIf { !it.isJsonNull }?.asString
+                    ?.takeIf { it.isNotBlank() }
+                    ?.let {
+                        if (isNotEmpty()) append(", ")
+                        append("group=$it")
+                    }
+            }.takeIf { it.isNotBlank() }
+            "create_book_source" -> args.get("url")?.takeIf { !it.isJsonNull }?.asString
+                ?.takeIf { it.isNotBlank() }
+                ?.let { "url=$it" }
+            "reading_report" -> args.get("period")?.takeIf { !it.isJsonNull }?.asString
+                ?.takeIf { it.isNotBlank() }
+                ?.let { "period=$it" }
+            else -> null
+        }
+    }
+
+    private fun summarizeToolResult(name: String, result: String): String? {
+        return when (name) {
+            "search_books" -> {
+                val parsed = runCatching { JsonParser.parseString(result) }.getOrNull()
+                if (parsed is JsonArray) {
+                    getString(R.string.agent_step_search_tool_done, parsed.size())
+                } else {
+                    result.lineSequence().firstOrNull()?.take(60)
+                        ?: getString(R.string.agent_step_unknown_result)
+                }
+            }
+            "create_book_source" -> result.lineSequence().firstOrNull()?.take(60)
+                ?: getString(R.string.agent_step_unknown_result)
+            "reading_report" -> getString(R.string.agent_step_reading_report_done)
+            "library_stats" -> getString(R.string.agent_step_library_stats_done_short)
+            else -> result.lineSequence().firstOrNull()?.take(60)
+                ?: getString(R.string.agent_step_unknown_result)
         }
     }
 
@@ -583,9 +776,26 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
         url: String
     ): String {
         val siteUrl = url.trim().trimEnd('/')
-        val (finalUrl, html) = fetchSiteHtml(siteUrl)
+        val siteStepId = startStep(getString(R.string.agent_step_fetching_site), siteUrl)
+        val (finalUrl, html) = try {
+            fetchSiteHtml(siteUrl)
+        } catch (e: Exception) {
+            failStep(siteStepId, e)
+            return "书源创建失败：${e.localizedMessage ?: e.message ?: "无法访问网站"}"
+        }
+        finishStep(
+            siteStepId,
+            summary = getString(R.string.agent_step_fetching_site_done, html.length)
+        )
         var lastError = ""
         for (attempt in 0 until SOURCE_CREATE_ATTEMPTS) {
+            val generateStepId = startStep(
+                getString(
+                    R.string.agent_step_generating_source,
+                    attempt + 1,
+                    SOURCE_CREATE_ATTEMPTS
+                )
+            )
             val messages = JsonArray()
             messages.add(
                 JsonObject().apply {
@@ -613,6 +823,7 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
                 chatCompletion(supplier, request)
             } catch (e: Exception) {
                 lastError = "请求AI失败: ${e.localizedMessage}"
+                failStep(generateStepId, e)
                 continue
             }
             val content = reply.get("content")?.takeIf { !it.isJsonNull }?.asString.orEmpty()
@@ -621,22 +832,36 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
                 parseBookSource(jsonText)
             } catch (e: Exception) {
                 lastError = "书源JSON解析失败: ${e.localizedMessage}"
+                failStep(generateStepId, e)
                 if (attempt < SOURCE_CREATE_ATTEMPTS - 1) {
                     continue
                 }
                 return "书源创建失败：$lastError"
             }
+            finishStep(
+                generateStepId,
+                summary = getString(
+                    R.string.agent_step_generating_source_done,
+                    source.bookSourceName
+                )
+            )
             source.bookSourceGroup = "AI生成"
             source.enabled = true
             source.lastUpdateTime = System.currentTimeMillis()
+            val validateStepId = startStep(getString(R.string.agent_step_validating_source))
             try {
                 validateBookSource(source)
                 appDb.bookSourceDao.insert(source)
+                finishStep(
+                    validateStepId,
+                    summary = getString(R.string.agent_step_validating_source_done)
+                )
                 return "书源创建成功：${source.bookSourceName}，地址：${source.bookSourceUrl}，" +
                     "已保存到AI生成分组"
             } catch (e: Exception) {
                 lastError = e.localizedMessage ?: e.message ?: "校验失败"
                 AppLog.put("AI书源校验失败: ${source.bookSourceName}", e)
+                failStep(validateStepId, e)
                 if (attempt < SOURCE_CREATE_ATTEMPTS - 1) {
                     continue
                 }
@@ -774,7 +999,15 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
         )
     }
 
-    override fun getString(resId: Int, vararg formatArgs: Any): String {
+    private fun periodLabel(period: String): String {
+        return if (period == "month") {
+            getString(R.string.agent_month)
+        } else {
+            getString(R.string.agent_week)
+        }
+    }
+
+    private fun getString(resId: Int, vararg formatArgs: Any): String {
         return context.getString(resId, *formatArgs)
     }
 

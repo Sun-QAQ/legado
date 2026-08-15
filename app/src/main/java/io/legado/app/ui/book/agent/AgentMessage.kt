@@ -9,9 +9,7 @@ data class AgentMessage(
     val isUser: Boolean = false,
     val text: String = "",
     val books: List<SearchBook> = emptyList(),
-    val status: String? = null,
+    val steps: List<AgentStep> = emptyList(),
+    val placeholder: Boolean = false,
     val canLoadMore: Boolean = false
-) {
-    val isStatus: Boolean
-        get() = status != null
-}
+)
