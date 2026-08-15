@@ -62,6 +62,7 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
     private var selectedSupplierId: Long = 0L
     private var lastBooks: List<SearchBook> = emptyList()
     private var lastSearchKey = ""
+    private var lastSearchGroup = ""
     private var searchedSourceCount = 0
     private var accumulatedSearchBooks: List<SearchBook> = emptyList()
     private var canLoadMoreSearch = false
@@ -83,6 +84,7 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
         history.clear()
         _messages.value = emptyList()
         lastSearchKey = ""
+        lastSearchGroup = ""
         searchedSourceCount = 0
         accumulatedSearchBooks = emptyList()
         canLoadMoreSearch = false
@@ -128,7 +130,7 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
                 val start = searchedSourceCount
                 val end = start + SEARCH_SOURCE_BATCH_SIZE
                 val result = withContext(Dispatchers.IO) {
-                    searchBooks(lastSearchKey, start, end)
+                    searchBooks(lastSearchKey, getSearchSources(lastSearchGroup), start, end)
                 }
                 searchedSourceCount = result.searchedSources
                 canLoadMoreSearch = result.canLoadMore
@@ -188,8 +190,9 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
         _waiting.value = true
         appendStatus(getString(R.string.agent_status_searching, searchKey))
         try {
+            lastSearchGroup = ""
             val result = withContext(Dispatchers.IO) {
-                searchBooks(searchKey, 0, FIRST_SEARCH_SOURCE_LIMIT)
+                searchBooks(searchKey, appDb.bookSourceDao.allEnabled, 0, FIRST_SEARCH_SOURCE_LIMIT)
             }
             lastSearchKey = searchKey
             searchedSourceCount = result.searchedSources
@@ -287,13 +290,22 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
         }
     }
 
-    override suspend fun searchBooks(key: String): String {
+    override suspend fun searchBooks(key: String, group: String): String {
         val result = withContext(Dispatchers.IO) {
-            searchBooks(key, 0, FIRST_SEARCH_SOURCE_LIMIT)
+            val sources = getSearchSources(group)
+            if (sources.isEmpty()) {
+                null
+            } else {
+                searchBooks(key, sources, 0, FIRST_SEARCH_SOURCE_LIMIT)
+            }
+        }
+        if (result == null) {
+            return "未找到书源分组或书源：$group"
         }
         lastBooks = result.books
         hasBooks = hasBooks || result.books.isNotEmpty()
         lastSearchKey = key
+        lastSearchGroup = group
         searchedSourceCount = result.searchedSources
         accumulatedSearchBooks = result.allBooks
         canLoadMoreSearch = result.canLoadMore
@@ -435,10 +447,10 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
     @OptIn(ExperimentalCoroutinesApi::class)
     private suspend fun searchBooks(
         key: String,
+        sources: List<BookSource>,
         sourceStart: Int,
         sourceEnd: Int
     ): SearchResult {
-        val sources = appDb.bookSourceDao.allEnabled
         val totalSources = sources.size
         if (totalSources == 0) {
             AppLog.put("Agent 搜索: 没有启用书源 key=$key")
@@ -510,6 +522,20 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
                 "总耗时=${System.currentTimeMillis() - searchStart}ms"
         )
         return SearchResult(finalResult, ranked, end, totalSources, canLoadMore)
+    }
+
+    private fun getSearchSources(group: String): List<BookSource> {
+        val key = group.trim()
+        if (key.isBlank()) {
+            return appDb.bookSourceDao.allEnabled
+        }
+        val enabled = appDb.bookSourceDao.allEnabled
+        enabled.firstOrNull { it.bookSourceName == key }?.let { return listOf(it) }
+        appDb.bookSourceDao.getEnabledByGroup(key).takeIf { it.isNotEmpty() }?.let { return it }
+        return enabled.filter {
+            it.bookSourceName.contains(key, ignoreCase = true) ||
+                it.bookSourceGroup?.contains(key, ignoreCase = true) == true
+        }
     }
 
     private fun mergeSearchBooks(
@@ -777,7 +803,7 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
         private const val SOURCE_CREATE_ATTEMPTS = 3
         private const val SYSTEM_PROMPT =
             "你是阅读App中的AI助手，可以用中文与用户对话。" +
-                    "当用户要求搜索书籍时，调用 search_books 工具并简要说明搜索结果。" +
+                    "当用户要求搜索书籍时，调用 search_books 工具并简要说明搜索结果；如果用户指定书源分组或某个书源，将分组名或书源名称填入 group 参数。" +
                     "当用户要求编写书源时，调用 create_book_source 工具，根据网站编写并调试书源。" +
                     "当用户要求生成阅读周报或月报时，调用 reading_report 工具，根据返回的统计数据生成报告。" +
                     "当用户询问书源数量、订阅源数量、书源分组、书籍总数或书架分组等统计信息时，调用 library_stats 工具，根据返回的统计数据回答。" +

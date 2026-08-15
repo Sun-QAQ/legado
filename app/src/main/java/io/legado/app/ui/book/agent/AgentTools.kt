@@ -12,7 +12,7 @@ object AgentTools {
 
     private val searchBooksTool = AgentTool(
         name = "search_books",
-        description = "根据书名搜索书籍，返回搜索结果列表",
+        description = "根据书名搜索书籍，可通过 group 指定书源分组或书源名称，返回搜索结果列表",
         parameters = objectParameters(
             properties = JsonObject().apply {
                 add(
@@ -22,16 +22,24 @@ object AgentTools {
                         addProperty("description", "书名关键字")
                     }
                 )
+                add(
+                    "group",
+                    JsonObject().apply {
+                        addProperty("type", "string")
+                        addProperty("description", "可选，书源分组名称或具体书源名称，省略时搜索全部已启用书源")
+                    }
+                )
             },
             required = arrayOf("query")
         ),
         execute = { arguments ->
             val query = arguments.getStringValue("query")
+            val group = arguments.getStringValue("group")
             if (query.isBlank()) {
                 GSON.toJson(emptyList<Any>())
             } else {
                 appendStatus(getString(R.string.agent_status_searching, query))
-                searchBooks(query)
+                searchBooks(query, group)
             }
         }
     )
