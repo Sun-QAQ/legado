@@ -14,9 +14,7 @@ import io.legado.app.constant.AppLog
 import io.legado.app.base.BaseFragment
 import io.legado.app.data.appDb
 import io.legado.app.data.entities.SearchBook
-import io.legado.app.databinding.DialogEditTextBinding
 import io.legado.app.databinding.FragmentAgentBinding
-import io.legado.app.lib.dialogs.alert
 import io.legado.app.lib.dialogs.selector
 import io.legado.app.ui.about.AppLogDialog
 import io.legado.app.ui.book.info.BookInfoActivity
@@ -125,7 +123,6 @@ class AgentFragment() : BaseFragment(R.layout.fragment_agent), MainFragmentInter
     override fun onCompatOptionsItemSelected(item: MenuItem) {
         when (item.itemId) {
             R.id.menu_select_supplier -> selectSupplier()
-            R.id.menu_search_book -> showSearchBookDialog()
             R.id.menu_clear_chat -> {
                 viewModel.clearChat()
                 toastOnUi(R.string.agent_clear_chat)
@@ -146,24 +143,6 @@ class AgentFragment() : BaseFragment(R.layout.fragment_agent), MainFragmentInter
                 val source = suppliers[index]
                 viewModel.selectSupplier(source.id, source.name)
             }
-        }
-    }
-
-    private fun showSearchBookDialog() {
-        alert(R.string.agent_search_book) {
-            val editBinding = DialogEditTextBinding.inflate(layoutInflater).apply {
-                editView.hint = getString(R.string.search_book_key)
-            }
-            customView {
-                editBinding.root
-            }
-            okButton {
-                val key = editBinding.editView.text?.toString()?.trim().orEmpty()
-                if (key.isNotEmpty()) {
-                    viewModel.searchBook(key)
-                }
-            }
-            cancelButton()
         }
     }
 

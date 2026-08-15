@@ -10,12 +10,6 @@
         app:showAsAction="never" />
 
     <item
-        android:id="@+id/menu_search_book"
-        android:icon="@drawable/ic_search"
-        android:title="@string/agent_search_book"
-        app:showAsAction="never" />
-
-    <item
         android:id="@+id/menu_clear_chat"
         android:icon="@drawable/ic_clear_all"
         android:title="@string/agent_clear_chat"
