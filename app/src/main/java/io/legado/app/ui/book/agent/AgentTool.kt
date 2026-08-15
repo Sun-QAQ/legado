@@ -10,6 +10,8 @@ interface AgentToolContext {
 
     suspend fun createBookSource(url: String): String
 
+    suspend fun readingReport(period: String): String
+
     fun appendStatus(status: String)
 
     fun getString(resId: Int, vararg args: Any): String

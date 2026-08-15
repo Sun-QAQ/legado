@@ -27,6 +27,7 @@ import io.legado.app.data.dao.RssReadRecordDao
 import io.legado.app.data.dao.RssSourceDao
 import io.legado.app.data.dao.RssStarDao
 import io.legado.app.data.dao.RuleSubDao
+import io.legado.app.data.dao.ReadStatDao
 import io.legado.app.data.dao.SearchBookDao
 import io.legado.app.data.dao.SearchKeywordDao
 import io.legado.app.data.dao.ServerDao
@@ -45,6 +46,7 @@ import io.legado.app.data.entities.HttpTTS
 import io.legado.app.data.entities.KeyboardAssist
 import io.legado.app.data.entities.ReadRecord
 import io.legado.app.data.entities.ReplaceRule
+import io.legado.app.data.entities.ReadStat
 import io.legado.app.data.entities.RssArticle
 import io.legado.app.data.entities.RssReadRecord
 import io.legado.app.data.entities.RssSource
@@ -69,12 +71,12 @@ val appDb by lazy {
 }
 
 @Database(
-    version = 76,
+    version = 77,
     exportSchema = true,
     entities = [Book::class, BookGroup::class, BookSource::class, BookChapter::class,
         ReplaceRule::class, SearchBook::class, SearchKeyword::class, Cookie::class,
         RssSource::class, Bookmark::class, RssArticle::class, RssReadRecord::class,
-        RssStar::class, TxtTocRule::class, ReadRecord::class, HttpTTS::class, Cache::class,
+        RssStar::class, TxtTocRule::class, ReadRecord::class, ReadStat::class, HttpTTS::class, Cache::class,
         RuleSub::class, DictRule::class, KeyboardAssist::class, Server::class, AiSource::class],
     views = [BookSourcePart::class],
     autoMigrations = [
@@ -111,6 +113,7 @@ val appDb by lazy {
         AutoMigration(from = 73, to = 74),
         AutoMigration(from = 74, to = 75),
         AutoMigration(from = 75, to = 76),
+        AutoMigration(from = 76, to = 77),
     ]
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -130,6 +133,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract val cookieDao: CookieDao
     abstract val txtTocRuleDao: TxtTocRuleDao
     abstract val readRecordDao: ReadRecordDao
+    abstract val readStatDao: ReadStatDao
     abstract val httpTTSDao: HttpTTSDao
     abstract val cacheDao: CacheDao
     abstract val ruleSubDao: RuleSubDao

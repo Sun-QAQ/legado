@@ -39,6 +39,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Semaphore
+import java.time.LocalDate
 import kotlin.math.min
 
 @Suppress("MemberVisibilityCanBePrivate")
@@ -132,10 +133,16 @@ object ReadManga : CoroutineScope by MainScope() {
             if (!AppConfig.enableReadRecord) {
                 return@execute
             }
-            readRecord.readTime = readRecord.readTime + System.currentTimeMillis() - readStartTime
+            val delta = System.currentTimeMillis() - readStartTime
+            readRecord.readTime = readRecord.readTime + delta
             readStartTime = System.currentTimeMillis()
             readRecord.lastRead = System.currentTimeMillis()
             appDb.readRecordDao.insert(readRecord)
+            appDb.readStatDao.addTime(
+                readRecord.bookName,
+                LocalDate.now().toEpochDay(),
+                delta
+            )
         }
     }
 

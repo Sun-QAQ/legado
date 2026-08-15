@@ -305,6 +305,12 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
         return createBookSource(supplier, url)
     }
 
+    override suspend fun readingReport(period: String): String {
+        return withContext(Dispatchers.IO) {
+            ReadingReport.build(period)
+        }
+    }
+
     private suspend fun executeTool(name: String, arguments: String): String {
         val tool = AgentTools.find(name)
         if (tool == null) {
@@ -767,6 +773,7 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
             "你是阅读App中的AI助手，可以用中文与用户对话。" +
                     "当用户要求搜索书籍时，调用 search_books 工具并简要说明搜索结果。" +
                     "当用户要求编写书源时，调用 create_book_source 工具，根据网站编写并调试书源。" +
+                    "当用户要求生成阅读周报或月报时，调用 reading_report 工具，根据返回的统计数据生成报告。" +
                     "工具结果会以卡片形式展示给用户，回答时不要重复完整书籍列表。" +
                     "每次展示相关性最高的10条结果，如需更多结果用户会点击继续搜索。"
         private const val SOURCE_CREATE_PROMPT =

@@ -62,7 +62,39 @@ object AgentTools {
         }
     )
 
-    private val allTools = listOf(searchBooksTool, createBookSourceTool)
+    private val readingReportTool = AgentTool(
+        name = "reading_report",
+        description = "生成阅读周报或月报，返回统计周期内的阅读时长和书籍列表",
+        parameters = objectParameters(
+            properties = JsonObject().apply {
+                add(
+                    "period",
+                    JsonObject().apply {
+                        addProperty("type", "string")
+                        add(
+                            "enum",
+                            JsonArray().apply {
+                                add("week")
+                                add("month")
+                            }
+                        )
+                        addProperty("description", "统计周期：week 表示本周，month 表示本月")
+                    }
+                )
+            },
+            required = arrayOf("period")
+        ),
+        execute = { arguments ->
+            val period = arguments.getStringValue("period")
+            if (period != "week" && period != "month") {
+                "统计周期无效，请使用 week 或 month"
+            } else {
+                readingReport(period)
+            }
+        }
+    )
+
+    private val allTools = listOf(searchBooksTool, createBookSourceTool, readingReportTool)
     private val toolMap = allTools.associateBy { it.name }
 
     fun find(name: String): AgentTool? = toolMap[name]

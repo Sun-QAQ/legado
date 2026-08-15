@@ -53,6 +53,7 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import splitties.init.appCtx
 import java.util.concurrent.ConcurrentHashMap
+import java.time.LocalDate
 import kotlin.math.max
 import kotlin.math.min
 
@@ -287,10 +288,16 @@ object ReadBook : CoroutineScope by MainScope() {
             if (!AppConfig.enableReadRecord) {
                 return@execute
             }
-            readRecord.readTime = readRecord.readTime + System.currentTimeMillis() - readStartTime
+            val delta = System.currentTimeMillis() - readStartTime
+            readRecord.readTime = readRecord.readTime + delta
             readStartTime = System.currentTimeMillis()
             readRecord.lastRead = System.currentTimeMillis()
             appDb.readRecordDao.insert(readRecord)
+            appDb.readStatDao.addTime(
+                readRecord.bookName,
+                LocalDate.now().toEpochDay(),
+                delta
+            )
         }
     }
 

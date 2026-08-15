@@ -19,6 +19,7 @@ import io.legado.app.data.entities.HttpTTS
 import io.legado.app.data.entities.KeyboardAssist
 import io.legado.app.data.entities.ReadRecord
 import io.legado.app.data.entities.ReplaceRule
+import io.legado.app.data.entities.ReadStat
 import io.legado.app.data.entities.RssSource
 import io.legado.app.data.entities.RssStar
 import io.legado.app.data.entities.RuleSub
@@ -180,6 +181,9 @@ object Restore {
                     }
                 }
             }
+        }
+        fileToListT<ReadStat>(path, "readStats.json")?.let {
+            appDb.readStatDao.insert(*it.toTypedArray())
         }
         File(path, "servers.json").takeIf {
             it.exists()
