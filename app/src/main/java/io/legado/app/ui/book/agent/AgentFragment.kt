@@ -21,10 +21,13 @@ import io.legado.app.ui.book.info.BookInfoActivity
 import io.legado.app.ui.main.MainFragmentInterface
 import io.legado.app.ui.widget.recycler.VerticalDivider
 import io.legado.app.utils.applyTint
+import io.legado.app.utils.imeHeight
+import io.legado.app.utils.setOnApplyWindowInsetsListenerCompat
 import io.legado.app.utils.showDialogFragment
 import io.legado.app.utils.startActivity
 import io.legado.app.utils.toastOnUi
 import io.legado.app.utils.viewbindingdelegate.viewBinding
+import splitties.views.bottomPadding
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.flowOn
@@ -69,6 +72,10 @@ class AgentFragment() : BaseFragment(R.layout.fragment_agent), MainFragmentInter
             } else {
                 false
             }
+        }
+        binding.llInput.setOnApplyWindowInsetsListenerCompat { view, windowInsets ->
+            view.bottomPadding = windowInsets.imeHeight
+            windowInsets
         }
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.RESUMED) {
