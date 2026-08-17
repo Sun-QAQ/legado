@@ -260,12 +260,14 @@ object NetworkUtils {
             val addresses = nif.inetAddresses ?: continue
             while (addresses.hasMoreElements()) {
                 val address = addresses.nextElement()
-                if (!address.isLoopbackAddress && isIPv4Address(address.hostAddress)) {
+                if (!address.isLoopbackAddress &&
+                    (isIPv4Address(address.hostAddress) || isIPv6Address(address.hostAddress))
+                ) {
                     addressList.add(address)
                 }
             }
         }
-        return addressList
+        return addressList.sortedBy { it.hostAddress.orEmpty().contains(":") }
     }
 
     /**
@@ -285,7 +287,18 @@ object NetworkUtils {
      * Check if valid IPV6 address.
      */
     fun isIPv6Address(input: String?): Boolean {
-        return input != null && input.contains(":") && Validator.isIpv6(input)
+        return input != null && input.contains(":") && Validator.isIpv6(input.substringBefore('%'))
+    }
+
+    /**
+     * 格式化用于 URL 的 host，IPv6 需要加 [] 并转义 zone 分隔符 %。
+     */
+    fun formatUrlHost(hostAddress: String?): String {
+        return if (hostAddress != null && hostAddress.contains(":")) {
+            "[${hostAddress.replace("%", "%25")}]"
+        } else {
+            hostAddress.orEmpty()
+        }
     }
 
     /**

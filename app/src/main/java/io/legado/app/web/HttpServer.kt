@@ -19,7 +19,7 @@ import okio.buffer
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 
-class HttpServer(port: Int) : NanoHTTPD(port) {
+class HttpServer(port: Int) : NanoHTTPD("::", port) {
     private val assetsWeb = AssetsWeb("web")
 
     override fun serve(session: IHTTPSession): Response {

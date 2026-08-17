@@ -4,7 +4,7 @@ import fi.iki.elonen.NanoWSD
 import io.legado.app.service.WebService
 import io.legado.app.web.socket.*
 
-class WebSocketServer(port: Int) : NanoWSD(port) {
+class WebSocketServer(port: Int) : NanoWSD("::", port) {
 
     override fun openWebSocket(handshake: IHTTPSession): WebSocket? {
         WebService.serve()

@@ -97,7 +97,7 @@ class WebService : BaseService() {
                 notificationList.addAll(addressList.map { address ->
                     getString(
                         R.string.http_ip,
-                        address.hostAddress,
+                        NetworkUtils.formatUrlHost(address.hostAddress),
                         getPort()
                     )
                 })
@@ -163,7 +163,7 @@ class WebService : BaseService() {
                 notificationList.addAll(addressList.map { address ->
                     getString(
                         R.string.http_ip,
-                        address.hostAddress,
+                        NetworkUtils.formatUrlHost(address.hostAddress),
                         getPort()
                     )
                 })
