@@ -67,6 +67,7 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
     private var accumulatedSearchBooks: List<SearchBook> = emptyList()
     private var canLoadMoreSearch = false
     private var hasBooks = false
+    private var lastDisplayLimit = SEARCH_PAGE_SIZE
     private var currentSupplier: io.legado.app.data.entities.AiSource? = null
     private val activeSteps = arrayListOf<AgentStep>()
     private val stepStartTimes = HashMap<String, Long>()
@@ -89,6 +90,7 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
         accumulatedSearchBooks = emptyList()
         canLoadMoreSearch = false
         hasBooks = false
+        lastDisplayLimit = SEARCH_PAGE_SIZE
     }
 
     fun send(text: String) {
@@ -126,7 +128,13 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
                 val start = searchedSourceCount
                 val end = start + SEARCH_SOURCE_BATCH_SIZE
                 val result = withContext(Dispatchers.IO) {
-                    searchBooks(lastSearchKey, getSearchSources(lastSearchGroup), start, end)
+                    searchBooks(
+                        lastSearchKey,
+                        getSearchSources(lastSearchGroup),
+                        start,
+                        end,
+                        lastDisplayLimit
+                    )
                 }
                 searchedSourceCount = result.searchedSources
                 canLoadMoreSearch = result.canLoadMore
@@ -136,7 +144,7 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
                     lastSearchKey
                 )
                 accumulatedSearchBooks = mergedBooks
-                val topBooks = mergedBooks.take(SEARCH_PAGE_SIZE)
+                val topBooks = mergedBooks.take(lastDisplayLimit)
                 finishStep(
                     stepId,
                     summary = getString(
@@ -256,7 +264,13 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
         try {
             lastSearchGroup = ""
             val result = withContext(Dispatchers.IO) {
-                searchBooks(searchKey, appDb.bookSourceDao.allEnabled, 0, FIRST_SEARCH_SOURCE_LIMIT)
+                searchBooks(
+                    searchKey,
+                    appDb.bookSourceDao.allEnabled,
+                    0,
+                    FIRST_SEARCH_SOURCE_LIMIT,
+                    SEARCH_PAGE_SIZE
+                )
             }
             lastSearchKey = searchKey
             searchedSourceCount = result.searchedSources
@@ -380,7 +394,9 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
         }
     }
 
-    override suspend fun searchBooks(key: String, group: String): String {
+    override suspend fun searchBooks(key: String, group: String, limit: Int): String {
+        val pageSize = limit.coerceIn(1, MAX_SEARCH_PAGE_SIZE)
+        lastDisplayLimit = pageSize
         val groupDetail = group.takeIf { it.isNotBlank() }?.let { ", group=$it" }.orEmpty()
         val stepId = startStep(
             getString(R.string.agent_step_searching),
@@ -391,7 +407,7 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
             if (sources.isEmpty()) {
                 null
             } else {
-                searchBooks(key, sources, 0, FIRST_SEARCH_SOURCE_LIMIT)
+                searchBooks(key, sources, 0, FIRST_SEARCH_SOURCE_LIMIT, pageSize)
             }
         }
         if (result == null) {
@@ -638,7 +654,8 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
         key: String,
         sources: List<BookSource>,
         sourceStart: Int,
-        sourceEnd: Int
+        sourceEnd: Int,
+        limit: Int
     ): SearchResult {
         val totalSources = sources.size
         if (totalSources == 0) {
@@ -703,7 +720,7 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
             appDb.searchBookDao.insert(*result.toTypedArray())
         }
         val ranked = rankBooks(result, key)
-        val finalResult = ranked.take(SEARCH_PAGE_SIZE)
+        val finalResult = ranked.take(limit)
         val canLoadMore = end < totalSources
         AppLog.put(
             "Agent 搜索返回: key=$key 搜索书源=$end/$totalSources 原始结果=${result.size}条 " +
@@ -1002,7 +1019,8 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
         private const val ROLE_USER = "user"
         private const val ROLE_ASSISTANT = "assistant"
         private const val ROLE_TOOL = "tool"
-        private const val SEARCH_PAGE_SIZE = 10
+        private const val SEARCH_PAGE_SIZE = 5
+        private const val MAX_SEARCH_PAGE_SIZE = 20
         private const val FIRST_SEARCH_SOURCE_LIMIT = 100
         private const val SEARCH_SOURCE_BATCH_SIZE = 100
         private const val SOURCE_CREATE_ATTEMPTS = 3
@@ -1011,7 +1029,7 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
                     "行为准则：\n" +
                     "1. 需要数据时先调用对应工具获取真实结果，不要凭空捏造。\n" +
                     "2. 工具结果会以卡片形式展示给用户，回答时不要重复完整结果列表。\n" +
-                    "3. 搜索书籍时展示相关性最高的10条结果，如需更多结果用户会点击继续加载。\n\n" +
+                    "3. 搜索书籍时默认展示相关性最高的5条结果，用户明确要求展示更多（如\"展示10个\"）时，将数量填入 limit 参数，最大20条。\n\n" +
                     "边界：\n" +
                     "1. 不支持的请求应如实说明能力范围，不要编造答案。\n" +
                     "2. 回答保持简洁，默认使用中文。\n\n" +

@@ -9,9 +9,11 @@ import io.legado.app.utils.GSON
  */
 object AgentTools {
 
+    private const val DEFAULT_LIMIT = 5
+
     private val searchBooksTool = AgentTool(
         name = "search_books",
-        description = "根据书名搜索书籍，可通过 group 指定书源分组或书源名称，返回搜索结果列表",
+        description = "根据书名搜索书籍，可通过 group 指定书源分组或书源名称，可通过 limit 指定展示数量（默认5，最大20），返回搜索结果列表",
         parameters = objectParameters(
             properties = JsonObject().apply {
                 add(
@@ -28,16 +30,24 @@ object AgentTools {
                         addProperty("description", "可选，书源分组名称或具体书源名称，省略时搜索全部已启用书源")
                     }
                 )
+                add(
+                    "limit",
+                    JsonObject().apply {
+                        addProperty("type", "integer")
+                        addProperty("description", "可选，展示结果数量，默认5，最大20")
+                    }
+                )
             },
             required = arrayOf("query")
         ),
         execute = { arguments ->
             val query = arguments.getStringValue("query")
             val group = arguments.getStringValue("group")
+            val limit = arguments.getIntValue("limit", DEFAULT_LIMIT)
             if (query.isBlank()) {
                 GSON.toJson(emptyList<Any>())
             } else {
-                searchBooks(query, group)
+                searchBooks(query, group, limit)
             }
         }
     )
@@ -140,4 +150,7 @@ object AgentTools {
 
     private fun JsonObject.getStringValue(key: String): String =
         get(key)?.takeIf { !it.isJsonNull }?.asString.orEmpty()
+
+    private fun JsonObject.getIntValue(key: String, default: Int): Int =
+        get(key)?.takeIf { !it.isJsonNull }?.asInt ?: default
 }
