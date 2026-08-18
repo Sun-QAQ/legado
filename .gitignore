@@ -16,3 +16,13 @@ package-lock.json
 .idea/
 # Kotlin 2.0
 .kotlin/
+# Gradle user home build artifacts (GRADLE_USER_HOME points to project root)
+/.tmp/
+/android/
+/caches/
+/daemon/
+/native/
+/notifications/
+/wrapper/
+/workers/
+/kotlin-profile/
