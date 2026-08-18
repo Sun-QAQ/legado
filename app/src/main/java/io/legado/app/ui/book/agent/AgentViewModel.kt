@@ -8,11 +8,14 @@ import com.google.gson.JsonObject
 import com.google.gson.JsonParser
 import io.legado.app.base.BaseViewModel
 import io.legado.app.constant.AppLog
+import io.legado.app.constant.BookType
 import io.legado.app.R
 import io.legado.app.data.appDb
+import io.legado.app.data.entities.Book
 import io.legado.app.data.entities.BookSource
 import io.legado.app.data.entities.SearchBook
 import io.legado.app.exception.NoStackTraceException
+import io.legado.app.help.book.removeType
 import io.legado.app.help.config.AppConfig
 import io.legado.app.help.http.addHeaders
 import io.legado.app.help.http.newCallStrResponse
@@ -430,6 +433,49 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
             )
         )
         return GSON.toJson(result.books.map { it.toToolResult() })
+    }
+
+    override suspend fun addBookToShelf(bookUrl: String): String {
+        if (bookUrl.isBlank()) return getString(R.string.agent_book_url_empty)
+        val stepId = startStep(
+            getString(R.string.agent_step_add_shelf),
+            getString(R.string.agent_step_detail_search, bookUrl)
+        )
+        return try {
+            val result = withContext(Dispatchers.IO) {
+                val searchBook = appDb.searchBookDao.getSearchBook(bookUrl)
+                if (searchBook == null) {
+                    null
+                } else {
+                    appDb.bookDao.getBook(searchBook.name, searchBook.author)?.let { existing ->
+                        existing.removeType(BookType.notShelf)
+                        existing.save()
+                        existing.name
+                    } ?: run {
+                        val book = searchBook.toBook()
+                        book.removeType(BookType.notShelf)
+                        if (book.order == 0) {
+                            book.order = appDb.bookDao.minOrder - 1
+                        }
+                        book.save()
+                        book.name
+                    }
+                }
+            }
+            if (result == null) {
+                failStep(stepId, NoStackTraceException(getString(R.string.agent_book_not_found)))
+                getString(R.string.agent_book_not_found)
+            } else {
+                finishStep(
+                    stepId,
+                    summary = getString(R.string.agent_step_add_shelf_done, result)
+                )
+                getString(R.string.agent_step_add_shelf_success, result)
+            }
+        } catch (e: Exception) {
+            failStep(stepId, e)
+            getString(R.string.agent_add_shelf_failed, e.localizedMessage ?: e.message.orEmpty())
+        }
     }
 
     override suspend fun createBookSource(url: String): String {
@@ -1029,7 +1075,8 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
                     "行为准则：\n" +
                     "1. 需要数据时先调用对应工具获取真实结果，不要凭空捏造。\n" +
                     "2. 工具结果会以卡片形式展示给用户，回答时不要重复完整结果列表。\n" +
-                    "3. 搜索书籍时默认展示相关性最高的5条结果，用户明确要求展示更多（如\"展示10个\"）时，将数量填入 limit 参数，最大20条。\n\n" +
+                    "3. 搜索书籍时默认展示相关性最高的5条结果，用户明确要求展示更多（如\"展示10个\"）时，将数量填入 limit 参数，最大20条。\n" +
+                    "4. 用户要求将书籍加入书架时，先调用 search_books 搜索，再对最匹配的一本调用 add_book_to_shelf。\n\n" +
                     "边界：\n" +
                     "1. 不支持的请求应如实说明能力范围，不要编造答案。\n" +
                     "2. 回答保持简洁，默认使用中文。\n\n" +

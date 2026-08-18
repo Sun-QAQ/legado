@@ -52,6 +52,26 @@ object AgentTools {
         }
     )
 
+    private val addBookToShelfTool = AgentTool(
+        name = "add_book_to_shelf",
+        description = "将书籍加入书架，需先通过 search_books 搜索到该书并将结果的 bookUrl 传入",
+        parameters = objectParameters(
+            properties = JsonObject().apply {
+                add(
+                    "bookUrl",
+                    JsonObject().apply {
+                        addProperty("type", "string")
+                        addProperty("description", "书籍地址，取自 search_books 结果的 bookUrl 字段")
+                    }
+                )
+            },
+            required = arrayOf("bookUrl")
+        ),
+        execute = { arguments ->
+            addBookToShelf(arguments.getStringValue("bookUrl"))
+        }
+    )
+
     private val createBookSourceTool = AgentTool(
         name = "create_book_source",
         description = "根据网站地址编写Legado书源，并自动调试保存",
@@ -121,6 +141,7 @@ object AgentTools {
 
     private val allTools = listOf(
         searchBooksTool,
+        addBookToShelfTool,
         createBookSourceTool,
         readingReportTool,
         libraryStatsTool
