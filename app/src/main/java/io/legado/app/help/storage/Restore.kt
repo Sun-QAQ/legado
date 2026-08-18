@@ -10,6 +10,7 @@ import io.legado.app.constant.AppConst.androidId
 import io.legado.app.constant.AppLog
 import io.legado.app.constant.PreferKey
 import io.legado.app.data.appDb
+import io.legado.app.data.entities.AiSource
 import io.legado.app.data.entities.Book
 import io.legado.app.data.entities.BookGroup
 import io.legado.app.data.entities.BookSource
@@ -185,7 +186,7 @@ object Restore {
         fileToListT<ReadStat>(path, "readStats.json")?.let {
             appDb.readStatDao.insert(*it.toTypedArray())
         }
-        File(path, "servers.json").takeIf {
+File(path, "servers.json").takeIf {
             it.exists()
         }?.runCatching {
             var json = readText()
@@ -197,6 +198,19 @@ object Restore {
             }
         }?.onFailure {
             AppLog.put("恢复服务器配置出错\n${it.localizedMessage}", it)
+        }
+        File(path, "aiSources.json").takeIf {
+            it.exists()
+        }?.runCatching {
+            var json = readText()
+            if (!json.isJsonArray()) {
+                json = aes.decryptStr(json)
+            }
+            GSON.fromJsonArray<AiSource>(json).getOrNull()?.let {
+                appDb.aiSourceDao.insert(*it.toTypedArray())
+            }
+        }?.onFailure {
+            AppLog.put("恢复AI供应商配置出错\n${it.localizedMessage}", it)
         }
         File(path, DirectLinkUpload.ruleFileName).takeIf {
             it.exists()

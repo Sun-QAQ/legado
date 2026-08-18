@@ -77,6 +77,7 @@ object Backup {
             "keyboardAssists.json",
             "dictRule.json",
             "servers.json",
+            "aiSources.json",
             DirectLinkUpload.ruleFileName,
             ReadBookConfig.configFileName,
             ReadBookConfig.shareConfigFileName,
@@ -154,6 +155,14 @@ object Backup {
                 encryptBase64(json)
             }.getOrDefault(json).let {
                 FileUtils.createFileIfNotExist(backupPath + File.separator + "servers.json")
+                    .writeText(it)
+            }
+        }
+        GSON.toJson(appDb.aiSourceDao.all).let { json ->
+            aes.runCatching {
+                encryptBase64(json)
+            }.getOrDefault(json).let {
+                FileUtils.createFileIfNotExist(backupPath + File.separator + "aiSources.json")
                     .writeText(it)
             }
         }
