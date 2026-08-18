@@ -102,11 +102,7 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
                 appDb.aiSourceDao.allEnabled.firstOrNull()
             }
             if (supplier == null || supplier.model.isBlank()) {
-                if (isCreateSourceRequest(key)) {
-                    addAgentMessage(getString(R.string.agent_source_need_ai))
-                } else {
-                    searchDirect(key, extractSearchKey(key))
-                }
+                addAgentMessage(getString(R.string.ai_not_configured))
             } else {
                 agentLoop(supplier, key)
             }
@@ -544,7 +540,7 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
         messages.add(
             JsonObject().apply {
                 addProperty("role", "system")
-                addProperty("content", SYSTEM_PROMPT)
+                addProperty("content", SYSTEM_PROMPT + AgentTools.overview())
             }
         )
         history.forEach { turn ->
@@ -959,30 +955,6 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
         }
     }
 
-    /**
-     * 从自然语言中提取书名
-     */
-    private fun extractSearchKey(text: String): String {
-        val bracket = Regex("《([^》]+)》").find(text)
-        if (bracket != null) return bracket.groupValues[1].trim()
-        val quote = Regex("[\"“]([^\"”]+)[\"”]").find(text)
-        if (quote != null) return quote.groupValues[1].trim()
-        val search = Regex("(?:搜索|查找|找一下|帮我找)(?:一下|一本|这本|书籍|小说)?([^，。！？,.!?]{2,30})")
-            .find(text)
-        if (search != null) {
-            val key = search.groupValues[1]
-                .replace("这本小说", "")
-                .replace("的小说", "")
-                .trim()
-            if (key.isNotBlank()) return key
-        }
-        return text
-    }
-
-    private fun isCreateSourceRequest(text: String): Boolean {
-        return text.contains("书源") && text.contains("网站")
-    }
-
     private fun SearchBook.toToolResult(): Map<String, Any?> {
         return mapOf(
             "bookUrl" to bookUrl,
@@ -1035,13 +1007,15 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
         private const val SEARCH_SOURCE_BATCH_SIZE = 100
         private const val SOURCE_CREATE_ATTEMPTS = 3
         private const val SYSTEM_PROMPT =
-            "你是阅读App中的AI助手，可以用中文与用户对话。" +
-                    "当用户要求搜索书籍时，调用 search_books 工具并简要说明搜索结果；如果用户指定书源分组或某个书源，将分组名或书源名称填入 group 参数。" +
-                    "当用户要求编写书源时，调用 create_book_source 工具，根据网站编写并调试书源。" +
-                    "当用户要求生成阅读周报或月报时，调用 reading_report 工具，根据返回的统计数据生成报告。" +
-                    "当用户询问书源数量、订阅源数量、书源分组、书籍总数或书架分组等统计信息时，调用 library_stats 工具，根据返回的统计数据回答。" +
-                    "工具结果会以卡片形式展示给用户，回答时不要重复完整书籍列表。" +
-                    "每次展示相关性最高的10条结果，如需更多结果用户会点击继续搜索。"
+            "你是阅读App中的AI助手，使用中文与用户对话。\n\n" +
+                    "行为准则：\n" +
+                    "1. 需要数据时先调用对应工具获取真实结果，不要凭空捏造。\n" +
+                    "2. 工具结果会以卡片形式展示给用户，回答时不要重复完整结果列表。\n" +
+                    "3. 搜索书籍时展示相关性最高的10条结果，如需更多结果用户会点击继续加载。\n\n" +
+                    "边界：\n" +
+                    "1. 不支持的请求应如实说明能力范围，不要编造答案。\n" +
+                    "2. 回答保持简洁，默认使用中文。\n\n" +
+                    "可用工具（具体参数与调用方式以工具定义为准）：\n"
         private const val SOURCE_CREATE_PROMPT =
             "你是Legado(阅读)的书源开发专家。" +
                     "根据用户提供的网站首页HTML，编写一个完整可用的Legado书源JSON。" +

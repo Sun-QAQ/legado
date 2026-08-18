@@ -119,6 +119,12 @@ object AgentTools {
 
     fun find(name: String): AgentTool? = toolMap[name]
 
+    /**
+     * 生成工具清单摘要，用于注入系统提示词，与工具注册表保持单一事实来源
+     */
+    fun overview(): String =
+        allTools.joinToString("；") { "${it.name}：${it.description}" }
+
     fun toJsonArray(): JsonArray = JsonArray().apply {
         allTools.forEach { add(it.toJson()) }
     }
