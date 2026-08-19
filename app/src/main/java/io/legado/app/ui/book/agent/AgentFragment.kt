@@ -74,7 +74,15 @@ class AgentFragment() : BaseFragment(R.layout.fragment_agent), MainFragmentInter
             }
         }
         binding.llInput.setOnApplyWindowInsetsListenerCompat { view, windowInsets ->
-            view.bottomPadding = windowInsets.imeHeight
+            val imeHeight = windowInsets.imeHeight
+            if (imeHeight > 0) {
+                val location = IntArray(2)
+                view.getLocationInWindow(location)
+                val bottomOffset = (view.rootView.height - (location[1] + view.height)).coerceAtLeast(0)
+                view.bottomPadding = (imeHeight - bottomOffset).coerceAtLeast(0)
+            } else {
+                view.bottomPadding = 0
+            }
             windowInsets
         }
         viewLifecycleOwner.lifecycleScope.launch {
