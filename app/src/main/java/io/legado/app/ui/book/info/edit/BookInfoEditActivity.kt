@@ -45,9 +45,15 @@ class BookInfoEditActivity :
     override val binding by viewBinding(ActivityBookInfoEditBinding::inflate)
     override val viewModel by viewModels<BookInfoEditViewModel>()
 
+    private val createMode: Boolean
+        get() = intent.getBooleanExtra("createBook", false)
+
     override fun onActivityCreated(savedInstanceState: Bundle?) {
         viewModel.bookData.observe(this) { upView(it) }
-        if (viewModel.bookData.value == null) {
+        if (createMode) {
+            binding.titleBar.title = getString(R.string.create_book)
+            viewModel.initCreateBook(intent.getLongExtra("groupId", 0))
+        } else if (viewModel.bookData.value == null) {
             intent.getStringExtra("bookUrl")?.let {
                 viewModel.loadBook(it)
             }
@@ -119,8 +125,13 @@ class BookInfoEditActivity :
 
     private fun saveData() = binding.run {
         val book = viewModel.book ?: return@run
+        val name = tieBookName.text?.toString()?.trim() ?: ""
+        if (name.isEmpty()) {
+            appCtx.toastOnUi(R.string.book_name_empty)
+            return@run
+        }
         val oldBook = book.copy()
-        book.name = tieBookName.text?.toString() ?: ""
+        book.name = name
         book.author = tieBookAuthor.text?.toString() ?: ""
         val local = if (book.isLocal) BookType.local else 0
         val bookType = when (spType.selectedItemPosition) {
@@ -134,10 +145,17 @@ class BookInfoEditActivity :
         book.customCoverUrl = if (customCoverUrl == book.coverUrl) null else customCoverUrl
         val customIntro = tieBookIntro.text?.toString()
         book.customIntro = if (customIntro == book.intro) null else customIntro
-        BookHelp.updateCacheFolder(oldBook, book)
-        viewModel.saveBook(book) {
-            setResult(RESULT_OK)
-            finish()
+        if (createMode) {
+            viewModel.createBook(book) {
+                setResult(RESULT_OK)
+                finish()
+            }
+        } else {
+            BookHelp.updateCacheFolder(oldBook, book)
+            viewModel.saveBook(book) {
+                setResult(RESULT_OK)
+                finish()
+            }
         }
     }
 

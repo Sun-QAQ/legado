@@ -35,6 +35,12 @@
         app:showAsAction="never" />
 
     <item
+        android:id="@+id/menu_create_book"
+        android:icon="@drawable/ic_edit"
+        android:title="@string/create_book"
+        app:showAsAction="never" />
+
+    <item
         android:id="@+id/menu_bookshelf_manage"
         android:icon="@drawable/ic_arrange"
         android:title="@string/bookshelf_management"

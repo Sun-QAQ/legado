@@ -32,6 +32,11 @@
         android:visible="true">
 
         <item
+            android:id="@+id/menu_add_chapter"
+            android:title="@string/add_chapter"
+            app:showAsAction="never" />
+
+        <item
             android:id="@+id/menu_reverse_toc"
             android:title="@string/reverse_toc"
             app:showAsAction="never" />

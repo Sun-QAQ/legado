@@ -15,6 +15,7 @@ import io.legado.app.R
 import io.legado.app.base.VMBaseActivity
 import io.legado.app.data.entities.Book
 import io.legado.app.databinding.ActivityChapterListBinding
+import io.legado.app.help.book.isCreated
 import io.legado.app.help.book.isLocalTxt
 import io.legado.app.help.config.AppConfig
 import io.legado.app.lib.theme.accentColor
@@ -121,6 +122,8 @@ class TocActivity : VMBaseActivity<ActivityChapterListBinding, TocViewModel>(),
             AppConfig.tocCountWords
         menu.findItem(R.id.menu_split_long_chapter)?.isChecked =
             viewModel.bookData.value?.getSplitLongChapter() == true
+        menu.findItem(R.id.menu_add_chapter)?.isVisible =
+            viewModel.bookData.value?.isCreated == true
         return super.onMenuOpened(featureId, menu)
     }
 
@@ -136,6 +139,10 @@ class TocActivity : VMBaseActivity<ActivityChapterListBinding, TocViewModel>(),
                     book.setSplitLongChapter(item.isChecked)
                     upBookAndToc(book)
                 }
+            }
+
+            R.id.menu_add_chapter -> viewModel.addChapter {
+                viewModel.chapterListCallBack?.upChapterList(searchView?.query?.toString())
             }
 
             R.id.menu_reverse_toc -> viewModel.reverseToc {

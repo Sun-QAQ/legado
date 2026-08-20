@@ -169,6 +169,9 @@
     <string name="no_chapter">No chapters</string>
     <string name="add_url">Add url</string>
     <string name="add_book_url">Add book url</string>
+    <string name="create_book">Create book</string>
+    <string name="add_chapter">Add chapter</string>
+    <string name="book_name_empty">Book name cannot be empty</string>
     <string name="background">Background</string>
     <string name="author">Author</string>
     <string name="author_show">Author: %s</string>

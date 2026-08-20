@@ -9,6 +9,7 @@ import io.legado.app.base.BaseViewModel
 import io.legado.app.constant.AppLog
 import io.legado.app.data.appDb
 import io.legado.app.data.entities.Book
+import io.legado.app.data.entities.BookChapter
 import io.legado.app.exception.NoStackTraceException
 import io.legado.app.model.ReadBook
 import io.legado.app.model.localBook.LocalBook
@@ -65,6 +66,29 @@ class TocViewModel(application: Application) : BaseViewModel(application) {
             }
         }.onSuccess {
             it?.let(success)
+        }
+    }
+
+    fun addChapter(success: (() -> Unit)?) {
+        execute {
+            val book = bookData.value
+                ?: throw NoStackTraceException(context.getString(R.string.no_book))
+            val index = book.totalChapterNum
+            val chapter = BookChapter(
+                url = "${book.bookUrl}#$index",
+                title = "第 ${index + 1} 章",
+                bookUrl = book.bookUrl,
+                index = index
+            )
+            appDb.bookChapterDao.insert(chapter)
+            book.totalChapterNum = index + 1
+            book.latestChapterTitle = chapter.title
+            appDb.bookDao.update(book)
+            bookData.postValue(book)
+        }.onSuccess {
+            success?.invoke()
+        }.onError {
+            context.toastOnUi("新增章节失败\n${it.localizedMessage}")
         }
     }
 
