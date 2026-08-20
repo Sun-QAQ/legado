@@ -12,6 +12,7 @@ import io.legado.app.data.entities.ReadRecord
 import io.legado.app.help.AppWebDav
 import io.legado.app.help.book.BookHelp
 import io.legado.app.help.book.ContentProcessor
+import io.legado.app.help.book.isCreated
 import io.legado.app.help.book.isImage
 import io.legado.app.help.book.isLocal
 import io.legado.app.help.book.isPdf
@@ -654,7 +655,15 @@ object ReadBook : CoroutineScope by MainScope() {
     ) {
         val book = book ?: return removeLoading(chapter.index)
         val bookSource = bookSource
-        if (bookSource != null) {
+        if (book.isCreated) {
+            contentLoadFinish(
+                book,
+                chapter,
+                "",
+                resetPageOffset = resetPageOffset,
+                success = success
+            )
+        } else if (bookSource != null) {
             CacheBook.getOrCreate(bookSource, book).download(scope, chapter, semaphore)
         } else {
             val msg = if (book.isLocal) "无内容" else "没有书源"
@@ -671,11 +680,14 @@ object ReadBook : CoroutineScope by MainScope() {
     private suspend fun downloadAwait(chapter: BookChapter): String {
         val book = book!!
         val bookSource = bookSource
-        if (bookSource != null) {
-            return CacheBook.getOrCreate(bookSource, book).downloadAwait(chapter)
+        if (book.isCreated) {
+            return ""
+        }
+        return if (bookSource != null) {
+            CacheBook.getOrCreate(bookSource, book).downloadAwait(chapter)
         } else {
             val msg = if (book.isLocal) "无内容" else "没有书源"
-            return "加载正文失败\n$msg"
+            "加载正文失败\n$msg"
         }
     }
 

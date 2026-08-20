@@ -18,6 +18,7 @@ import io.legado.app.exception.NoStackTraceException
 import io.legado.app.help.AppWebDav
 import io.legado.app.help.book.BookHelp
 import io.legado.app.help.book.ContentProcessor
+import io.legado.app.help.book.isCreated
 import io.legado.app.help.book.isLocal
 import io.legado.app.help.book.isLocalModified
 import io.legado.app.help.book.removeType
@@ -119,7 +120,7 @@ class ReadBookViewModel(application: Application) : BaseViewModel(application) {
         if (!book.isLocal && book.tocUrl.isEmpty() && !loadBookInfo(book)) {
             return
         }
-        if (book.isLocal && !checkLocalBookFileExist(book)) {
+        if (book.isLocal && !book.isCreated && !checkLocalBookFileExist(book)) {
             return
         }
         if ((ReadBook.chapterSize == 0 || book.isLocalModified()) && !loadChapterListAwait(book)) {
@@ -141,7 +142,7 @@ class ReadBookViewModel(application: Application) : BaseViewModel(application) {
                 syncBookProgress(book)
             }
         }
-        if (!book.isLocal && ReadBook.bookSource == null) {
+        if (!book.isLocal && !book.isCreated && ReadBook.bookSource == null) {
             autoChangeSource(book.name, book.author)
             return
         }
@@ -187,7 +188,7 @@ class ReadBookViewModel(application: Application) : BaseViewModel(application) {
     }
 
     private suspend fun loadChapterListAwait(book: Book): Boolean {
-        if (book.isLocal) {
+        if (book.isLocal && !book.isCreated) {
             kotlin.runCatching {
                 LocalBook.getChapterList(book).let {
                     appDb.bookChapterDao.delByBook(book.bookUrl)

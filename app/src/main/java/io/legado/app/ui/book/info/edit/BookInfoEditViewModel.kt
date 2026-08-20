@@ -32,7 +32,7 @@ class BookInfoEditViewModel(application: Application) : BaseViewModel(applicatio
             bookUrl = bookUrl,
             tocUrl = bookUrl,
             origin = BookType.localTag,
-            type = BookType.text or BookType.local or BookType.created,
+            type = BookType.text or BookType.created,
             group = groupId,
             order = appDb.bookDao.minOrder - 1
         )
