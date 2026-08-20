@@ -666,6 +666,7 @@
     <string name="agent_search_book">搜索书籍</string>
     <string name="agent_clear_chat">清空对话</string>
     <string name="agent_select_supplier">选择AI供应商</string>
+    <string name="ai_source_current">当前使用</string>
     <string name="agent_searching">正在搜索书籍…</string>
     <string name="agent_waiting">正在等待回复…</string>
     <string name="agent_no_result">未找到相关书籍</string>

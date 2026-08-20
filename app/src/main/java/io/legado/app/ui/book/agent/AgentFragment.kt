@@ -153,7 +153,13 @@ class AgentFragment() : BaseFragment(R.layout.fragment_agent), MainFragmentInter
                 toastOnUi(R.string.ai_not_configured)
                 return@launch
             }
-            val names = suppliers.map { it.name }
+            val names = suppliers.map {
+                if (it.id == viewModel.currentSupplierId.value) {
+                    "[${getString(R.string.ai_source_current)}]${it.name}"
+                } else {
+                    it.name
+                }
+            }
             context?.selector(getString(R.string.agent_select_supplier), names) { _, index ->
                 val source = suppliers[index]
                 viewModel.selectSupplier(source.id, source.name)

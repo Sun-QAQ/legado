@@ -667,6 +667,7 @@
     <string name="agent_search_book">Search books</string>
     <string name="agent_clear_chat">Clear chat</string>
     <string name="agent_select_supplier">Select AI supplier</string>
+    <string name="ai_source_current">Current</string>
     <string name="agent_searching">Searching books…</string>
     <string name="agent_waiting">Waiting for reply…</string>
     <string name="agent_no_result">No books found</string>
