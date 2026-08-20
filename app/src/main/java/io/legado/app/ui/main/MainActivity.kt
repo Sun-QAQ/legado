@@ -45,6 +45,7 @@ import io.legado.app.ui.main.rss.RssFragment
 import io.legado.app.ui.widget.dialog.TextDialog
 import io.legado.app.ui.widget.text.BadgeView
 import io.legado.app.utils.isCreated
+import io.legado.app.utils.imeHeight
 import io.legado.app.utils.navigationBarHeight
 import io.legado.app.utils.observeEvent
 import io.legado.app.utils.setEdgeEffectColor
@@ -196,6 +197,10 @@ class MainActivity : VMBaseActivity<ActivityMainBinding, MainViewModel>(),
             val height = windowInsets.navigationBarHeight
             view.bottomPadding = height
             windowInsets.inset(0, 0, 0, height)
+        }
+        root.setOnApplyWindowInsetsListenerCompat { view, windowInsets ->
+            view.bottomPadding = windowInsets.imeHeight
+            windowInsets
         }
     }
 
