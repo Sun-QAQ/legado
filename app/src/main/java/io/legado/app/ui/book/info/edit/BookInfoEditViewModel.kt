@@ -50,8 +50,8 @@ class BookInfoEditViewModel(application: Application) : BaseViewModel(applicatio
             )
             book.totalChapterNum = 1
             book.latestChapterTitle = chapter.title
-            appDb.bookChapterDao.insert(chapter)
             appDb.bookDao.insert(book)
+            appDb.bookChapterDao.insert(chapter)
         }.onSuccess {
             success?.invoke()
         }.onError {
