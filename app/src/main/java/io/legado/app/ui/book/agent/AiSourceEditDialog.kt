@@ -33,6 +33,7 @@ class AiSourceEditDialog() : BaseDialogFragment(R.layout.dialog_ai_source_edit, 
     private val binding by viewBinding(DialogAiSourceEditBinding::bind)
     private val viewModel by viewModels<AiSourceEditViewModel>()
     private var aiSource = AiSource()
+    private var isEdit = false
     private val presets by lazy {
         listOf(
             AiSourcePreset("DeepSeek", "https://api.deepseek.com/v1", "deepseek-chat"),
@@ -51,11 +52,12 @@ class AiSourceEditDialog() : BaseDialogFragment(R.layout.dialog_ai_source_edit, 
         binding.toolBar.inflateMenu(R.menu.ai_source_edit)
         binding.toolBar.menu.applyTint(requireContext())
         binding.toolBar.setOnMenuItemClickListener(this)
+        isEdit = arguments?.getLong("id") != null
         viewModel.initData(arguments) {
             aiSource = it
             initView()
         }
-        if (arguments?.getLong("id") == null) {
+        if (!isEdit) {
             initView()
         }
     }
@@ -70,7 +72,9 @@ class AiSourceEditDialog() : BaseDialogFragment(R.layout.dialog_ai_source_edit, 
         if (aiSource.name.isBlank() && aiSource.baseUrl.isBlank()) {
             applyPreset(0)
         } else {
-            binding.tvSupplier.setText(presets[detectPreset(aiSource)].displayName)
+            val index = detectPreset(aiSource)
+            binding.tvSupplier.setText(presets[index].displayName)
+            setBaseUrlEditable(!isEdit && index == presets.lastIndex)
         }
     }
 
@@ -93,6 +97,11 @@ class AiSourceEditDialog() : BaseDialogFragment(R.layout.dialog_ai_source_edit, 
         binding.tvName.setText(preset.name)
         binding.tvBaseUrl.setText(preset.baseUrl)
         binding.tvModel.setText(preset.model)
+        setBaseUrlEditable(!isEdit && index == presets.lastIndex)
+    }
+
+    private fun setBaseUrlEditable(editable: Boolean) {
+        binding.tvBaseUrl.isEnabled = editable
     }
 
     private fun detectPreset(source: AiSource): Int {
