@@ -24,7 +24,7 @@ class AgentAdapter(
 ) : RecyclerView.Adapter<ItemViewHolder>() {
 
     private val items = arrayListOf<AgentMessage>()
-    private val collapsedSteps = HashSet<Int>()
+    private val expandedSteps = HashSet<Int>()
 
     fun setItems(newItems: List<AgentMessage>) {
         items.clear()
@@ -39,7 +39,7 @@ class AgentAdapter(
 
     fun clear() {
         items.clear()
-        collapsedSteps.clear()
+        expandedSteps.clear()
         notifyDataSetChanged()
     }
 
@@ -110,18 +110,18 @@ class AgentAdapter(
         viewBinding.llStepsRoot.visibility = View.VISIBLE
         viewBinding.tvStepsHeader.text =
             context.getString(R.string.agent_steps_count, item.steps.size)
-        val collapsed = collapsedSteps.contains(position)
-        viewBinding.llSteps.visibility = if (collapsed) View.GONE else View.VISIBLE
+        val expanded = expandedSteps.contains(position)
+        viewBinding.llSteps.visibility = if (expanded) View.VISIBLE else View.GONE
         viewBinding.ivStepsArrow.setImageResource(
-            if (collapsed) R.drawable.ic_expand_more else R.drawable.ic_expand_less
+            if (expanded) R.drawable.ic_expand_less else R.drawable.ic_expand_more
         )
         viewBinding.tvStepsHeader.setOnClickListener {
-            if (!collapsedSteps.add(position)) {
-                collapsedSteps.remove(position)
+            if (!expandedSteps.add(position)) {
+                expandedSteps.remove(position)
             }
             notifyItemChanged(position)
         }
-        if (collapsed) return
+        if (!expanded) return
         viewBinding.llSteps.removeAllViews()
         item.steps.forEach { step ->
             val rowBinding = ItemAgentStepBinding.inflate(
