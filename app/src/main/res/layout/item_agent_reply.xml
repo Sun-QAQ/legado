@@ -9,21 +9,11 @@
     android:paddingTop="4dp"
     android:paddingBottom="4dp">
 
-    <TextView
-        android:id="@+id/tv_message"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:background="@drawable/bg_chat_bubble_agent"
-        android:padding="10dp"
-        android:textColor="@color/primaryText"
-        android:textSize="15sp"
-        tools:text="Agent reply" />
-
     <LinearLayout
         android:id="@+id/ll_steps_root"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
+        android:layout_marginBottom="4dp"
         android:background="@drawable/bg_chat_bubble_agent"
         android:orientation="vertical"
         android:padding="10dp"
@@ -66,6 +56,17 @@
             android:orientation="vertical" />
 
     </LinearLayout>
+
+    <TextView
+        android:id="@+id/tv_message"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:background="@drawable/bg_chat_bubble_agent"
+        android:padding="10dp"
+        android:textColor="@color/primaryText"
+        android:textSize="15sp"
+        tools:text="Agent reply" />
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/ll_book_result"
