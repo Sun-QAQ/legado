@@ -12,9 +12,11 @@ import io.legado.app.constant.BookType
 import io.legado.app.R
 import io.legado.app.data.appDb
 import io.legado.app.data.entities.Book
+import io.legado.app.data.entities.BookChapter
 import io.legado.app.data.entities.BookSource
 import io.legado.app.data.entities.SearchBook
 import io.legado.app.exception.NoStackTraceException
+import io.legado.app.help.book.BookHelp
 import io.legado.app.help.book.removeType
 import io.legado.app.help.config.AppConfig
 import io.legado.app.help.http.addHeaders
@@ -26,9 +28,11 @@ import io.legado.app.utils.fromJsonArray
 import io.legado.app.utils.fromJsonObject
 import io.legado.app.utils.toastOnUi
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -43,8 +47,10 @@ import kotlinx.coroutines.withTimeout
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
+import java.util.UUID
 import java.util.concurrent.TimeUnit
 import kotlin.math.min
+import kotlin.math.max
 
 /**
  * Agent 对话
@@ -294,6 +300,23 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
                     summary = e.localizedMessage ?: e.message ?: "未知错误",
                     durationMs = duration
                 )
+                emitSteps()
+            }
+        }
+    }
+
+    private fun updateStepDetail(stepId: String, detail: String) {
+        if (liveReply != null) {
+            liveReply = liveReply!!.copy(
+                steps = liveReply!!.steps.map {
+                    if (it.id == stepId) it.copy(detail = detail) else it
+                }
+            )
+            emitLive()
+        } else {
+            val index = activeSteps.indexOfFirst { it.id == stepId }
+            if (index >= 0) {
+                activeSteps[index] = activeSteps[index].copy(detail = detail)
                 emitSteps()
             }
         }
@@ -696,6 +719,9 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
             }
             result
         } catch (e: Exception) {
+            if (cancelRequested || e is CancellationException) {
+                throw e
+            }
             failStep(stepId, e)
             val message = e.localizedMessage ?: e.message ?: "未知错误"
             "工具执行失败: $message"
@@ -725,6 +751,17 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
             "reading_report" -> args.get("period")?.takeIf { !it.isJsonNull }?.asString
                 ?.takeIf { it.isNotBlank() }
                 ?.let { "period=$it" }
+            "create_ai_book" -> buildString {
+                args.get("type")?.takeIf { !it.isJsonNull }?.asString?.let {
+                    append("type=$it")
+                }
+                args.get("theme")?.takeIf { !it.isJsonNull }?.asString
+                    ?.takeIf { it.isNotBlank() }
+                    ?.let {
+                        if (isNotEmpty()) append(", ")
+                        append("theme=$it")
+                    }
+            }.takeIf { it.isNotBlank() }
             else -> null
         }
     }
@@ -744,14 +781,320 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
                 ?: getString(R.string.agent_step_unknown_result)
             "reading_report" -> getString(R.string.agent_step_reading_report_done)
             "library_stats" -> getString(R.string.agent_step_library_stats_done_short)
+            "create_ai_book" -> result.lineSequence().firstOrNull()?.take(80)
+                ?: getString(R.string.agent_step_unknown_result)
             else -> result.lineSequence().firstOrNull()?.take(60)
                 ?: getString(R.string.agent_step_unknown_result)
         }
     }
 
+    override suspend fun createAiBook(
+        type: String,
+        theme: String,
+        chapterCount: Int,
+        wordsPerChapter: Int
+    ): String {
+        val supplier = currentSupplier ?: return getString(R.string.agent_no_supplier)
+        val count = chapterCount.coerceIn(1, MAX_AI_BOOK_CHAPTERS)
+        val words = wordsPerChapter.coerceIn(500, 5000)
+        return try {
+            // 阶段1：生成书籍信息并创建书籍
+            val metaStep = startStep(getString(R.string.agent_step_ai_book_meta))
+            val book = generateBookMeta(supplier, type, theme)
+            finishStep(metaStep, summary = "${book.name} · ${book.author}")
+            // 阶段2：生成大纲并插入章节
+            val outlineStep = startStep(getString(R.string.agent_step_ai_book_outline))
+            val plans = generateOutline(supplier, book, count)
+            finishStep(
+                outlineStep,
+                summary = getString(R.string.agent_step_ai_book_outline_done, plans.size)
+            )
+            val chapters = plans.mapIndexed { index, plan ->
+                BookChapter(
+                    url = "${book.bookUrl}#$index",
+                    title = plan.title,
+                    bookUrl = book.bookUrl,
+                    index = index
+                )
+            }
+            appDb.bookChapterDao.insert(*chapters.toTypedArray())
+            // 阶段3：逐章生成正文
+            val recentContents = ArrayDeque<String>()
+            var totalWords = 0
+            var failedCount = 0
+            for (i in plans.indices) {
+                currentCoroutineContext().ensureActive()
+                val chapterStep = startStep(
+                    getString(R.string.agent_step_ai_book_chapter, i + 1, plans.size),
+                    "《${plans[i].title}》"
+                )
+                val content = try {
+                    generateChapterContent(
+                        supplier, book, plans, i, recentContents, words
+                    ) { length ->
+                        updateStepDetail(chapterStep, "《${plans[i].title}》 · 已生成 $length 字")
+                    }
+                } catch (e: Exception) {
+                    if (cancelRequested || e is CancellationException) {
+                        throw e
+                    }
+                    AppLog.put("AI创作第${i + 1}章失败", e)
+                    ""
+                }
+                if (content.isNotBlank()) {
+                    val chapter = chapters[i]
+                    BookHelp.saveText(book, chapter, content)
+                    appDb.bookChapterDao.upWordCount(
+                        book.bookUrl, chapter.url, content.length.toString()
+                    )
+                    recentContents.addLast(content)
+                    if (recentContents.size > 5) {
+                        recentContents.removeFirst()
+                    }
+                    totalWords += content.length
+                    finishStep(
+                        chapterStep,
+                        summary = getString(
+                            R.string.agent_step_ai_book_chapter_done,
+                            i + 1,
+                            plans[i].title,
+                            content.length
+                        )
+                    )
+                } else {
+                    failedCount++
+                    failStep(chapterStep, NoStackTraceException(getString(R.string.agent_ai_book_failed, "章节正文为空")))
+                }
+            }
+            book.totalChapterNum = chapters.size
+            book.latestChapterTitle = chapters.lastOrNull()?.title
+            appDb.bookDao.update(book)
+            if (failedCount >= chapters.size) {
+                getString(R.string.agent_ai_book_failed, getString(R.string.agent_ai_book_failed, "正文生成失败"))
+            } else {
+                getString(
+                    R.string.agent_ai_book_done,
+                    book.name,
+                    book.author,
+                    chapters.size,
+                    totalWords
+                )
+            }
+        } catch (e: Exception) {
+            if (cancelRequested || e is CancellationException) {
+                throw e
+            }
+            AppLog.put("AI创作小说失败", e)
+            getString(
+                R.string.agent_ai_book_failed,
+                e.localizedMessage ?: e.message ?: "未知错误"
+            )
+        }
+    }
+
+    private data class ChapterPlan(
+        val title: String,
+        val outline: String
+    )
+
+    private suspend fun generateBookMeta(
+        supplier: io.legado.app.data.entities.AiSource,
+        type: String,
+        theme: String
+    ): Book {
+        var lastError = ""
+        for (attempt in 0 until 3) {
+            val messages = JsonArray()
+            messages.add(
+                JsonObject().apply {
+                    addProperty("role", "system")
+                    addProperty("content", BOOK_META_PROMPT)
+                }
+            )
+            val userContent = buildString {
+                append("小说类型：$type\n主题与设定：$theme")
+                if (attempt > 0) {
+                    append("\n\n上次生成的书名与作者已存在，请更换书名后重新输出完整JSON。")
+                }
+            }
+            messages.add(
+                JsonObject().apply {
+                    addProperty("role", "user")
+                    addProperty("content", userContent)
+                }
+            )
+            val reply = chatCompletion(
+                supplier,
+                JsonObject().apply {
+                    addProperty("model", supplier.model)
+                    add("messages", messages)
+                }
+            )
+            val content = reply.get("content")
+                ?.takeIf { !it.isJsonNull }
+                ?.asString.orEmpty()
+            val meta = runCatching {
+                GSON.fromJsonObject<JsonObject>(extractJson(content)).getOrNull()
+            }.getOrNull()
+            if (meta == null) {
+                lastError = "书籍信息JSON格式错误"
+                continue
+            }
+            val name = meta.get("name")?.takeIf { !it.isJsonNull }?.asString?.trim().orEmpty()
+            val author = meta.get("author")?.takeIf { !it.isJsonNull }?.asString?.trim().orEmpty()
+            val intro = meta.get("intro")?.takeIf { !it.isJsonNull }?.asString?.trim().orEmpty()
+            val kind = meta.get("kind")?.takeIf { !it.isJsonNull }?.asString?.trim().orEmpty()
+            if (name.isBlank() || author.isBlank()) {
+                lastError = "书名或作者为空"
+                continue
+            }
+            if (appDb.bookDao.has(name, author)) {
+                lastError = "书名已存在"
+                continue
+            }
+            val bookUrl = "loc_created://${UUID.randomUUID()}"
+            val book = Book(
+                bookUrl = bookUrl,
+                tocUrl = bookUrl,
+                origin = BookType.localTag,
+                originName = getString(R.string.agent_ai_author),
+                name = name,
+                author = author,
+                intro = intro,
+                kind = kind,
+                type = BookType.text or BookType.created,
+                group = 0L,
+                order = appDb.bookDao.minOrder - 1
+            )
+            appDb.bookDao.insert(book)
+            return book
+        }
+        throw NoStackTraceException(getString(R.string.agent_ai_book_meta_failed, lastError))
+    }
+
+    private suspend fun generateOutline(
+        supplier: io.legado.app.data.entities.AiSource,
+        book: Book,
+        count: Int
+    ): List<ChapterPlan> {
+        var lastError = ""
+        for (attempt in 0 until 3) {
+            val messages = JsonArray()
+            messages.add(
+                JsonObject().apply {
+                    addProperty("role", "system")
+                    addProperty("content", BOOK_OUTLINE_PROMPT)
+                }
+            )
+            messages.add(
+                JsonObject().apply {
+                    addProperty("role", "user")
+                    addProperty(
+                        "content",
+                        "书名：${book.name}\n作者：${book.author}\n简介：${book.intro}\n\n请生成共 $count 章的章节大纲。"
+                    )
+                }
+            )
+            val reply = chatCompletion(
+                supplier,
+                JsonObject().apply {
+                    addProperty("model", supplier.model)
+                    add("messages", messages)
+                }
+            )
+            val content = reply.get("content")
+                ?.takeIf { !it.isJsonNull }
+                ?.asString.orEmpty()
+            val plans = runCatching {
+                GSON.fromJsonArray<JsonObject>(extractJson(content)).getOrNull()
+                    ?.mapNotNull { obj ->
+                        val title = obj.get("title")
+                            ?.takeIf { !it.isJsonNull }
+                            ?.asString
+                            ?.trim()
+                        if (title.isNullOrBlank()) {
+                            null
+                        } else {
+                            val outline = obj.get("outline")
+                                ?.takeIf { !it.isJsonNull }
+                                ?.asString
+                                ?.trim()
+                                .orEmpty()
+                            ChapterPlan(title, outline)
+                        }
+                    }
+            }.getOrNull().orEmpty()
+            if (plans.isEmpty()) {
+                lastError = "大纲JSON格式错误"
+                continue
+            }
+            if (plans.size < count) {
+                // 章节数不足时按已有章节使用，章节数足够时裁剪
+            }
+            return plans.take(count)
+        }
+        throw NoStackTraceException(getString(R.string.agent_ai_book_outline_failed, lastError))
+    }
+
+    private suspend fun generateChapterContent(
+        supplier: io.legado.app.data.entities.AiSource,
+        book: Book,
+        plans: List<ChapterPlan>,
+        index: Int,
+        recentContents: List<String>,
+        words: Int,
+        onProgress: (Int) -> Unit
+    ): String {
+        val context = buildString {
+            append("书籍名：《${book.name}》\n")
+            append("书籍简介：${book.intro.orEmpty()}\n\n")
+            append("本章标题：${plans[index].title}\n")
+            append("本章大纲：${plans[index].outline.ifBlank { "（无）" }}\n\n")
+            if (recentContents.isNotEmpty()) {
+                append("最近章节正文（供衔接前情，仅作参考，不要大段重复）：\n")
+                val start = max(0, index - recentContents.size)
+                recentContents.forEachIndexed { i, content ->
+                    append("--- ${plans[start + i].title} ---\n")
+                    append(content.take(1200)).append("\n\n")
+                }
+            }
+        }
+        val messages = JsonArray()
+        messages.add(
+            JsonObject().apply {
+                addProperty("role", "system")
+                addProperty("content", BOOK_CHAPTER_PROMPT)
+            }
+        )
+        messages.add(
+            JsonObject().apply {
+                addProperty("role", "user")
+                addProperty(
+                    "content",
+                    context + "\n请写出本章正文，目标字数约 $words 字。"
+                )
+            }
+        )
+        val request = JsonObject().apply {
+            addProperty("model", supplier.model)
+            add("messages", messages)
+        }
+        val contentBuilder = StringBuilder()
+        var lastReported = 0
+        withContext(Dispatchers.IO) {
+            chatCompletionStream(supplier, request) { delta ->
+                contentBuilder.append(delta)
+                if (contentBuilder.length - lastReported >= 200) {
+                    lastReported = contentBuilder.length
+                    onProgress(contentBuilder.length)
+                }
+            }
+        }
+        return contentBuilder.toString()
+    }
+
     private fun buildChatRequest(supplier: io.legado.app.data.entities.AiSource): JsonObject {
         val root = JsonObject()
-        root.addProperty("model", supplier.model)
         val messages = JsonArray()
         messages.add(
             JsonObject().apply {
@@ -1278,9 +1621,23 @@ val choices = chunk.get("choices")
         val fenced = Regex("```(?:json)?\\s*([\\s\\S]*?)```", RegexOption.IGNORE_CASE)
             .find(text)
         if (fenced != null) return fenced.groupValues[1].trim()
-        val start = text.indexOf('{')
-        val end = text.lastIndexOf('}')
-        return if (start >= 0 && end > start) text.substring(start, end + 1) else text.trim()
+        val trimmed = text.trim()
+        if (trimmed.startsWith("[")) {
+            val start = trimmed.indexOf('[')
+            val end = trimmed.lastIndexOf(']')
+            return if (start >= 0 && end > start) {
+                trimmed.substring(start, end + 1)
+            } else {
+                trimmed
+            }
+        }
+        val start = trimmed.indexOf('{')
+        val end = trimmed.lastIndexOf('}')
+        return if (start >= 0 && end > start) {
+            trimmed.substring(start, end + 1)
+        } else {
+            trimmed
+        }
     }
 
     private fun parseBookSource(json: String): BookSource {
@@ -1387,13 +1744,32 @@ val choices = chunk.get("choices")
         private const val FIRST_SEARCH_SOURCE_LIMIT = 100
         private const val SEARCH_SOURCE_BATCH_SIZE = 100
         private const val SOURCE_CREATE_ATTEMPTS = 3
+        private const val MAX_AI_BOOK_CHAPTERS = 50
+        private const val BOOK_META_PROMPT =
+            "你是专业小说创作助手。根据用户提供的小说类型和主题，生成小说基本信息。" +
+                    "只输出一个JSON对象，不要输出解释、注释或markdown代码块。JSON格式：" +
+                    "{\"name\":\"书名\",\"author\":\"作者笔名\",\"intro\":\"简介(120-200字)\",\"kind\":\"类型标签，如：科幻\"}。" +
+                    "书名要新颖独特，避免常见书名。"
+        private const val BOOK_OUTLINE_PROMPT =
+            "你是专业小说大纲规划师。根据书籍信息生成章节大纲。" +
+                    "只输出一个JSON数组，不要输出解释、注释或markdown代码块。每个元素格式：" +
+                    "{\"title\":\"章节标题（有吸引力，能体现本章情节，如：初入星海）\",\"outline\":\"本章内容概要(80-150字)\"}。" +
+                    "章节标题不要包含\"第X章\"前缀，只需要章节名。大纲要有完整的情节起承转合和结局。"
+        private const val BOOK_CHAPTER_PROMPT =
+            "你是长篇小说作者。根据给定的书籍简介、本章大纲和最近几章正文续写本章。要求：" +
+                    "1. 只输出本章正文文本，不要输出章节标题，不要任何解释、注释或markdown标记；" +
+                    "2. 与前面章节情节连贯、人物一致、文风统一；" +
+                    "3. 正文要有具体的情节推进和细节描写，避免与前几章内容大段重复；" +
+                    "4. 字数控制在用户要求的目标字数左右。"
         private const val SYSTEM_PROMPT =
             "你是阅读App中的AI助手，使用中文与用户对话。\n\n" +
                     "行为准则：\n" +
                     "1. 需要数据时先调用对应工具获取真实结果，不要凭空捏造。\n" +
                     "2. 工具结果会以卡片形式展示给用户，回答时不要重复完整结果列表。\n" +
                     "3. 搜索书籍时默认展示相关性最高的5条结果，用户明确要求展示更多（如\"展示10个\"）时，将数量填入 limit 参数，最大20条。\n" +
-                    "4. 用户要求将书籍加入书架时，先调用 search_books 搜索，再对最匹配的一本调用 add_book_to_shelf。\n\n" +
+                    "4. 用户要求将书籍加入书架时，先调用 search_books 搜索，再对最匹配的一本调用 add_book_to_shelf。\n" +
+                    "5. 用户要求创作/写一部小说时，调用 create_ai_book 工具，将类型填入 type，核心设定填入 theme。" +
+                    "用户指定章节数时填入 chapterCount，指定每章字数时填入 wordsPerChapter。\n\n" +
                     "边界：\n" +
                     "1. 不支持的请求应如实说明能力范围，不要编造答案。\n" +
                     "2. 回答保持简洁，默认使用中文。\n\n" +

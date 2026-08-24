@@ -15,6 +15,13 @@ interface AgentToolContext {
     suspend fun readingReport(period: String): String
 
     suspend fun getLibraryStats(): String
+
+    suspend fun createAiBook(
+        type: String,
+        theme: String,
+        chapterCount: Int,
+        wordsPerChapter: Int
+    ): String
 }
 
 /**

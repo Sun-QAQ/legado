@@ -139,12 +139,59 @@ object AgentTools {
         execute = { getLibraryStats() }
     )
 
+    private val createAiBookTool = AgentTool(
+        name = "create_ai_book",
+        description = "根据用户提供的小说类型和主题自动创作一部完整小说：生成书名简介、创建书籍并加入书架、生成章节大纲、逐章编写正文并保存，可指定章节数和每章字数",
+        parameters = objectParameters(
+            properties = JsonObject().apply {
+                add(
+                    "type",
+                    JsonObject().apply {
+                        addProperty("type", "string")
+                        addProperty("description", "小说类型，例如：科幻、玄幻、都市、悬疑")
+                    }
+                )
+                add(
+                    "theme",
+                    JsonObject().apply {
+                        addProperty("type", "string")
+                        addProperty("description", "主题或核心设定描述，例如：星空冒险、废土求生")
+                    }
+                )
+                add(
+                    "chapterCount",
+                    JsonObject().apply {
+                        addProperty("type", "integer")
+                        addProperty("description", "可选，章节数量，默认10，最大50")
+                    }
+                )
+                add(
+                    "wordsPerChapter",
+                    JsonObject().apply {
+                        addProperty("type", "integer")
+                        addProperty("description", "可选，每章目标字数，默认1500")
+                    }
+                )
+            },
+            required = arrayOf("type", "theme")
+        ),
+        execute = { arguments ->
+            createAiBook(
+                arguments.getStringValue("type"),
+                arguments.getStringValue("theme"),
+                arguments.getIntValue("chapterCount", 10),
+                arguments.getIntValue("wordsPerChapter", 1500)
+            )
+        }
+    )
+
     private val allTools = listOf(
         searchBooksTool,
         addBookToShelfTool,
         createBookSourceTool,
         readingReportTool,
-        libraryStatsTool
+        libraryStatsTool,
+        createAiBookTool
     )
     private val toolMap = allTools.associateBy { it.name }
 

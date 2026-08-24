@@ -675,6 +675,16 @@
     <string name="agent_waiting">Waiting for reply…</string>
     <string name="agent_interrupt">Stop</string>
     <string name="agent_interrupted">Interrupted</string>
+    <string name="agent_ai_author">AI Author</string>
+    <string name="agent_ai_book_done">Novel created! Title: %1$s, Author: %2$s, %3$d chapters, ~%4$d words. Saved to bookshelf.</string>
+    <string name="agent_ai_book_failed">Novel creation failed: %1$s</string>
+    <string name="agent_ai_book_meta_failed">Book info generation failed: %1$s</string>
+    <string name="agent_ai_book_outline_failed">Outline generation failed: %1$s</string>
+    <string name="agent_step_ai_book_meta">Generating book info</string>
+    <string name="agent_step_ai_book_outline">Generating outline and chapters</string>
+    <string name="agent_step_ai_book_outline_done">Outline done, %1$d chapters</string>
+    <string name="agent_step_ai_book_chapter">Writing chapter %1$d/%2$d</string>
+    <string name="agent_step_ai_book_chapter_done">Chapter %1$d “%2$s” done, ~%3$d words</string>
     <string name="agent_no_result">No books found</string>
     <string name="agent_source_need_ai">Configure an AI supplier first to create book sources.</string>
     <string name="agent_load_more">Search more</string>
