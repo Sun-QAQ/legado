@@ -1162,7 +1162,7 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
         }
         if (!response.isSuccessful()) {
             AppLog.put("Agent 接口返回 HTTP ${response.code()}\n${bodyText.orEmpty()}")
-            throw Exception("HTTP ${response.code()}\n${bodyText.take(1000)}")
+            throw AiApiException(parseApiError(bodyText, response.code()))
         }
         val choices = json.get("choices")
             ?.takeIf { it.isJsonArray }
@@ -1193,6 +1193,24 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
         body: JsonObject,
         onDelta: (String) -> Unit
     ): JsonObject {
+        val streamingBody = body.deepCopy().apply { addProperty("stream", true) }
+        return try {
+            doChatCompletionStream(supplier, streamingBody, onDelta)
+        } catch (e: AiApiException) {
+            AppLog.put("Agent 流式请求失败，降级为非流式: ${e.message}")
+            chatCompletion(supplier, body.deepCopy().apply { remove("stream") })
+        }
+    }
+
+    /**
+     * 流式调用 /chat/completions：读取 SSE 分块，将 content 增量通过 onDelta 回调实时输出，
+     * 同时按 index 累积合并分片的 tool_calls，返回聚合后的完整消息
+     */
+    private suspend fun doChatCompletionStream(
+        supplier: io.legado.app.data.entities.AiSource,
+        body: JsonObject,
+        onDelta: (String) -> Unit
+    ): JsonObject {
         val client = okHttpClient.newBuilder()
             .callTimeout(180, TimeUnit.SECONDS)
             .readTimeout(180, TimeUnit.SECONDS)
@@ -1205,7 +1223,7 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
                 "Bearer ${supplier.apiKey}"
             }
         }
-        val request = body.deepCopy().apply { addProperty("stream", true) }.toString()
+        val request = body.toString()
             .toRequestBody("application/json; charset=UTF-8".toMediaType())
         val httpRequest = Request.Builder()
             .apply {
@@ -1221,7 +1239,7 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
             if (!response.isSuccessful) {
                 val bodyText = response.body?.string()
                 AppLog.put("Agent 流式接口返回 HTTP ${response.code}\n${bodyText.orEmpty()}")
-                throw Exception("HTTP ${response.code}\n${bodyText?.take(1000).orEmpty()}")
+                throw AiApiException(parseApiError(bodyText, response.code))
             }
             val contentBuilder = StringBuilder()
             val toolCallMap = LinkedHashMap<Int, JsonObject>()
@@ -1351,6 +1369,28 @@ val choices = chunk.get("choices")
         val detail = bodyText?.take(1000)?.let { "\n$it" }.orEmpty()
         return Exception(prefix + getString(R.string.agent_invalid_response) + detail)
     }
+
+    /**
+     * 解析 OpenAI 兼容错误响应体中的 error.message，无法解析时返回原始信息
+     */
+    private fun parseApiError(bodyText: String?, code: Int): String {
+        val message = runCatching { JsonParser.parseString(bodyText).asJsonObject }
+            .getOrNull()
+            ?.get("error")
+            ?.takeIf { it.isJsonObject }
+            ?.asJsonObject
+            ?.get("message")
+            ?.takeIf { !it.isJsonNull }
+            ?.asString
+            ?.takeIf { it.isNotBlank() }
+        return if (message == null) {
+            "HTTP $code" + bodyText?.take(500)?.let { "\n$it" }.orEmpty()
+        } else {
+            "$message (HTTP $code)"
+        }
+    }
+
+    private class AiApiException(message: String) : Exception(message)
 
     /**
      * 搜索书籍，返回合并后的结果
