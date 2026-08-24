@@ -821,7 +821,9 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
             AppLog.put("Agent 接口返回 HTTP ${response.code()}\n${bodyText.orEmpty()}")
             throw Exception("HTTP ${response.code()}\n${bodyText.take(1000)}")
         }
-        val choices = json.getAsJsonArray("choices")
+        val choices = json.get("choices")
+            ?.takeIf { it.isJsonArray }
+            ?.asJsonArray
         if (choices == null || choices.size() == 0) {
             throw invalidResponseException(bodyText, response.code())
         }
@@ -895,21 +897,29 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
                             ?.takeIf { it.isJsonObject }
                             ?.asJsonObject
                             ?: continue
-                        val choices = chunk.getAsJsonArray("choices")
-                        if (choices == null || choices.size() == 0) continue
-                        val choice = choices[0]
-                            ?.takeIf { it.isJsonObject }
-                            ?.asJsonObject
-                            ?: continue
-                        val delta = choice.getAsJsonObject("delta") ?: continue
-                        val content = delta.get("content")
-                            ?.takeIf { !it.isJsonNull }
-                            ?.asString
-                        if (!content.isNullOrBlank()) {
-                            contentBuilder.append(content)
-                            onDelta(content)
-                        }
-                        val toolCalls = delta.getAsJsonArray("tool_calls")
+val choices = chunk.get("choices")
+                        ?.takeIf { it.isJsonArray }
+                        ?.asJsonArray
+                        ?: continue
+                    if (choices.size() == 0) continue
+                    val choice = choices[0]
+                        ?.takeIf { it.isJsonObject }
+                        ?.asJsonObject
+                        ?: continue
+                    val delta = choice.get("delta")
+                        ?.takeIf { it.isJsonObject }
+                        ?.asJsonObject
+                        ?: continue
+                    val content = delta.get("content")
+                        ?.takeIf { !it.isJsonNull }
+                        ?.asString
+                    if (!content.isNullOrBlank()) {
+                        contentBuilder.append(content)
+                        onDelta(content)
+                    }
+                    val toolCalls = delta.get("tool_calls")
+                        ?.takeIf { it.isJsonArray }
+                        ?.asJsonArray
                         if (toolCalls != null) {
                             for (i in 0 until toolCalls.size()) {
                                 val tc = toolCalls[i]
