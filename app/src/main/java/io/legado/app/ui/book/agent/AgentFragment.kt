@@ -84,6 +84,13 @@ class AgentFragment() : BaseFragment(R.layout.fragment_agent), MainFragmentInter
         }
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+                viewModel.streamingText.collect {
+                    it?.let { text -> adapter.updateLastText(text) }
+                }
+            }
+        }
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.RESUMED) {
                 viewModel.waiting.collect {
                     binding.btnSend.isEnabled = !it
                 }

@@ -11,5 +11,6 @@ data class AgentMessage(
     val books: List<SearchBook> = emptyList(),
     val steps: List<AgentStep> = emptyList(),
     val placeholder: Boolean = false,
-    val canLoadMore: Boolean = false
+    val canLoadMore: Boolean = false,
+    val streaming: Boolean = false
 )

@@ -37,6 +37,17 @@ class AgentAdapter(
         notifyItemInserted(items.size - 1)
     }
 
+    /**
+     * 流式输出：仅更新最后一条（回复）消息的文本，避免整体刷新导致滚动跳动
+     */
+    fun updateLastText(text: String) {
+        if (items.isEmpty()) return
+        val last = items.last()
+        if (!last.streaming) return
+        items[items.size - 1] = last.copy(text = text)
+        notifyItemChanged(items.size - 1)
+    }
+
     fun clear() {
         items.clear()
         expandedSteps.clear()

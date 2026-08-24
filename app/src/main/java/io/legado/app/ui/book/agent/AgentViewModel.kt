@@ -40,6 +40,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import java.util.concurrent.TimeUnit
 import kotlin.math.min
@@ -54,6 +55,9 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
 
     private val _waiting = MutableStateFlow(false)
     val waiting: StateFlow<Boolean> = _waiting
+
+    private val _streamingText = MutableStateFlow<String?>(null)
+    val streamingText: StateFlow<String?> = _streamingText
 
     private val _supplierName = MutableStateFlow("")
     val supplierName: StateFlow<String> = _supplierName
@@ -75,6 +79,7 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
     private val activeSteps = arrayListOf<AgentStep>()
     private val stepStartTimes = HashMap<String, Long>()
     private var stepSequence = 0L
+    private var liveReply: AgentMessage? = null
 
     fun selectSupplier(id: Long, name: String) {
         selectedSupplierId = id
@@ -86,6 +91,8 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
         activeSteps.clear()
         stepStartTimes.clear()
         history.clear()
+        liveReply = null
+        _streamingText.value = null
         _messages.value = emptyList()
         lastSearchKey = ""
         lastSearchGroup = ""
@@ -190,55 +197,117 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
 
     private fun startStep(title: String, detail: String? = null): String {
         val id = "step-${System.currentTimeMillis()}-${stepSequence++}"
-        activeSteps.add(AgentStep(id, title, AgentStepState.RUNNING, detail))
+        val step = AgentStep(id, title, AgentStepState.RUNNING, detail)
         stepStartTimes[id] = System.currentTimeMillis()
-        emitSteps()
+        if (liveReply != null) {
+            liveReply = liveReply!!.copy(steps = liveReply!!.steps + step)
+            emitLive()
+        } else {
+            activeSteps.add(step)
+            emitSteps()
+        }
         return id
     }
 
     private fun finishStep(stepId: String, summary: String? = null) {
-        val index = activeSteps.indexOfFirst { it.id == stepId }
-        if (index >= 0) {
-            val step = activeSteps[index]
-            val start = stepStartTimes.remove(stepId) ?: 0L
-            activeSteps[index] = step.copy(
-                state = AgentStepState.DONE,
-                summary = summary ?: step.summary,
-                durationMs = start.takeIf { it > 0 }?.let { System.currentTimeMillis() - it }
+        val start = stepStartTimes.remove(stepId) ?: 0L
+        val duration = start.takeIf { it > 0 }?.let { System.currentTimeMillis() - it }
+        if (liveReply != null) {
+            liveReply = liveReply!!.copy(
+                steps = liveReply!!.steps.map {
+                    if (it.id == stepId) {
+                        it.copy(
+                            state = AgentStepState.DONE,
+                            summary = summary ?: it.summary,
+                            durationMs = duration
+                        )
+                    } else {
+                        it
+                    }
+                }
             )
-            emitSteps()
+            emitLive()
+        } else {
+            val index = activeSteps.indexOfFirst { it.id == stepId }
+            if (index >= 0) {
+                val step = activeSteps[index]
+                activeSteps[index] = step.copy(
+                    state = AgentStepState.DONE,
+                    summary = summary ?: step.summary,
+                    durationMs = duration
+                )
+                emitSteps()
+            }
         }
     }
 
     private fun failStep(stepId: String, e: Exception) {
-        val index = activeSteps.indexOfFirst { it.id == stepId }
-        if (index >= 0) {
-            val step = activeSteps[index]
-            val start = stepStartTimes.remove(stepId) ?: 0L
-            activeSteps[index] = step.copy(
-                state = AgentStepState.FAILED,
-                summary = e.localizedMessage ?: e.message ?: "未知错误",
-                durationMs = start.takeIf { it > 0 }?.let { System.currentTimeMillis() - it }
+        val start = stepStartTimes.remove(stepId) ?: 0L
+        val duration = start.takeIf { it > 0 }?.let { System.currentTimeMillis() - it }
+        if (liveReply != null) {
+            liveReply = liveReply!!.copy(
+                steps = liveReply!!.steps.map {
+                    if (it.id == stepId) {
+                        it.copy(
+                            state = AgentStepState.FAILED,
+                            summary = e.localizedMessage ?: e.message ?: "未知错误",
+                            durationMs = duration
+                        )
+                    } else {
+                        it
+                    }
+                }
             )
-            emitSteps()
+            emitLive()
+        } else {
+            val index = activeSteps.indexOfFirst { it.id == stepId }
+            if (index >= 0) {
+                val step = activeSteps[index]
+                activeSteps[index] = step.copy(
+                    state = AgentStepState.FAILED,
+                    summary = e.localizedMessage ?: e.message ?: "未知错误",
+                    durationMs = duration
+                )
+                emitSteps()
+            }
         }
     }
 
-    private fun failActiveSteps(e: Exception) {
-        val message = e.localizedMessage ?: e.message ?: "未知错误"
-        activeSteps.indices.forEach { index ->
-            val step = activeSteps[index]
-            if (step.state == AgentStepState.RUNNING) {
-                val start = stepStartTimes.remove(step.id) ?: 0L
-                activeSteps[index] = step.copy(
-                    state = AgentStepState.FAILED,
-                    summary = message,
-                    durationMs = start.takeIf { it > 0 }?.let { System.currentTimeMillis() - it }
-                )
-            }
-        }
-        stepStartTimes.clear()
-        emitSteps()
+    /**
+     * 流式回复：liveReply 始终保持为对话列表中最后一条消息，随内容与步骤实时更新
+     */
+    private fun emitLive() {
+        val base = _messages.value.filterNot { it.streaming }
+        _messages.value = if (liveReply != null) base + liveReply!! else base
+    }
+
+    private fun beginLiveReply() {
+        liveReply = AgentMessage(false, "", streaming = true)
+        emitLive()
+    }
+
+    private fun appendLiveText(delta: String) {
+        val reply = liveReply ?: return
+        liveReply = reply.copy(text = reply.text + delta)
+        _streamingText.value = liveReply!!.text
+    }
+
+    private fun finalizeLive(
+        text: String,
+        books: List<SearchBook> = emptyList(),
+        canLoadMore: Boolean = false
+    ) {
+        val reply = liveReply ?: return
+        history.add(ChatTurn(ROLE_ASSISTANT, text))
+        _messages.value = _messages.value.filterNot { it.streaming } +
+            reply.copy(
+                text = text,
+                books = books,
+                canLoadMore = canLoadMore,
+                streaming = false
+            )
+        _streamingText.value = null
+        liveReply = null
     }
 
     private fun emitSteps() {
@@ -302,7 +371,7 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
     }
 
     /**
-     * Agent 循环：模型决定是否调用搜索工具，最多执行 3 轮工具调用
+     * Agent 循环：模型决定是否调用搜索工具，最多执行 3 轮工具调用。回复内容以流式输出
      */
     private suspend fun agentLoop(supplier: io.legado.app.data.entities.AiSource, key: String) {
         _waiting.value = true
@@ -312,6 +381,7 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
             lastBooks = emptyList()
             hasBooks = false
             var finished = false
+            beginLiveReply()
             for (round in 0 until 3) {
                 if (finished) break
                 val requestStepId = startStep(
@@ -324,7 +394,9 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
                 )
                 val request = buildChatRequest(supplier)
                 val message = withContext(Dispatchers.IO) {
-                    chatCompletion(supplier, request)
+                    chatCompletionStream(supplier, request) { delta ->
+                        appendLiveText(delta)
+                    }
                 }
                 val content = message.get("content")?.takeIf { !it.isJsonNull }?.asString.orEmpty()
                 if (content.isNotBlank()) {
@@ -336,7 +408,7 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
                         requestStepId,
                         summary = getString(R.string.agent_step_reply_done)
                     )
-                    finishAgentReply(
+                    finalizeLive(
                         finalText,
                         if (hasBooks) lastBooks else emptyList(),
                         hasBooks && canLoadMoreSearch
@@ -380,7 +452,7 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
                 }
             }
             if (!finished) {
-                finishAgentReply(
+                finalizeLive(
                     finalText.ifBlank { getString(R.string.agent_waiting) },
                     if (hasBooks) lastBooks else emptyList(),
                     hasBooks && canLoadMoreSearch
@@ -389,9 +461,30 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
         } catch (e: Exception) {
             AppLog.put("Agent 对话出错", e)
             val message = e.localizedMessage ?: e.message ?: "请求失败"
-            failActiveSteps(e)
-            finishAgentReply("${supplier.name}: $message")
+            if (liveReply != null) {
+                val reply = liveReply!!
+                liveReply = reply.copy(
+                    steps = reply.steps.map {
+                        if (it.state == AgentStepState.RUNNING) {
+                            it.copy(
+                                state = AgentStepState.FAILED,
+                                summary = message,
+                                durationMs = stepStartTimes.remove(it.id)
+                                    ?.takeIf { d -> d > 0 }
+                                    ?.let { d -> System.currentTimeMillis() - d }
+                            )
+                        } else {
+                            it
+                        }
+                    }
+                )
+                finalizeLive("${supplier.name}: $message")
+            } else {
+                finishAgentReply("${supplier.name}: $message")
+            }
         } finally {
+            liveReply = null
+            stepStartTimes.clear()
             currentSupplier = null
             _waiting.value = false
         }
@@ -683,6 +776,151 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
             }
         }
         throw invalidResponseException(bodyText, response.code())
+    }
+
+    /**
+     * 流式调用 /chat/completions：读取 SSE 分块，将 content 增量通过 onDelta 回调实时输出，
+     * 同时按 index 累积合并分片的 tool_calls，返回聚合后的完整消息
+     */
+    private suspend fun chatCompletionStream(
+        supplier: io.legado.app.data.entities.AiSource,
+        body: JsonObject,
+        onDelta: (String) -> Unit
+    ): JsonObject {
+        val client = okHttpClient.newBuilder()
+            .callTimeout(180, TimeUnit.SECONDS)
+            .readTimeout(180, TimeUnit.SECONDS)
+            .build()
+        val headers = HashMap(supplier.getHeaderMap())
+        if (supplier.apiKey.isNotBlank() && !headers.containsKey("Authorization")) {
+            headers["Authorization"] = if (supplier.apiKey.startsWith("Bearer ")) {
+                supplier.apiKey
+            } else {
+                "Bearer ${supplier.apiKey}"
+            }
+        }
+        val request = body.deepCopy().apply { addProperty("stream", true) }.toString()
+            .toRequestBody("application/json; charset=UTF-8".toMediaType())
+        val httpRequest = Request.Builder()
+            .apply {
+                addHeaders(headers)
+                url(supplier.baseUrl.trimEnd('/') + "/chat/completions")
+                post(request)
+            }
+            .build()
+        val response = client.newCall(httpRequest).execute()
+        if (!response.isSuccessful) {
+            val bodyText = response.body?.string()
+            AppLog.put("Agent 流式接口返回 HTTP ${response.code}\n${bodyText.orEmpty()}")
+            throw Exception("HTTP ${response.code}\n${bodyText?.take(1000).orEmpty()}")
+        }
+        val contentBuilder = StringBuilder()
+        val toolCallMap = LinkedHashMap<Int, JsonObject>()
+        try {
+            response.body?.let { respBody ->
+                val source = respBody.source()
+                while (!source.exhausted()) {
+                    val line = source.readUtf8Line() ?: break
+                    val trimmed = line.trim()
+                    if (!trimmed.startsWith("data:")) continue
+                    val data = trimmed.removePrefix("data:").trim()
+                    if (data.isEmpty()) continue
+                    if (data == "[DONE]") break
+                    val chunk = runCatching { JsonParser.parseString(data) }
+                        .getOrNull()
+                        ?.takeIf { it.isJsonObject }
+                        ?.asJsonObject
+                        ?: continue
+                    val choices = chunk.getAsJsonArray("choices")
+                    if (choices == null || choices.size() == 0) continue
+                    val choice = choices[0]
+                        ?.takeIf { it.isJsonObject }
+                        ?.asJsonObject
+                        ?: continue
+                    val delta = choice.getAsJsonObject("delta") ?: continue
+                    val content = delta.get("content")
+                        ?.takeIf { !it.isJsonNull }
+                        ?.asString
+                    if (!content.isNullOrBlank()) {
+                        contentBuilder.append(content)
+                        onDelta(content)
+                    }
+                    val toolCalls = delta.getAsJsonArray("tool_calls")
+                    if (toolCalls != null) {
+                        for (i in 0 until toolCalls.size()) {
+                            val tc = toolCalls[i]
+                                ?.takeIf { it.isJsonObject }
+                                ?.asJsonObject
+                                ?: continue
+                            val index = tc.get("index")
+                                ?.takeIf { !it.isJsonNull }
+                                ?.asInt
+                                ?: 0
+                            val existing = toolCallMap[index]
+                            if (existing == null) {
+                                val newCall = JsonObject()
+                                tc.get("id")
+                                    ?.takeIf { !it.isJsonNull }
+                                    ?.asString
+                                    ?.let { newCall.addProperty("id", it) }
+                                val func = JsonObject()
+                                tc.get("function")
+                                    ?.takeIf { it.isJsonObject }
+                                    ?.asJsonObject
+                                    ?.let { funcObj ->
+                                        funcObj.get("name")
+                                            ?.takeIf { !it.isJsonNull }
+                                            ?.asString
+                                            ?.let { func.addProperty("name", it) }
+                                        funcObj.get("arguments")
+                                            ?.takeIf { !it.isJsonNull }
+                                            ?.asString
+                                            ?.let { func.addProperty("arguments", it) }
+                                    }
+                                newCall.add("function", func)
+                                toolCallMap[index] = newCall
+                            } else {
+                                tc.get("id")
+                                    ?.takeIf { !it.isJsonNull }
+                                    ?.asString
+                                    ?.takeIf { it.isNotBlank() }
+                                    ?.let { existing.addProperty("id", it) }
+                                tc.get("function")
+                                    ?.takeIf { it.isJsonObject }
+                                    ?.asJsonObject
+                                    ?.let { funcObj ->
+                                        val func = existing.getAsJsonObject("function")
+                                        funcObj.get("name")
+                                            ?.takeIf { !it.isJsonNull }
+                                            ?.asString
+                                            ?.takeIf { it.isNotBlank() }
+                                            ?.let { func.addProperty("name", it) }
+                                        funcObj.get("arguments")
+                                            ?.takeIf { !it.isJsonNull }
+                                            ?.asString
+                                            ?.let { argDelta ->
+                                                val prev = func.get("arguments")
+                                                    ?.takeIf { !it.isJsonNull }
+                                                    ?.asString.orEmpty()
+                                                func.addProperty("arguments", prev + argDelta)
+                                            }
+                                    }
+                            }
+                        }
+                    }
+                }
+            }
+        } finally {
+            response.close()
+        }
+        return JsonObject().apply {
+            addProperty("content", contentBuilder.toString())
+            if (toolCallMap.isNotEmpty()) {
+                val array = JsonArray()
+                toolCallMap.keys.sorted().forEach { array.add(toolCallMap[it]) }
+                add("tool_calls", array)
+            }
+        }
     }
 
     private fun invalidResponseException(bodyText: String?, code: Int? = null): Exception {
