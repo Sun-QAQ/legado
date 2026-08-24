@@ -673,6 +673,8 @@
     <string name="ai_source_current">Current</string>
     <string name="agent_searching">Searching books…</string>
     <string name="agent_waiting">Waiting for reply…</string>
+    <string name="agent_interrupt">Stop</string>
+    <string name="agent_interrupted">Interrupted</string>
     <string name="agent_no_result">No books found</string>
     <string name="agent_source_need_ai">Configure an AI supplier first to create book sources.</string>
     <string name="agent_load_more">Search more</string>

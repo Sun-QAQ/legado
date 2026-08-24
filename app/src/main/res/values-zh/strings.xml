@@ -672,6 +672,8 @@
     <string name="ai_source_current">当前使用</string>
     <string name="agent_searching">正在搜索书籍…</string>
     <string name="agent_waiting">正在等待回复…</string>
+    <string name="agent_interrupt">中断</string>
+    <string name="agent_interrupted">已中断</string>
     <string name="agent_no_result">未找到相关书籍</string>
     <string name="agent_source_need_ai">需要先配置AI供应商才能编写书源</string>
     <string name="agent_load_more">继续搜索</string>

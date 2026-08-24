@@ -91,8 +91,14 @@ class AgentFragment() : BaseFragment(R.layout.fragment_agent), MainFragmentInter
         }
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.RESUMED) {
-                viewModel.waiting.collect {
-                    binding.btnSend.isEnabled = !it
+                viewModel.waiting.collect { waiting ->
+                    if (waiting) {
+                        binding.btnSend.setImageResource(R.drawable.ic_stop_black_24dp)
+                        binding.btnSend.contentDescription = getString(R.string.agent_interrupt)
+                    } else {
+                        binding.btnSend.setImageResource(R.drawable.ic_send)
+                        binding.btnSend.contentDescription = getString(R.string.agent_send)
+                    }
                 }
             }
         }
@@ -116,6 +122,10 @@ class AgentFragment() : BaseFragment(R.layout.fragment_agent), MainFragmentInter
     }
 
     private fun sendInput() {
+        if (viewModel.waiting.value) {
+            viewModel.cancel()
+            return
+        }
         val text = binding.etInput.text?.toString()?.trim().orEmpty()
         if (text.isEmpty()) return
         binding.etInput.setText("")

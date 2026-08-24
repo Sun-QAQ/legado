@@ -27,6 +27,7 @@ import io.legado.app.utils.fromJsonObject
 import io.legado.app.utils.toastOnUi
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -80,6 +81,9 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
     private val stepStartTimes = HashMap<String, Long>()
     private var stepSequence = 0L
     private var liveReply: AgentMessage? = null
+    private var activeJob: Job? = null
+    private var currentCall: okhttp3.Call? = null
+    private var cancelRequested = false
 
     fun selectSupplier(id: Long, name: String) {
         selectedSupplierId = id
@@ -93,6 +97,9 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
         history.clear()
         liveReply = null
         _streamingText.value = null
+        cancelRequested = false
+        currentCall?.cancel()
+        currentCall = null
         _messages.value = emptyList()
         lastSearchKey = ""
         lastSearchGroup = ""
@@ -106,8 +113,9 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
     fun send(text: String) {
         val key = text.trim()
         if (key.isEmpty() || _waiting.value) return
+        cancelRequested = false
         addUserMessage(key)
-        viewModelScope.launch {
+        activeJob = viewModelScope.launch {
             val supplier = if (selectedSupplierId > 0) {
                 appDb.aiSourceDao.get(selectedSupplierId)
             } else {
@@ -121,17 +129,29 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
         }
     }
 
+    /**
+     * 中断当前正在进行的请求或搜索
+     */
+    fun cancel() {
+        cancelRequested = true
+        currentCall?.cancel()
+        activeJob?.cancel()
+        activeJob = null
+    }
+
     fun searchBook(key: String) {
         if (key.isBlank() || _waiting.value) return
+        cancelRequested = false
         addUserMessage(key)
-        viewModelScope.launch {
+        activeJob = viewModelScope.launch {
             searchDirect(key)
         }
     }
 
     fun continueSearch() {
         if (_waiting.value || !canLoadMoreSearch || lastSearchKey.isBlank()) return
-        viewModelScope.launch {
+        cancelRequested = false
+        activeJob = viewModelScope.launch {
             _waiting.value = true
             val stepId = startStep(getString(R.string.agent_step_continue_search))
             try {
@@ -171,9 +191,15 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
                     finishAgentReply("", topBooks, canLoadMoreSearch)
                 }
             } catch (e: Exception) {
-                failStep(stepId, e)
-                context.toastOnUi(e.localizedMessage ?: e.message ?: "搜索失败")
-                finishAgentReply(e.localizedMessage ?: "搜索失败")
+                if (cancelRequested) {
+                    cancelRequested = false
+                    failStep(stepId, NoStackTraceException(getString(R.string.agent_interrupted)))
+                    finishAgentReply(getString(R.string.agent_interrupted))
+                } else {
+                    failStep(stepId, e)
+                    context.toastOnUi(e.localizedMessage ?: e.message ?: "搜索失败")
+                    finishAgentReply(e.localizedMessage ?: "搜索失败")
+                }
             } finally {
                 _waiting.value = false
             }
@@ -362,9 +388,15 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
                 finishAgentReply("", result.books, canLoadMoreSearch)
             }
         } catch (e: Exception) {
-            failStep(stepId, e)
-            context.toastOnUi(e.localizedMessage ?: e.message ?: "搜索失败")
-            finishAgentReply(e.localizedMessage ?: "搜索失败")
+            if (cancelRequested) {
+                cancelRequested = false
+                failStep(stepId, NoStackTraceException(getString(R.string.agent_interrupted)))
+                finishAgentReply(getString(R.string.agent_interrupted))
+            } else {
+                failStep(stepId, e)
+                context.toastOnUi(e.localizedMessage ?: e.message ?: "搜索失败")
+                finishAgentReply(e.localizedMessage ?: "搜索失败")
+            }
         } finally {
             _waiting.value = false
         }
@@ -459,6 +491,35 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
                 )
             }
         } catch (e: Exception) {
+            if (cancelRequested) {
+                cancelRequested = false
+                AppLog.put("Agent 对话已中断")
+                if (liveReply != null) {
+                    val reply = liveReply!!
+                    liveReply = reply.copy(
+                        steps = reply.steps.map {
+                            if (it.state == AgentStepState.RUNNING) {
+                                it.copy(
+                                    state = AgentStepState.FAILED,
+                                    summary = getString(R.string.agent_interrupted),
+                                    durationMs = stepStartTimes.remove(it.id)
+                                        ?.takeIf { d -> d > 0 }
+                                        ?.let { d -> System.currentTimeMillis() - d }
+                                )
+                            } else {
+                                it
+                            }
+                        }
+                    )
+                }
+                val partial = liveReply?.text.orEmpty()
+                finalizeLive(
+                    partial.ifBlank { getString(R.string.agent_interrupted) },
+                    if (hasBooks) lastBooks else emptyList(),
+                    hasBooks && canLoadMoreSearch
+                )
+                return
+            }
             AppLog.put("Agent 对话出错", e)
             val message = e.localizedMessage ?: e.message ?: "请求失败"
             if (liveReply != null) {
@@ -808,117 +869,125 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
                 post(request)
             }
             .build()
-        val response = client.newCall(httpRequest).execute()
-        if (!response.isSuccessful) {
-            val bodyText = response.body?.string()
-            AppLog.put("Agent 流式接口返回 HTTP ${response.code}\n${bodyText.orEmpty()}")
-            throw Exception("HTTP ${response.code}\n${bodyText?.take(1000).orEmpty()}")
-        }
-        val contentBuilder = StringBuilder()
-        val toolCallMap = LinkedHashMap<Int, JsonObject>()
+        val call = client.newCall(httpRequest)
+        currentCall = call
         try {
-            response.body?.let { respBody ->
-                val source = respBody.source()
-                while (!source.exhausted()) {
-                    val line = source.readUtf8Line() ?: break
-                    val trimmed = line.trim()
-                    if (!trimmed.startsWith("data:")) continue
-                    val data = trimmed.removePrefix("data:").trim()
-                    if (data.isEmpty()) continue
-                    if (data == "[DONE]") break
-                    val chunk = runCatching { JsonParser.parseString(data) }
-                        .getOrNull()
-                        ?.takeIf { it.isJsonObject }
-                        ?.asJsonObject
-                        ?: continue
-                    val choices = chunk.getAsJsonArray("choices")
-                    if (choices == null || choices.size() == 0) continue
-                    val choice = choices[0]
-                        ?.takeIf { it.isJsonObject }
-                        ?.asJsonObject
-                        ?: continue
-                    val delta = choice.getAsJsonObject("delta") ?: continue
-                    val content = delta.get("content")
-                        ?.takeIf { !it.isJsonNull }
-                        ?.asString
-                    if (!content.isNullOrBlank()) {
-                        contentBuilder.append(content)
-                        onDelta(content)
-                    }
-                    val toolCalls = delta.getAsJsonArray("tool_calls")
-                    if (toolCalls != null) {
-                        for (i in 0 until toolCalls.size()) {
-                            val tc = toolCalls[i]
-                                ?.takeIf { it.isJsonObject }
-                                ?.asJsonObject
-                                ?: continue
-                            val index = tc.get("index")
-                                ?.takeIf { !it.isJsonNull }
-                                ?.asInt
-                                ?: 0
-                            val existing = toolCallMap[index]
-                            if (existing == null) {
-                                val newCall = JsonObject()
-                                tc.get("id")
-                                    ?.takeIf { !it.isJsonNull }
-                                    ?.asString
-                                    ?.let { newCall.addProperty("id", it) }
-                                val func = JsonObject()
-                                tc.get("function")
+            val response = call.execute()
+            if (!response.isSuccessful) {
+                val bodyText = response.body?.string()
+                AppLog.put("Agent 流式接口返回 HTTP ${response.code}\n${bodyText.orEmpty()}")
+                throw Exception("HTTP ${response.code}\n${bodyText?.take(1000).orEmpty()}")
+            }
+            val contentBuilder = StringBuilder()
+            val toolCallMap = LinkedHashMap<Int, JsonObject>()
+            try {
+                response.body?.let { respBody ->
+                    val source = respBody.source()
+                    while (!source.exhausted()) {
+                        val line = source.readUtf8Line() ?: break
+                        val trimmed = line.trim()
+                        if (!trimmed.startsWith("data:")) continue
+                        val data = trimmed.removePrefix("data:").trim()
+                        if (data.isEmpty()) continue
+                        if (data == "[DONE]") break
+                        val chunk = runCatching { JsonParser.parseString(data) }
+                            .getOrNull()
+                            ?.takeIf { it.isJsonObject }
+                            ?.asJsonObject
+                            ?: continue
+                        val choices = chunk.getAsJsonArray("choices")
+                        if (choices == null || choices.size() == 0) continue
+                        val choice = choices[0]
+                            ?.takeIf { it.isJsonObject }
+                            ?.asJsonObject
+                            ?: continue
+                        val delta = choice.getAsJsonObject("delta") ?: continue
+                        val content = delta.get("content")
+                            ?.takeIf { !it.isJsonNull }
+                            ?.asString
+                        if (!content.isNullOrBlank()) {
+                            contentBuilder.append(content)
+                            onDelta(content)
+                        }
+                        val toolCalls = delta.getAsJsonArray("tool_calls")
+                        if (toolCalls != null) {
+                            for (i in 0 until toolCalls.size()) {
+                                val tc = toolCalls[i]
                                     ?.takeIf { it.isJsonObject }
                                     ?.asJsonObject
-                                    ?.let { funcObj ->
-                                        funcObj.get("name")
-                                            ?.takeIf { !it.isJsonNull }
-                                            ?.asString
-                                            ?.let { func.addProperty("name", it) }
-                                        funcObj.get("arguments")
-                                            ?.takeIf { !it.isJsonNull }
-                                            ?.asString
-                                            ?.let { func.addProperty("arguments", it) }
-                                    }
-                                newCall.add("function", func)
-                                toolCallMap[index] = newCall
-                            } else {
-                                tc.get("id")
+                                    ?: continue
+                                val index = tc.get("index")
                                     ?.takeIf { !it.isJsonNull }
-                                    ?.asString
-                                    ?.takeIf { it.isNotBlank() }
-                                    ?.let { existing.addProperty("id", it) }
-                                tc.get("function")
-                                    ?.takeIf { it.isJsonObject }
-                                    ?.asJsonObject
-                                    ?.let { funcObj ->
-                                        val func = existing.getAsJsonObject("function")
-                                        funcObj.get("name")
-                                            ?.takeIf { !it.isJsonNull }
-                                            ?.asString
-                                            ?.takeIf { it.isNotBlank() }
-                                            ?.let { func.addProperty("name", it) }
-                                        funcObj.get("arguments")
-                                            ?.takeIf { !it.isJsonNull }
-                                            ?.asString
-                                            ?.let { argDelta ->
-                                                val prev = func.get("arguments")
-                                                    ?.takeIf { !it.isJsonNull }
-                                                    ?.asString.orEmpty()
-                                                func.addProperty("arguments", prev + argDelta)
-                                            }
-                                    }
+                                    ?.asInt
+                                    ?: 0
+                                val existing = toolCallMap[index]
+                                if (existing == null) {
+                                    val newCall = JsonObject()
+                                    tc.get("id")
+                                        ?.takeIf { !it.isJsonNull }
+                                        ?.asString
+                                        ?.let { newCall.addProperty("id", it) }
+                                    val func = JsonObject()
+                                    tc.get("function")
+                                        ?.takeIf { it.isJsonObject }
+                                        ?.asJsonObject
+                                        ?.let { funcObj ->
+                                            funcObj.get("name")
+                                                ?.takeIf { !it.isJsonNull }
+                                                ?.asString
+                                                ?.let { func.addProperty("name", it) }
+                                            funcObj.get("arguments")
+                                                ?.takeIf { !it.isJsonNull }
+                                                ?.asString
+                                                ?.let { func.addProperty("arguments", it) }
+                                        }
+                                    newCall.add("function", func)
+                                    toolCallMap[index] = newCall
+                                } else {
+                                    tc.get("id")
+                                        ?.takeIf { !it.isJsonNull }
+                                        ?.asString
+                                        ?.takeIf { it.isNotBlank() }
+                                        ?.let { existing.addProperty("id", it) }
+                                    tc.get("function")
+                                        ?.takeIf { it.isJsonObject }
+                                        ?.asJsonObject
+                                        ?.let { funcObj ->
+                                            val func = existing.getAsJsonObject("function")
+                                            funcObj.get("name")
+                                                ?.takeIf { !it.isJsonNull }
+                                                ?.asString
+                                                ?.takeIf { it.isNotBlank() }
+                                                ?.let { func.addProperty("name", it) }
+                                            funcObj.get("arguments")
+                                                ?.takeIf { !it.isJsonNull }
+                                                ?.asString
+                                                ?.let { argDelta ->
+                                                    val prev = func.get("arguments")
+                                                        ?.takeIf { !it.isJsonNull }
+                                                        ?.asString.orEmpty()
+                                                    func.addProperty("arguments", prev + argDelta)
+                                                }
+                                        }
+                                }
                             }
                         }
                     }
                 }
+            } finally {
+                response.close()
+            }
+            return JsonObject().apply {
+                addProperty("content", contentBuilder.toString())
+                if (toolCallMap.isNotEmpty()) {
+                    val array = JsonArray()
+                    toolCallMap.keys.sorted().forEach { array.add(toolCallMap[it]) }
+                    add("tool_calls", array)
+                }
             }
         } finally {
-            response.close()
-        }
-        return JsonObject().apply {
-            addProperty("content", contentBuilder.toString())
-            if (toolCallMap.isNotEmpty()) {
-                val array = JsonArray()
-                toolCallMap.keys.sorted().forEach { array.add(toolCallMap[it]) }
-                add("tool_calls", array)
+            if (currentCall === call) {
+                currentCall = null
             }
         }
     }
