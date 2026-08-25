@@ -545,6 +545,11 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
             }
             AppLog.put("Agent 对话出错", e)
             val message = e.localizedMessage ?: e.message ?: "请求失败"
+            val finalMessage = if (isModelError(message)) {
+                message + diagnoseModelError(supplier)
+            } else {
+                message
+            }
             if (liveReply != null) {
                 val reply = liveReply!!
                 liveReply = reply.copy(
@@ -552,7 +557,7 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
                         if (it.state == AgentStepState.RUNNING) {
                             it.copy(
                                 state = AgentStepState.FAILED,
-                                summary = message,
+                                summary = finalMessage,
                                 durationMs = stepStartTimes.remove(it.id)
                                     ?.takeIf { d -> d > 0 }
                                     ?.let { d -> System.currentTimeMillis() - d }
@@ -562,9 +567,9 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
                         }
                     }
                 )
-                finalizeLive("${supplier.name}: $message")
+                finalizeLive("${supplier.name}: $finalMessage")
             } else {
-                finishAgentReply("${supplier.name}: $message")
+                finishAgentReply("${supplier.name}: $finalMessage")
             }
         } finally {
             liveReply = null
@@ -729,7 +734,8 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
     }
 
     private fun isToolFailure(name: String, result: String): Boolean {
-        return name == "create_book_source" && result.startsWith("书源创建失败")
+        return (name == "create_book_source" && result.startsWith("书源创建失败")) ||
+            (name == "create_ai_book" && result.startsWith("小说创作失败"))
     }
 
     private fun summarizeToolArguments(name: String, args: JsonObject): String? {
@@ -1391,6 +1397,32 @@ val choices = chunk.get("choices")
     }
 
     private class AiApiException(message: String) : Exception(message)
+
+    /**
+     * 判断是否属于"模型不可用/不支持"类错误，此时自动拉取供应商可用模型辅助排查
+     */
+    private fun isModelError(message: String): Boolean {
+        val lower = message.lowercase()
+        return lower.contains("model") && (
+            lower.contains("not supported") ||
+                lower.contains("does not exist") ||
+                lower.contains("modelerror") ||
+                lower.contains("not found")
+            )
+    }
+
+    private suspend fun diagnoseModelError(
+        supplier: io.legado.app.data.entities.AiSource
+    ): String {
+        return runCatching {
+            val models = AiSourceHelper.fetchModels(supplier)
+            if (models.isEmpty()) {
+                ""
+            } else {
+                "\n该供应商可用模型：${models.joinToString("、")}"
+            }
+        }.getOrDefault("")
+    }
 
     /**
      * 搜索书籍，返回合并后的结果
