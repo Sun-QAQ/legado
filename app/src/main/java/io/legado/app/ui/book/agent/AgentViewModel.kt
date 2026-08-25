@@ -1148,6 +1148,7 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
             url(supplier.baseUrl.trimEnd('/') + "/chat/completions")
             post(body.toString().toRequestBody("application/json; charset=UTF-8".toMediaType()))
         }
+        logChatRequest(supplier, body)
         val bodyText = response.body
         val json = bodyText?.takeIf { it.isNotBlank() }?.let {
             runCatching { JsonParser.parseString(it) }
@@ -1255,6 +1256,7 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
             }
             .build()
         val call = client.newCall(httpRequest)
+        logChatRequest(supplier, body)
         currentCall = call
         try {
             val response = call.execute()
@@ -1413,6 +1415,20 @@ val choices = chunk.get("choices")
     }
 
     private class AiApiException(message: String) : Exception(message)
+
+    /**
+     * 打印完整请求，便于排查网关/模型兼容问题
+     */
+    private fun logChatRequest(
+        supplier: io.legado.app.data.entities.AiSource,
+        body: JsonObject
+    ) {
+        AppLog.put(
+            "Agent 请求 ${supplier.name} model=${supplier.model}\n" +
+                "url=${supplier.baseUrl.trimEnd('/')}/chat/completions\n" +
+                "body=${GSON.toJson(body)}"
+        )
+    }
 
     /**
      * 判断是否属于"模型不可用/不支持"类错误，此时自动拉取供应商可用模型辅助排查
