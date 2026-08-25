@@ -1204,7 +1204,23 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
             doChatCompletionStream(supplier, streamingBody, onDelta)
         } catch (e: AiApiException) {
             AppLog.put("Agent 流式请求失败，降级为非流式: ${e.message}")
-            chatCompletion(supplier, body.deepCopy().apply { remove("stream") })
+            try {
+                chatCompletion(supplier, body.deepCopy().apply { remove("stream") })
+            } catch (e2: AiApiException) {
+                if (isModelError(e2.message ?: "")) {
+                    // 部分网关拒绝携带 tools 的请求并返回误导性的模型错误，尝试去掉 tools 后重试
+                    AppLog.put("Agent 请求仍失败，尝试移除 tools 重试: ${e2.message}")
+                    chatCompletion(
+                        supplier,
+                        body.deepCopy().apply {
+                            remove("stream")
+                            remove("tools")
+                        }
+                    )
+                } else {
+                    throw e2
+                }
+            }
         }
     }
 

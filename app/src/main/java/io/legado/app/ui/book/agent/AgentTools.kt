@@ -1,6 +1,7 @@
 package io.legado.app.ui.book.agent
 
 import com.google.gson.JsonArray
+import com.google.gson.JsonElement
 import com.google.gson.JsonObject
 import io.legado.app.utils.GSON
 
@@ -204,7 +205,33 @@ object AgentTools {
         allTools.joinToString("；") { "${it.name}：${it.description}" }
 
     fun toJsonArray(): JsonArray = JsonArray().apply {
-        allTools.forEach { add(it.toJson()) }
+        allTools.forEach {
+            val toolJson = it.toJson()
+            sanitizeToolSchema(toolJson)
+            add(toolJson)
+        }
+    }
+
+    /**
+     * 部分网关（如 OpenCode Go / Console Go）对工具 schema 中的 enum、minimum、maximum、
+     * pattern、format 等关键字校验严格，会被拒绝并返回误导性的错误（如 "Model is not supported"）。
+     * 发送前移除这些关键字，保证工具 schema 尽量朴素。
+     */
+    private val sanitizeKeywords = setOf(
+        "enum", "minimum", "maximum", "exclusiveMinimum", "exclusiveMaximum",
+        "pattern", "format"
+    )
+
+    private fun sanitizeToolSchema(element: JsonElement) {
+        if (element.isJsonObject) {
+            val obj = element.asJsonObject
+            sanitizeKeywords.forEach { obj.remove(it) }
+            obj.entrySet().forEach { (_, value) ->
+                sanitizeToolSchema(value)
+            }
+        } else if (element.isJsonArray) {
+            element.asJsonArray.forEach { sanitizeToolSchema(it) }
+        }
     }
 
     private fun objectParameters(
