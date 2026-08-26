@@ -1034,10 +1034,13 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
                 lastError = "大纲JSON格式错误"
                 continue
             }
-            if (plans.size < count) {
-                // 章节数不足时按已有章节使用，章节数足够时裁剪
+            // 拼接"第x章"前缀，保证标题唯一，避免正文文件因标题MD5重复而被覆盖
+            return plans.take(count).mapIndexed { index, plan ->
+                val cleanTitle = plan.title
+                    .replace(Regex("^第\\s*[\\d一二三四五六七八九十百零〇]+\\s*章[：:.、\\s]*"), "")
+                    .trim()
+                plan.copy(title = "第${index + 1}章 $cleanTitle")
             }
-            return plans.take(count)
         }
         throw NoStackTraceException(getString(R.string.agent_ai_book_outline_failed, lastError))
     }
