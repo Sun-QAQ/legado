@@ -1101,6 +1101,7 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
 
     private fun buildChatRequest(supplier: io.legado.app.data.entities.AiSource): JsonObject {
         val root = JsonObject()
+        root.addProperty("model", supplier.model)
         val messages = JsonArray()
         messages.add(
             JsonObject().apply {
