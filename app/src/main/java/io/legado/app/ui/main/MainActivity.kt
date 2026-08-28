@@ -5,7 +5,6 @@ package io.legado.app.ui.main
 import android.os.Bundle
 import android.text.format.DateUtils
 import android.view.MenuItem
-import android.view.View
 import android.view.ViewGroup
 import androidx.activity.addCallback
 import androidx.activity.viewModels
@@ -46,7 +45,6 @@ import io.legado.app.ui.main.rss.RssFragment
 import io.legado.app.ui.widget.dialog.TextDialog
 import io.legado.app.ui.widget.text.BadgeView
 import io.legado.app.utils.isCreated
-import io.legado.app.utils.imeHeight
 import io.legado.app.utils.navigationBarHeight
 import io.legado.app.utils.observeEvent
 import io.legado.app.utils.setEdgeEffectColor
@@ -198,17 +196,6 @@ class MainActivity : VMBaseActivity<ActivityMainBinding, MainViewModel>(),
             val height = windowInsets.navigationBarHeight
             view.bottomPadding = height
             windowInsets.inset(0, 0, 0, height)
-        }
-        root.setOnApplyWindowInsetsListenerCompat { view, windowInsets ->
-            val imeHeight = windowInsets.imeHeight
-            view.bottomPadding = imeHeight
-            val isAgent = getFragmentId(pagePosition) == idAgent
-            if (imeHeight > 0 && isAgent && bottomNavigationView.visibility == View.VISIBLE) {
-                bottomNavigationView.visibility = View.GONE
-            } else if (imeHeight == 0 && bottomNavigationView.visibility == View.GONE) {
-                bottomNavigationView.visibility = View.VISIBLE
-            }
-            windowInsets
         }
     }
 
