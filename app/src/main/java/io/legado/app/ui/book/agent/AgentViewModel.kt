@@ -72,6 +72,10 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
     private val _currentSupplierId = MutableStateFlow(0L)
     val currentSupplierId: StateFlow<Long> = _currentSupplierId
 
+    private val _currentPersonaName = MutableStateFlow(getString(R.string.agent_persona_default))
+    val currentPersonaName: StateFlow<String> = _currentPersonaName
+    private var currentPersonaPrompt: String = SYSTEM_PROMPT
+
     private val history = arrayListOf<ChatTurn>()
     private var selectedSupplierId: Long = 0L
     private var lastBooks: List<SearchBook> = emptyList()
@@ -95,6 +99,16 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
         selectedSupplierId = id
         _currentSupplierId.value = id
         _supplierName.value = name
+    }
+
+    fun selectDefaultPersona() {
+        currentPersonaPrompt = SYSTEM_PROMPT
+        _currentPersonaName.value = getString(R.string.agent_persona_default)
+    }
+
+    fun selectPersona(name: String, prompt: String) {
+        currentPersonaPrompt = prompt
+        _currentPersonaName.value = name
     }
 
     fun clearChat() {
@@ -1109,7 +1123,7 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
         messages.add(
             JsonObject().apply {
                 addProperty("role", "system")
-                addProperty("content", SYSTEM_PROMPT + AgentTools.overview())
+                addProperty("content", currentPersonaPrompt + AgentTools.overview())
             }
         )
         history.forEach { turn ->

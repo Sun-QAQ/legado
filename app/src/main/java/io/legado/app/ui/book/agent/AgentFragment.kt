@@ -140,6 +140,8 @@ class AgentFragment() : BaseFragment(R.layout.fragment_agent), MainFragmentInter
     override fun onCompatOptionsItemSelected(item: MenuItem) {
         when (item.itemId) {
             R.id.menu_select_supplier -> selectSupplier()
+            R.id.menu_select_persona -> selectPersona()
+            R.id.menu_manage_persona -> startActivity<AiPersonaManageActivity>()
             R.id.menu_clear_chat -> {
                 viewModel.clearChat()
                 toastOnUi(R.string.agent_clear_chat)
@@ -165,6 +167,28 @@ class AgentFragment() : BaseFragment(R.layout.fragment_agent), MainFragmentInter
             context?.selector(getString(R.string.agent_select_supplier), names) { _, index ->
                 val source = suppliers[index]
                 viewModel.selectSupplier(source.id, source.name)
+            }
+        }
+    }
+
+    private fun selectPersona() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            val personas = appDb.aiPersonaDao.all
+            val defaultName = getString(R.string.agent_persona_default)
+            val current = viewModel.currentPersonaName.value
+            val names = buildList {
+                add(if (current == defaultName) "[${getString(R.string.ai_source_current)}]$defaultName" else defaultName)
+                personas.forEach {
+                    add(if (current == it.name) "[${getString(R.string.ai_source_current)}]${it.name}" else it.name)
+                }
+            }
+            context?.selector(getString(R.string.agent_select_persona), names) { _, index ->
+                if (index == 0) {
+                    viewModel.selectDefaultPersona()
+                } else {
+                    val persona = personas[index - 1]
+                    viewModel.selectPersona(persona.name, persona.prompt)
+                }
             }
         }
     }

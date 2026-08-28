@@ -10,6 +10,18 @@
         app:showAsAction="never" />
 
     <item
+        android:id="@+id/menu_select_persona"
+        android:icon="@drawable/ic_personality"
+        android:title="@string/agent_select_persona"
+        app:showAsAction="never" />
+
+    <item
+        android:id="@+id/menu_manage_persona"
+        android:icon="@drawable/ic_personality"
+        android:title="@string/agent_manage_persona"
+        app:showAsAction="never" />
+
+    <item
         android:id="@+id/menu_clear_chat"
         android:icon="@drawable/ic_clear_all"
         android:title="@string/agent_clear_chat"

@@ -669,6 +669,12 @@
     <string name="agent_search_book">搜索书籍</string>
     <string name="agent_clear_chat">清空对话</string>
     <string name="agent_select_supplier">选择AI供应商</string>
+    <string name="agent_select_persona">切换人格</string>
+    <string name="agent_manage_persona">人格管理</string>
+    <string name="agent_persona">人格</string>
+    <string name="agent_persona_default">阅读助手</string>
+    <string name="ai_persona_name">人格名称</string>
+    <string name="ai_persona_prompt">系统提示词</string>
     <string name="ai_source_current">当前使用</string>
     <string name="agent_searching">正在搜索书籍…</string>
     <string name="agent_waiting">正在等待回复…</string>
