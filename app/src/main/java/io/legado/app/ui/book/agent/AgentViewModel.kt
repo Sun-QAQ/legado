@@ -101,6 +101,10 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
     private var sourceCreationMode = false
     private var hasSavedSource = false
 
+    @get:Suppress("unused")
+    private val inSourceCreationFlow: Boolean
+        get() = sourceCreationMode || draftSource != null
+
     fun selectSupplier(id: Long, name: String) {
         selectedSupplierId = id
         _currentSupplierId.value = id
@@ -450,7 +454,7 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
 
     /**
      * Agent 循环：模型决定是否调用工具，普通对话最多执行 3 轮，书源创建场景最多执行 20 轮。
-     * 回复内容以流式输出
+     * 书源场景的轮次上限在循环内动态判定（可能中途才进入草稿编辑），回复内容以流式输出
      */
     private suspend fun agentLoop(supplier: io.legado.app.data.entities.AiSource, key: String) {
         _waiting.value = true
@@ -461,9 +465,11 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
             hasBooks = false
             var finished = false
             beginLiveReply()
-            val maxRounds = if (sourceCreationMode) SOURCE_CREATE_MAX_ROUNDS else DEFAULT_MAX_ROUNDS
-            for (round in 0 until maxRounds) {
-                if (finished) break
+            val maxRounds: () -> Int = {
+                if (inSourceCreationFlow) SOURCE_CREATE_MAX_ROUNDS else DEFAULT_MAX_ROUNDS
+            }
+            var round = 0
+            while (!finished && round < maxRounds()) {
                 val requestStepId = startStep(
                     if (round == 0) {
                         getString(R.string.agent_step_requesting)
@@ -489,13 +495,14 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
                         summary = getString(R.string.agent_step_reply_done)
                     )
                     //书源创建尚未完成时，若模型中途停下解释而不继续调用工具，则注入继续提示强制其继续
-                    if (sourceCreationMode && !hasSavedSource && round < maxRounds - 1) {
+                    if (inSourceCreationFlow && !hasSavedSource && round < maxRounds() - 1) {
                         if (content.isNotBlank()) {
                             history.add(ChatTurn(ROLE_ASSISTANT, content))
                         }
                         liveReply = liveReply?.copy(text = "")
                         _streamingText.value = null
                         history.add(ChatTurn(ROLE_USER, getString(R.string.agent_source_continue)))
+                        round++
                         continue
                     }
                     finalizeLive(
@@ -540,6 +547,7 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
                         )
                     )
                 }
+                round++
             }
             if (!finished) {
                 finalizeLive(
@@ -699,6 +707,7 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
         val stepId = startStep(getString(R.string.agent_step_source_draft))
         return try {
             val siteUrl = url.trim().trimEnd('/')
+            hasSavedSource = false
             val (finalUrl, html) = fetchSiteHtml(siteUrl)
             draftSource = BookSource(
                 bookSourceUrl = finalUrl,
@@ -952,6 +961,7 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
             appDb.bookSourceDao.insert(source)
             sourceCreationMode = false
             hasSavedSource = true
+            draftSource = null
             finishStep(
                 stepId,
                 summary = getString(R.string.agent_step_source_save_done, source.bookSourceName)
