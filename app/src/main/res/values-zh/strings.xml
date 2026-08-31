@@ -733,6 +733,7 @@
     <string name="agent_source_no_rule_info">草稿缺少 ruleBookInfo，请先用 update_book_source 设置</string>
     <string name="agent_source_no_rule_toc">草稿缺少 ruleToc，请先用 update_book_source 设置</string>
     <string name="agent_source_no_rule_content">草稿缺少 ruleContent，请先用 update_book_source 设置</string>
+    <string name="agent_source_continue">请继续。书源尚未完成并保存。请继续调用调试工具（debug_source_search、debug_source_book_info、debug_source_toc、debug_source_content）并用 update_book_source 修正规则，直到全部通过后调用 save_book_source 保存。不要在完成前停下解释。</string>
     <string name="agent_step_reading_report">生成阅读报表（%1$s）</string>
     <string name="agent_step_reading_report_done">报表数据生成完成</string>
     <string name="agent_step_library_stats">统计书库</string>

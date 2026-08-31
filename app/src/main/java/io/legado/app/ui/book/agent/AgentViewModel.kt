@@ -99,6 +99,7 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
     private var cancelRequested = false
     private var draftSource: BookSource? = null
     private var sourceCreationMode = false
+    private var hasSavedSource = false
 
     fun selectSupplier(id: Long, name: String) {
         selectedSupplierId = id
@@ -135,6 +136,7 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
         lastDisplayLimit = SEARCH_PAGE_SIZE
         draftSource = null
         sourceCreationMode = false
+        hasSavedSource = false
     }
 
     fun send(text: String) {
@@ -486,6 +488,16 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
                         requestStepId,
                         summary = getString(R.string.agent_step_reply_done)
                     )
+                    //书源创建尚未完成时，若模型中途停下解释而不继续调用工具，则注入继续提示强制其继续
+                    if (sourceCreationMode && !hasSavedSource && round < maxRounds - 1) {
+                        if (content.isNotBlank()) {
+                            history.add(ChatTurn(ROLE_ASSISTANT, content))
+                        }
+                        liveReply = liveReply?.copy(text = "")
+                        _streamingText.value = null
+                        history.add(ChatTurn(ROLE_USER, getString(R.string.agent_source_continue)))
+                        continue
+                    }
                     finalizeLive(
                         finalText,
                         if (hasBooks) lastBooks else emptyList(),
@@ -939,6 +951,7 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
             source.lastUpdateTime = System.currentTimeMillis()
             appDb.bookSourceDao.insert(source)
             sourceCreationMode = false
+            hasSavedSource = true
             finishStep(
                 stepId,
                 summary = getString(R.string.agent_step_source_save_done, source.bookSourceName)
@@ -2185,7 +2198,9 @@ val choices = chunk.get("choices")
                     "   ④ 调用 debug_source_search 调试搜索，失败则根据返回的HTML修正 ruleSearch 后重复③④；\n" +
                     "   ⑤ 依次用 debug_source_book_info、debug_source_toc、debug_source_content 调试详情/目录/正文，" +
                     "每步失败都用 update_book_source 修正对应规则后重新调试；\n" +
-                    "   ⑥ 全部调试通过后调用 save_book_source 校验保存。\n\n" +
+                    "   ⑥ 全部调试通过后调用 save_book_source 校验保存。\n" +
+                    "   ⑦ 编写书源时请自主连续调用工具完成全部流程，不要中途停下向用户解释，" +
+                    "必须在 save_book_source 成功后才结束；调试失败则根据返回的HTML修正规则后立即重试。\n\n" +
                     "边界：\n" +
                     "1. 不支持的请求应如实说明能力范围，不要编造答案。\n" +
                     "2. 回答保持简洁，默认使用中文。\n\n" +
@@ -2205,7 +2220,9 @@ val choices = chunk.get("choices")
                     "6. 调用 debug_source_content(章节url) 调试正文页，补充 ruleContent（content、title、author）。\n" +
                     "7. 全部调试通过后调用 save_book_source 校验保存。\n\n" +
                     "规则语法提示：bookList 等列表选择器用XPath或CSS；name/author/bookUrl 等字段用规则表达式。" +
-                    "ruleSearch、ruleBookInfo、ruleToc、ruleContent 必须使用JSON对象格式。"
+                    "ruleSearch、ruleBookInfo、ruleToc、ruleContent 必须使用JSON对象格式。\n\n" +
+                    "重要：请自主连续调用工具完成全部步骤，不要中途停下向用户解释。" +
+                    "必须在 save_book_source 成功后才结束并总结。若某步调试失败，根据返回的HTML修正对应规则后立即重试。"
     }
 
 }
