@@ -12,6 +12,20 @@ interface AgentToolContext {
 
     suspend fun createBookSource(url: String): String
 
+    suspend fun fetchPage(url: String, method: String?, body: String?): String
+
+    suspend fun updateBookSource(sourceJson: String): String
+
+    suspend fun debugSourceSearch(key: String): String
+
+    suspend fun debugSourceBookInfo(bookUrl: String): String
+
+    suspend fun debugSourceToc(tocUrl: String, bookUrl: String?): String
+
+    suspend fun debugSourceContent(chapterUrl: String, bookUrl: String?, tocUrl: String?): String
+
+    suspend fun saveBookSource(): String
+
     suspend fun readingReport(period: String): String
 
     suspend fun getLibraryStats(): String

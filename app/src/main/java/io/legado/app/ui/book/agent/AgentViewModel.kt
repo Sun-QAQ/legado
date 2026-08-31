@@ -22,6 +22,8 @@ import io.legado.app.help.config.AppConfig
 import io.legado.app.help.http.addHeaders
 import io.legado.app.help.http.newCallStrResponse
 import io.legado.app.help.http.okHttpClient
+import io.legado.app.model.analyzeRule.AnalyzeUrl
+import io.legado.app.model.analyzeRule.RuleData
 import io.legado.app.model.webBook.WebBook
 import io.legado.app.utils.GSON
 import io.legado.app.utils.fromJsonArray
@@ -49,6 +51,7 @@ import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import java.util.UUID
 import java.util.concurrent.TimeUnit
+import kotlin.coroutines.coroutineContext
 import kotlin.math.min
 import kotlin.math.max
 
@@ -94,6 +97,8 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
     private var activeJob: Job? = null
     private var currentCall: okhttp3.Call? = null
     private var cancelRequested = false
+    private var draftSource: BookSource? = null
+    private var sourceCreationMode = false
 
     fun selectSupplier(id: Long, name: String) {
         selectedSupplierId = id
@@ -128,6 +133,8 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
         canLoadMoreSearch = false
         hasBooks = false
         lastDisplayLimit = SEARCH_PAGE_SIZE
+        draftSource = null
+        sourceCreationMode = false
     }
 
     fun send(text: String) {
@@ -440,7 +447,8 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
     }
 
     /**
-     * Agent 循环：模型决定是否调用搜索工具，最多执行 3 轮工具调用。回复内容以流式输出
+     * Agent 循环：模型决定是否调用工具，普通对话最多执行 3 轮，书源创建场景最多执行 20 轮。
+     * 回复内容以流式输出
      */
     private suspend fun agentLoop(supplier: io.legado.app.data.entities.AiSource, key: String) {
         _waiting.value = true
@@ -451,7 +459,8 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
             hasBooks = false
             var finished = false
             beginLiveReply()
-            for (round in 0 until 3) {
+            val maxRounds = if (sourceCreationMode) SOURCE_CREATE_MAX_ROUNDS else DEFAULT_MAX_ROUNDS
+            for (round in 0 until maxRounds) {
                 if (finished) break
                 val requestStepId = startStep(
                     if (round == 0) {
@@ -675,8 +684,270 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
     }
 
     override suspend fun createBookSource(url: String): String {
-        val supplier = currentSupplier ?: return getString(R.string.agent_no_supplier)
-        return createBookSource(supplier, url)
+        val stepId = startStep(getString(R.string.agent_step_source_draft))
+        return try {
+            val siteUrl = url.trim().trimEnd('/')
+            val (finalUrl, html) = fetchSiteHtml(siteUrl)
+            draftSource = BookSource(
+                bookSourceUrl = finalUrl,
+                bookSourceName = runCatching {
+                    io.legado.app.utils.NetworkUtils.getBaseUrl(finalUrl)
+                        ?.substringAfter("://", "")
+                        ?.substringBefore("/", "")
+                }.getOrNull() ?: finalUrl,
+                bookSourceGroup = "AI生成",
+                enabled = false
+            )
+            sourceCreationMode = true
+            finishStep(
+                stepId,
+                summary = getString(R.string.agent_step_source_draft_done, draftSource!!.bookSourceName)
+            )
+            SOURCE_CREATE_GUIDE
+                .replace("{siteUrl}", finalUrl)
+                .replace("{html}", html)
+                .replace("{draftJson}", GSON.toJson(draftSource))
+        } catch (e: Exception) {
+            failStep(stepId, e)
+            "书源创建失败：${e.localizedMessage ?: e.message ?: "无法访问网站"}"
+        }
+    }
+
+    override suspend fun fetchPage(url: String, method: String?, body: String?): String {
+        val stepId = startStep(getString(R.string.agent_step_source_debug), "fetch_page $url")
+        return try {
+            val result = withContext(Dispatchers.IO) {
+                val source = draftSource ?: BookSource().apply { bookSourceUrl = url }
+                val ruleUrl = if (method.equals("POST", true) && !body.isNullOrBlank()) {
+                    val option = JsonObject().apply {
+                        addProperty("method", "POST")
+                        addProperty("body", body)
+                    }
+                    "$url,$option"
+                } else {
+                    url
+                }
+                val analyzeUrl = AnalyzeUrl(
+                    mUrl = ruleUrl,
+                    baseUrl = source.bookSourceUrl,
+                    source = source,
+                    coroutineContext = coroutineContext
+                )
+                val res = analyzeUrl.getStrResponseAwait()
+                buildString {
+                    append("请求地址：${res.url}\n")
+                    append("HTML片段：\n")
+                    append(cleanHtmlText(res.body.orEmpty(), SOURCE_HTML_HINT_LENGTH))
+                }
+            }
+            finishStep(stepId)
+            result
+        } catch (e: Exception) {
+            failStep(stepId, e)
+            "页面获取失败：${e.localizedMessage ?: e.message ?: "未知错误"}"
+        }
+    }
+
+    override suspend fun updateBookSource(sourceJson: String): String {
+        val stepId = startStep(getString(R.string.agent_step_source_update))
+        return try {
+            val source = parseDraftSource(sourceJson)
+            draftSource = source
+            finishStep(stepId, summary = source.bookSourceName)
+            "已更新书源草稿：${source.bookSourceName}，地址：${source.bookSourceUrl}\n" +
+                "当前草稿JSON：\n${GSON.toJson(source)}"
+        } catch (e: Exception) {
+            failStep(stepId, e)
+            "书源JSON解析失败：${e.localizedMessage ?: e.message ?: "格式错误"}"
+        }
+    }
+
+    override suspend fun debugSourceSearch(key: String): String {
+        val stepId = startStep(getString(R.string.agent_step_source_debug_search), "key=$key")
+        val source = draftSource
+        if (source == null) {
+            failStep(stepId, NoStackTraceException(getString(R.string.agent_source_no_draft)))
+            return getString(R.string.agent_source_no_draft)
+        }
+        if (source.searchUrl.isNullOrBlank()) {
+            failStep(stepId, NoStackTraceException(getString(R.string.agent_source_no_search_url)))
+            return getString(R.string.agent_source_no_search_url)
+        }
+        return try {
+            val books = withContext(Dispatchers.IO) {
+                WebBook.searchBookAwait(source, key)
+            }
+            if (books.isEmpty()) {
+                finishStep(stepId, summary = getString(R.string.agent_step_source_debug_done_empty))
+                "搜索调试成功但未解析到书籍。可能原因：ruleSearch 的 bookList 选择器未匹配。" +
+                    "\n搜索页HTML片段：\n" + withContext(Dispatchers.IO) {
+                    fetchResolvedHtml(source, key)
+                }
+            } else {
+                val result = books.take(10).map { it.toToolResult() }
+                finishStep(
+                    stepId,
+                    summary = getString(R.string.agent_step_source_debug_done, result.size)
+                )
+                GSON.toJson(result)
+            }
+        } catch (e: Exception) {
+            val hint = withContext(Dispatchers.IO) { fetchResolvedHtml(source, key) }
+            failStep(stepId, e)
+            "搜索调试失败：${e.localizedMessage ?: e.message ?: "解析错误"}\n$hint"
+        }
+    }
+
+    override suspend fun debugSourceBookInfo(bookUrl: String): String {
+        val stepId = startStep(getString(R.string.agent_step_source_debug_info), "bookUrl=$bookUrl")
+        val source = draftSource
+        if (source == null) {
+            failStep(stepId, NoStackTraceException(getString(R.string.agent_source_no_draft)))
+            return getString(R.string.agent_source_no_draft)
+        }
+        return try {
+            val (result, nameBlank) = withContext(Dispatchers.IO) {
+                val book = Book()
+                book.origin = source.bookSourceUrl
+                book.bookUrl = bookUrl
+                WebBook.getBookInfoAwait(source, book)
+                Pair(
+                    GSON.toJson(mapOf(
+                        "name" to book.name,
+                        "author" to book.author,
+                        "kind" to book.kind,
+                        "intro" to book.intro,
+                        "coverUrl" to book.coverUrl,
+                        "wordCount" to book.wordCount,
+                        "latestChapterTitle" to book.latestChapterTitle,
+                        "tocUrl" to book.tocUrl
+                    )),
+                    book.name.isBlank()
+                )
+            }
+            finishStep(
+                stepId,
+                summary = getString(R.string.agent_step_source_debug_done, 1)
+            )
+            if (nameBlank) {
+                "详情页调试成功但未解析到书名，说明 ruleBookInfo 未设置或选择器不正确。\n" +
+                    "请先设置 ruleBookInfo 后重试，或参考详情页HTML：\n" +
+                    withContext(Dispatchers.IO) { fetchPageHtml(source, bookUrl) } + "\n$result"
+            } else {
+                result
+            }
+        } catch (e: Exception) {
+            val hint = withContext(Dispatchers.IO) { fetchPageHtml(source, bookUrl) }
+            failStep(stepId, e)
+            "详情页调试失败：${e.localizedMessage ?: e.message ?: "解析错误"}\n$hint"
+        }
+    }
+
+    override suspend fun debugSourceToc(tocUrl: String, bookUrl: String?): String {
+        val stepId = startStep(getString(R.string.agent_step_source_debug_toc), "tocUrl=$tocUrl")
+        val source = draftSource
+        if (source == null) {
+            failStep(stepId, NoStackTraceException(getString(R.string.agent_source_no_draft)))
+            return getString(R.string.agent_source_no_draft)
+        }
+        if (source.ruleToc == null) {
+            failStep(stepId, NoStackTraceException(getString(R.string.agent_source_no_rule_toc)))
+            return getString(R.string.agent_source_no_rule_toc)
+        }
+        return try {
+            val result = withContext(Dispatchers.IO) {
+                val book = Book()
+                book.origin = source.bookSourceUrl
+                book.bookUrl = bookUrl?.takeIf { it.isNotBlank() } ?: tocUrl
+                book.tocUrl = tocUrl
+                WebBook.getChapterListAwait(source, book).getOrThrow()
+                    .filterNot { it.isVolume && it.url.startsWith(it.title) }
+                    .take(30)
+                    .map { mapOf("title" to it.title, "url" to it.url) }
+            }
+            finishStep(
+                stepId,
+                summary = getString(R.string.agent_step_source_debug_done, result.size)
+            )
+            GSON.toJson(mapOf("count" to result.size, "chapters" to result))
+        } catch (e: Exception) {
+            val hint = withContext(Dispatchers.IO) { fetchPageHtml(source, tocUrl) }
+            failStep(stepId, e)
+            "目录页调试失败：${e.localizedMessage ?: e.message ?: "解析错误"}\n$hint"
+        }
+    }
+
+    override suspend fun debugSourceContent(
+        chapterUrl: String,
+        bookUrl: String?,
+        tocUrl: String?
+    ): String {
+        val stepId = startStep(getString(R.string.agent_step_source_debug_content), "chapterUrl=$chapterUrl")
+        val source = draftSource
+        if (source == null) {
+            failStep(stepId, NoStackTraceException(getString(R.string.agent_source_no_draft)))
+            return getString(R.string.agent_source_no_draft)
+        }
+        if (source.getContentRule().content.isNullOrEmpty()) {
+            failStep(stepId, NoStackTraceException(getString(R.string.agent_source_no_rule_content)))
+            return getString(R.string.agent_source_no_rule_content)
+        }
+        return try {
+            val result = withContext(Dispatchers.IO) {
+                val book = Book()
+                book.origin = source.bookSourceUrl
+                book.bookUrl = bookUrl?.takeIf { it.isNotBlank() } ?: tocUrl ?: chapterUrl
+                book.tocUrl = tocUrl?.takeIf { it.isNotBlank() } ?: book.bookUrl
+                val chapter = BookChapter(
+                    url = chapterUrl,
+                    title = "调试",
+                    bookUrl = book.bookUrl
+                )
+                val content = WebBook.getContentAwait(
+                    bookSource = source,
+                    book = book,
+                    bookChapter = chapter,
+                    nextChapterUrl = null,
+                    needSave = false
+                )
+                buildString {
+                    append("正文长度：${content.length}\n")
+                    append("正文预览：\n")
+                    append(cleanHtmlText(content, SOURCE_CONTENT_PREVIEW_LENGTH))
+                }
+            }
+            finishStep(stepId)
+            result
+        } catch (e: Exception) {
+            val hint = withContext(Dispatchers.IO) { fetchPageHtml(source, chapterUrl) }
+            failStep(stepId, e)
+            "正文页调试失败：${e.localizedMessage ?: e.message ?: "解析错误"}\n$hint"
+        }
+    }
+
+    override suspend fun saveBookSource(): String {
+        val stepId = startStep(getString(R.string.agent_step_source_save))
+        val source = draftSource
+        if (source == null) {
+            failStep(stepId, NoStackTraceException(getString(R.string.agent_source_no_draft)))
+            return getString(R.string.agent_source_no_draft)
+        }
+        return try {
+            validateBookSource(source)
+            source.bookSourceGroup = "AI生成"
+            source.enabled = true
+            source.lastUpdateTime = System.currentTimeMillis()
+            appDb.bookSourceDao.insert(source)
+            sourceCreationMode = false
+            finishStep(
+                stepId,
+                summary = getString(R.string.agent_step_source_save_done, source.bookSourceName)
+            )
+            "书源创建成功：${source.bookSourceName}，地址：${source.bookSourceUrl}，已保存到AI生成分组"
+        } catch (e: Exception) {
+            failStep(stepId, e)
+            "书源保存失败：${e.localizedMessage ?: e.message ?: "校验失败"}。请继续修正规则后重试，草稿仍然保留"
+        }
     }
 
     override suspend fun readingReport(period: String): String {
@@ -749,6 +1020,7 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
 
     private fun isToolFailure(name: String, result: String): Boolean {
         return (name == "create_book_source" && result.startsWith("书源创建失败")) ||
+            (name == "save_book_source" && result.startsWith("书源保存失败")) ||
             (name == "create_ai_book" && result.startsWith("小说创作失败"))
     }
 
@@ -765,9 +1037,23 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
                         append("group=$it")
                     }
             }.takeIf { it.isNotBlank() }
-            "create_book_source" -> args.get("url")?.takeIf { !it.isJsonNull }?.asString
+            "create_book_source", "fetch_page" ->
+                args.get("url")?.takeIf { !it.isJsonNull }?.asString
+                    ?.takeIf { it.isNotBlank() }
+                    ?.let { "url=$it" }
+            "update_book_source" -> "更新书源草稿"
+            "debug_source_search" -> args.get("key")?.takeIf { !it.isJsonNull }?.asString
                 ?.takeIf { it.isNotBlank() }
-                ?.let { "url=$it" }
+                ?.let { "key=$it" }
+            "debug_source_book_info" -> args.get("bookUrl")?.takeIf { !it.isJsonNull }?.asString
+                ?.takeIf { it.isNotBlank() }
+                ?.let { "bookUrl=$it" }
+            "debug_source_toc" -> args.get("tocUrl")?.takeIf { !it.isJsonNull }?.asString
+                ?.takeIf { it.isNotBlank() }
+                ?.let { "tocUrl=$it" }
+            "debug_source_content" -> args.get("chapterUrl")?.takeIf { !it.isJsonNull }?.asString
+                ?.takeIf { it.isNotBlank() }
+                ?.let { "chapterUrl=$it" }
             "reading_report" -> args.get("period")?.takeIf { !it.isJsonNull }?.asString
                 ?.takeIf { it.isNotBlank() }
                 ?.let { "period=$it" }
@@ -797,7 +1083,23 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
                         ?: getString(R.string.agent_step_unknown_result)
                 }
             }
-            "create_book_source" -> result.lineSequence().firstOrNull()?.take(60)
+            "create_book_source" -> getString(R.string.agent_step_source_draft_done, "已获取首页")
+            "update_book_source" -> "草稿已更新"
+            "debug_source_search" -> {
+                val parsed = runCatching { JsonParser.parseString(result) }.getOrNull()
+                if (parsed is JsonArray) {
+                    getString(R.string.agent_step_source_debug_done, parsed.size())
+                } else {
+                    result.lineSequence().firstOrNull()?.take(60)
+                        ?: getString(R.string.agent_step_unknown_result)
+                }
+            }
+            "debug_source_book_info", "debug_source_toc" ->
+                result.lineSequence().firstOrNull()?.take(60)
+                    ?: getString(R.string.agent_step_unknown_result)
+            "debug_source_content" -> result.lineSequence().firstOrNull()?.take(60)
+                ?: getString(R.string.agent_step_unknown_result)
+            "save_book_source" -> result.lineSequence().firstOrNull()?.take(60)
                 ?: getString(R.string.agent_step_unknown_result)
             "reading_report" -> getString(R.string.agent_step_reading_report_done)
             "library_stats" -> getString(R.string.agent_step_library_stats_done_short)
@@ -1612,104 +1914,85 @@ val choices = chunk.get("choices")
         return score
     }
 
-    private suspend fun createBookSource(
-        supplier: io.legado.app.data.entities.AiSource,
-        url: String
-    ): String {
-        val siteUrl = url.trim().trimEnd('/')
-        val siteStepId = startStep(getString(R.string.agent_step_fetching_site), siteUrl)
-        val (finalUrl, html) = try {
-            fetchSiteHtml(siteUrl)
+    /**
+     * 宽松解析书源草稿：只需 bookSourceUrl 非空，名称可缺省
+     */
+    private fun parseDraftSource(json: String): BookSource {
+        val jsonText = extractJson(json)
+        val source = if (jsonText.trimStart().startsWith("[")) {
+            GSON.fromJsonArray<BookSource>(jsonText).getOrNull()?.firstOrNull()
+        } else {
+            GSON.fromJsonObject<BookSource>(jsonText).getOrNull()
+        }
+            ?: throw NoStackTraceException("书源JSON格式错误")
+        if (source.bookSourceUrl.isBlank()) {
+            throw NoStackTraceException("bookSourceUrl为空")
+        }
+        if (source.bookSourceName.isBlank()) {
+            source.bookSourceName = runCatching {
+                io.legado.app.utils.NetworkUtils.getBaseUrl(source.bookSourceUrl)
+                    ?.substringAfter("://", "")
+                    ?.substringBefore("/", "")
+            }.getOrNull() ?: source.bookSourceUrl
+        }
+        return source
+    }
+
+    private fun cleanHtmlText(html: String, max: Int): String {
+        return html
+            .replace(Regex("<script[\\s\\S]*?</script>", RegexOption.IGNORE_CASE), " ")
+            .replace(Regex("<style[\\s\\S]*?</style>", RegexOption.IGNORE_CASE), " ")
+            .replace(Regex("<br\\s*/?\\s*>", RegexOption.IGNORE_CASE), "\n")
+            .replace(Regex("<[^>]+>"), " ")
+            .replace(Regex("\\s+"), " ")
+            .trim()
+            .take(max)
+    }
+
+    /**
+     * 解析书源草稿的搜索地址（替换 {{key}} 等占位符）并抓取HTML，供调试失败时定位规则
+     */
+    private suspend fun fetchResolvedHtml(source: BookSource, key: String?): String {
+        return try {
+            val analyzeUrl = AnalyzeUrl(
+                mUrl = source.searchUrl ?: source.bookSourceUrl,
+                key = key,
+                baseUrl = source.bookSourceUrl,
+                source = source,
+                ruleData = RuleData(),
+                coroutineContext = coroutineContext
+            )
+            val res = analyzeUrl.getStrResponseAwait()
+            buildString {
+                append("搜索地址：${res.url}\n")
+                append("HTML片段：\n")
+                append(cleanHtmlText(res.body.orEmpty(), SOURCE_HTML_HINT_LENGTH))
+            }
         } catch (e: Exception) {
-            failStep(siteStepId, e)
-            return "书源创建失败：${e.localizedMessage ?: e.message ?: "无法访问网站"}"
+            "无法获取搜索页：${e.localizedMessage ?: e.message ?: "未知错误"}"
         }
-        finishStep(
-            siteStepId,
-            summary = getString(R.string.agent_step_fetching_site_done, html.length)
-        )
-        var lastError = ""
-        for (attempt in 0 until SOURCE_CREATE_ATTEMPTS) {
-            val generateStepId = startStep(
-                getString(
-                    R.string.agent_step_generating_source,
-                    attempt + 1,
-                    SOURCE_CREATE_ATTEMPTS
-                )
+    }
+
+    /**
+     * 直接用书源草稿抓取指定网页HTML，供调试失败时定位规则
+     */
+    private suspend fun fetchPageHtml(source: BookSource, url: String): String {
+        return try {
+            val analyzeUrl = AnalyzeUrl(
+                mUrl = url,
+                baseUrl = source.bookSourceUrl,
+                source = source,
+                coroutineContext = coroutineContext
             )
-            val messages = JsonArray()
-            messages.add(
-                JsonObject().apply {
-                    addProperty("role", "system")
-                    addProperty("content", SOURCE_CREATE_PROMPT)
-                }
-            )
-            val userContent = buildString {
-                append("请为网站编写书源。\n网站地址：$finalUrl\n首页HTML片段：\n$html\n\n请直接输出书源JSON。")
-                if (attempt > 0) {
-                    append("\n\n上次书源校验失败：$lastError\n请修复后重新输出完整书源JSON。")
-                }
+            val res = analyzeUrl.getStrResponseAwait()
+            buildString {
+                append("请求地址：${res.url}\n")
+                append("HTML片段：\n")
+                append(cleanHtmlText(res.body.orEmpty(), SOURCE_HTML_HINT_LENGTH))
             }
-            messages.add(
-                JsonObject().apply {
-                    addProperty("role", "user")
-                    addProperty("content", userContent)
-                }
-            )
-            val request = JsonObject().apply {
-                addProperty("model", supplier.model)
-                add("messages", messages)
-            }
-            val reply = try {
-                chatCompletion(supplier, request)
-            } catch (e: Exception) {
-                lastError = "请求AI失败: ${e.localizedMessage}"
-                failStep(generateStepId, e)
-                continue
-            }
-            val content = reply.get("content")?.takeIf { !it.isJsonNull }?.asString.orEmpty()
-            val jsonText = extractJson(content)
-            val source = try {
-                parseBookSource(jsonText)
-            } catch (e: Exception) {
-                lastError = "书源JSON解析失败: ${e.localizedMessage}"
-                failStep(generateStepId, e)
-                if (attempt < SOURCE_CREATE_ATTEMPTS - 1) {
-                    continue
-                }
-                return "书源创建失败：$lastError"
-            }
-            finishStep(
-                generateStepId,
-                summary = getString(
-                    R.string.agent_step_generating_source_done,
-                    source.bookSourceName
-                )
-            )
-            source.bookSourceGroup = "AI生成"
-            source.enabled = true
-            source.lastUpdateTime = System.currentTimeMillis()
-            val validateStepId = startStep(getString(R.string.agent_step_validating_source))
-            try {
-                validateBookSource(source)
-                appDb.bookSourceDao.insert(source)
-                finishStep(
-                    validateStepId,
-                    summary = getString(R.string.agent_step_validating_source_done)
-                )
-                return "书源创建成功：${source.bookSourceName}，地址：${source.bookSourceUrl}，" +
-                    "已保存到AI生成分组"
-            } catch (e: Exception) {
-                lastError = e.localizedMessage ?: e.message ?: "校验失败"
-                AppLog.put("AI书源校验失败: ${source.bookSourceName}", e)
-                failStep(validateStepId, e)
-                if (attempt < SOURCE_CREATE_ATTEMPTS - 1) {
-                    continue
-                }
-                return "书源创建失败：$lastError"
-            }
+        } catch (e: Exception) {
+            "无法获取页面：${e.localizedMessage ?: e.message ?: "未知错误"}"
         }
-        return "书源创建失败：$lastError"
     }
 
     private suspend fun fetchSiteHtml(url: String): Pair<String, String> {
@@ -1865,7 +2148,10 @@ val choices = chunk.get("choices")
         private const val MAX_SEARCH_PAGE_SIZE = 20
         private const val FIRST_SEARCH_SOURCE_LIMIT = 100
         private const val SEARCH_SOURCE_BATCH_SIZE = 100
-        private const val SOURCE_CREATE_ATTEMPTS = 3
+        private const val DEFAULT_MAX_ROUNDS = 3
+        private const val SOURCE_CREATE_MAX_ROUNDS = 20
+        private const val SOURCE_HTML_HINT_LENGTH = 6000
+        private const val SOURCE_CONTENT_PREVIEW_LENGTH = 1000
         private const val MAX_AI_BOOK_CHAPTERS = 50
         private const val BOOK_META_PROMPT =
             "你是专业小说创作助手。根据用户提供的小说类型和主题，生成小说基本信息。" +
@@ -1891,24 +2177,35 @@ val choices = chunk.get("choices")
                     "3. 搜索书籍时默认展示相关性最高的5条结果，用户明确要求展示更多（如\"展示10个\"）时，将数量填入 limit 参数，最大20条。\n" +
                     "4. 用户要求将书籍加入书架时，先调用 search_books 搜索，再对最匹配的一本调用 add_book_to_shelf。\n" +
                     "5. 用户要求创作/写一部小说时，调用 create_ai_book 工具，将类型填入 type，核心设定填入 theme。" +
-                    "用户指定章节数时填入 chapterCount，指定每章字数时填入 wordsPerChapter。\n\n" +
+                    "用户指定章节数时填入 chapterCount，指定每章字数时填入 wordsPerChapter。\n" +
+                    "6. 用户要求编写/生成书源时，严格按以下流程逐步完成，不要一次性盲目生成：\n" +
+                    "   ① 先调用 create_book_source(url) 获取网站首页HTML和书源草稿，认真分析网站结构；\n" +
+                    "   ② 用 fetch_page 查看搜索页、详情页等关键页面，找出搜索表单/搜索链接特征；\n" +
+                    "   ③ 构造搜索地址（searchUrl 用 {{key}} 表示关键字），调用 update_book_source 更新草稿；\n" +
+                    "   ④ 调用 debug_source_search 调试搜索，失败则根据返回的HTML修正 ruleSearch 后重复③④；\n" +
+                    "   ⑤ 依次用 debug_source_book_info、debug_source_toc、debug_source_content 调试详情/目录/正文，" +
+                    "每步失败都用 update_book_source 修正对应规则后重新调试；\n" +
+                    "   ⑥ 全部调试通过后调用 save_book_source 校验保存。\n\n" +
                     "边界：\n" +
                     "1. 不支持的请求应如实说明能力范围，不要编造答案。\n" +
                     "2. 回答保持简洁，默认使用中文。\n\n" +
                     "可用工具（具体参数与调用方式以工具定义为准）：\n"
-        private const val SOURCE_CREATE_PROMPT =
-            "你是Legado(阅读)的书源开发专家。" +
-                    "根据用户提供的网站首页HTML，编写一个完整可用的Legado书源JSON。" +
-                    "要求：1. 只输出一个JSON对象，不要输出解释、注释或markdown代码块。" +
-                    "2. JSON至少包含 bookSourceName、bookSourceUrl、searchUrl、ruleSearch；" +
-                    "详情、目录、正文规则尽量补齐：ruleBookInfo、ruleToc、ruleContent。" +
-                    "3. 规则使用Legado规则语法，例如 ruleSearch 中 bookList 使用XPath或CSS选择器，" +
-                    "name、author、bookUrl、coverUrl、intro、lastChapter 使用规则表达式。" +
-                    "ruleSearch、ruleBookInfo、ruleToc、ruleContent 必须使用JSON对象格式，不要使用字符串格式。" +
-                    "4. searchUrl 使用 {{key}} 表示搜索关键字，{{page}} 表示页码，" +
-                    "POST请求使用类似 https://example.com/search,POST,body=keyword={{key}} 的格式。" +
-                    "5. bookUrlPattern 填写详情页URL特征。" +
-                    "6. 输出必须是有效的JSON字符串。"
+        private const val SOURCE_CREATE_GUIDE =
+            "已获取网站首页并创建书源草稿，请按以下步骤逐步编写书源：\n" +
+                    "\n网站地址：{siteUrl}\n首页HTML片段：\n{html}\n\n" +
+                    "当前书源草稿JSON：\n{draftJson}\n\n" +
+                    "步骤：\n" +
+                    "1. 分析首页HTML，找到搜索表单/搜索链接（通常是表单action、搜索按钮href或跳转接口）。\n" +
+                    "2. 构造搜索地址：用 {{key}} 占位搜索关键字，{{page}} 占位页码；" +
+                    "POST请求使用 url,{\"method\":\"POST\",\"body\":\"key=xxx\"} 的链接参数格式。" +
+                    "然后调用 update_book_source 把 searchUrl、ruleSearch（bookList/name/author/bookUrl等，JSON对象格式）写入草稿。\n" +
+                    "3. 调用 debug_source_search(\"斗破苍穹\") 调试搜索。成功则拿到 bookUrl 和 tocUrl，失败则根据返回的HTML修正后重试。\n" +
+                    "4. 调用 debug_source_book_info(bookUrl) 调试详情页，补充 ruleBookInfo（书名/作者/简介/封面/目录等）。\n" +
+                    "5. 调用 debug_source_toc(tocUrl) 调试目录页，补充 ruleToc（chapterList/name/url）。\n" +
+                    "6. 调用 debug_source_content(章节url) 调试正文页，补充 ruleContent（content、title、author）。\n" +
+                    "7. 全部调试通过后调用 save_book_source 校验保存。\n\n" +
+                    "规则语法提示：bookList 等列表选择器用XPath或CSS；name/author/bookUrl 等字段用规则表达式。" +
+                    "ruleSearch、ruleBookInfo、ruleToc、ruleContent 必须使用JSON对象格式。"
     }
 
 }

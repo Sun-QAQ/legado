@@ -75,7 +75,10 @@ object AgentTools {
 
     private val createBookSourceTool = AgentTool(
         name = "create_book_source",
-        description = "根据网站地址编写Legado书源，并自动调试保存",
+        description = "编写Legado书源的入口。抓取网站首页HTML，创建书源草稿，并返回分步调试指引。" +
+            "之后应依次调用 update_book_source 填写/修正规则、debug_source_search 调试搜索、" +
+            "debug_source_book_info 调试详情、debug_source_toc 调试目录、debug_source_content 调试正文，" +
+            "全部调试通过后调用 save_book_source 保存",
         parameters = objectParameters(
             properties = JsonObject().apply {
                 add(
@@ -96,6 +99,209 @@ object AgentTools {
                 createBookSource(url)
             }
         }
+    )
+
+    private val fetchPageTool = AgentTool(
+        name = "fetch_page",
+        description = "抓取指定网页并返回清理后的文本，用于分析网站结构、搜索表单、列表或正文的HTML特征，从而推导规则",
+        parameters = objectParameters(
+            properties = JsonObject().apply {
+                add(
+                    "url",
+                    JsonObject().apply {
+                        addProperty("type", "string")
+                        addProperty("description", "要访问的网页地址，可带Legado链接参数，如 url,{\"method\":\"POST\",\"body\":\"key=xxx\"}")
+                    }
+                )
+                add(
+                    "method",
+                    JsonObject().apply {
+                        addProperty("type", "string")
+                        addProperty("description", "可选，GET 或 POST，默认 GET")
+                    }
+                )
+                add(
+                    "body",
+                    JsonObject().apply {
+                        addProperty("type", "string")
+                        addProperty("description", "可选，POST 请求体")
+                    }
+                )
+            },
+            required = arrayOf("url")
+        ),
+        execute = { arguments ->
+            val url = arguments.getStringValue("url")
+            if (url.isBlank()) {
+                "页面地址为空"
+            } else {
+                fetchPage(url, arguments.getStringValue("method"), arguments.getStringValue("body"))
+            }
+        }
+    )
+
+    private val updateBookSourceTool = AgentTool(
+        name = "update_book_source",
+        description = "用完整的书源JSON更新当前编辑中的书源草稿，返回更新后的草稿摘要。每次修正规则后都应调用本工具，然后再调试验证",
+        parameters = objectParameters(
+            properties = JsonObject().apply {
+                add(
+                    "sourceJson",
+                    JsonObject().apply {
+                        addProperty("type", "string")
+                        addProperty("description", "完整的Legado书源JSON，需包含 bookSourceUrl，可包含 bookSourceName、searchUrl、ruleSearch、ruleBookInfo、ruleToc、ruleContent 等")
+                    }
+                )
+            },
+            required = arrayOf("sourceJson")
+        ),
+        execute = { arguments ->
+            val sourceJson = arguments.getStringValue("sourceJson")
+            if (sourceJson.isBlank()) {
+                "书源JSON为空"
+            } else {
+                updateBookSource(sourceJson)
+            }
+        }
+    )
+
+    private val debugSourceSearchTool = AgentTool(
+        name = "debug_source_search",
+        description = "调试当前书源草稿的搜索：用草稿的 searchUrl 和 ruleSearch 搜索指定关键字。" +
+            "成功返回解析出的书籍列表；失败返回搜索页HTML片段，据此修正 searchUrl 或 ruleSearch 后再次调试",
+        parameters = objectParameters(
+            properties = JsonObject().apply {
+                add(
+                    "key",
+                    JsonObject().apply {
+                        addProperty("type", "string")
+                        addProperty("description", "搜索关键字，建议用一本真实存在的小说名")
+                    }
+                )
+            },
+            required = arrayOf("key")
+        ),
+        execute = { arguments ->
+            val key = arguments.getStringValue("key")
+            if (key.isBlank()) {
+                "搜索关键字为空"
+            } else {
+                debugSourceSearch(key)
+            }
+        }
+    )
+
+    private val debugSourceBookInfoTool = AgentTool(
+        name = "debug_source_book_info",
+        description = "调试当前书源草稿的详情页：用草稿的 ruleBookInfo 解析书籍详情。" +
+            "成功返回书名、作者、简介、封面、目录地址；失败返回详情页HTML片段，据此修正 ruleBookInfo",
+        parameters = objectParameters(
+            properties = JsonObject().apply {
+                add(
+                    "bookUrl",
+                    JsonObject().apply {
+                        addProperty("type", "string")
+                        addProperty("description", "书籍详情页地址，取自 debug_source_search 结果的 bookUrl")
+                    }
+                )
+            },
+            required = arrayOf("bookUrl")
+        ),
+        execute = { arguments ->
+            val bookUrl = arguments.getStringValue("bookUrl")
+            if (bookUrl.isBlank()) {
+                "详情页地址为空"
+            } else {
+                debugSourceBookInfo(bookUrl)
+            }
+        }
+    )
+
+    private val debugSourceTocTool = AgentTool(
+        name = "debug_source_toc",
+        description = "调试当前书源草稿的目录页：用草稿的 ruleToc 解析章节列表。" +
+            "成功返回前若干章节的标题和地址；失败返回目录页HTML片段，据此修正 ruleToc",
+        parameters = objectParameters(
+            properties = JsonObject().apply {
+                add(
+                    "tocUrl",
+                    JsonObject().apply {
+                        addProperty("type", "string")
+                        addProperty("description", "目录页地址，取自 debug_source_search 或 debug_source_book_info 结果的 tocUrl")
+                    }
+                )
+                add(
+                    "bookUrl",
+                    JsonObject().apply {
+                        addProperty("type", "string")
+                        addProperty("description", "可选，书籍详情页地址，作为相对链接的基准，省略时使用 tocUrl")
+                    }
+                )
+            },
+            required = arrayOf("tocUrl")
+        ),
+        execute = { arguments ->
+            val tocUrl = arguments.getStringValue("tocUrl")
+            if (tocUrl.isBlank()) {
+                "目录页地址为空"
+            } else {
+                debugSourceToc(tocUrl, arguments.getStringValue("bookUrl"))
+            }
+        }
+    )
+
+    private val debugSourceContentTool = AgentTool(
+        name = "debug_source_content",
+        description = "调试当前书源草稿的正文页：用草稿的 ruleContent 解析章节正文。" +
+            "成功返回正文预览；失败返回正文页HTML片段，据此修正 ruleContent",
+        parameters = objectParameters(
+            properties = JsonObject().apply {
+                add(
+                    "chapterUrl",
+                    JsonObject().apply {
+                        addProperty("type", "string")
+                        addProperty("description", "章节正文地址，取自 debug_source_toc 结果的章节 url")
+                    }
+                )
+                add(
+                    "bookUrl",
+                    JsonObject().apply {
+                        addProperty("type", "string")
+                        addProperty("description", "可选，书籍详情页地址，作为相对链接的基准")
+                    }
+                )
+                add(
+                    "tocUrl",
+                    JsonObject().apply {
+                        addProperty("type", "string")
+                        addProperty("description", "可选，目录页地址，作为相对链接的基准")
+                    }
+                )
+            },
+            required = arrayOf("chapterUrl")
+        ),
+        execute = { arguments ->
+            val chapterUrl = arguments.getStringValue("chapterUrl")
+            if (chapterUrl.isBlank()) {
+                "章节地址为空"
+            } else {
+                debugSourceContent(
+                    chapterUrl,
+                    arguments.getStringValue("bookUrl"),
+                    arguments.getStringValue("tocUrl")
+                )
+            }
+        }
+    )
+
+    private val saveBookSourceTool = AgentTool(
+        name = "save_book_source",
+        description = "校验并保存当前书源草稿。依次验证搜索、详情、目录、正文，全部通过后保存到AI生成分组。失败时返回具体原因，可继续修正规则后重试",
+        parameters = objectParameters(
+            properties = JsonObject(),
+            required = arrayOf()
+        ),
+        execute = { saveBookSource() }
     )
 
     private val readingReportTool = AgentTool(
@@ -190,6 +396,13 @@ object AgentTools {
         searchBooksTool,
         addBookToShelfTool,
         createBookSourceTool,
+        fetchPageTool,
+        updateBookSourceTool,
+        debugSourceSearchTool,
+        debugSourceBookInfoTool,
+        debugSourceTocTool,
+        debugSourceContentTool,
+        saveBookSourceTool,
         readingReportTool,
         libraryStatsTool,
         createAiBookTool
