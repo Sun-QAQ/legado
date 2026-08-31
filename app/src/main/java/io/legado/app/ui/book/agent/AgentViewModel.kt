@@ -2193,36 +2193,38 @@ val choices = chunk.get("choices")
                     "用户指定章节数时填入 chapterCount，指定每章字数时填入 wordsPerChapter。\n" +
                     "6. 用户要求编写/生成书源时，严格按以下流程逐步完成，不要一次性盲目生成：\n" +
                     "   ① 先调用 create_book_source(url) 获取网站首页HTML和书源草稿，认真分析网站结构；\n" +
-                    "   ② 用 fetch_page 查看搜索页、详情页等关键页面，找出搜索表单/搜索链接特征；\n" +
-                    "   ③ 构造搜索地址（searchUrl 用 {{key}} 表示关键字），调用 update_book_source 更新草稿；\n" +
-                    "   ④ 调用 debug_source_search 调试搜索，失败则根据返回的HTML修正 ruleSearch 后重复③④；\n" +
-                    "   ⑤ 依次用 debug_source_book_info、debug_source_toc、debug_source_content 调试详情/目录/正文，" +
-                    "每步失败都用 update_book_source 修正对应规则后重新调试；\n" +
-                    "   ⑥ 全部调试通过后调用 save_book_source 校验保存。\n" +
-                    "   ⑦ 编写书源时请自主连续调用工具完成全部流程，不要中途停下向用户解释，" +
+                    "   ② 每写一类规则前，先用 fetch_page 查看对应页面（搜索页/详情页/目录页/正文页）的HTML结构；\n" +
+                    "   ③ 用 update_book_source 依次写入 searchUrl+ruleSearch、ruleBookInfo、ruleToc、ruleContent；\n" +
+                    "   ④ 每写完一类规则就用对应的 debug_source_search / debug_source_book_info / debug_source_toc / debug_source_content 调试，失败则根据返回的HTML修正后立即重试；\n" +
+                    "   ⑤ 全部调试通过后调用 save_book_source 校验保存。\n" +
+                    "   ⑥ 编写书源时请自主连续调用工具完成全部流程，不要中途停下向用户解释，" +
                     "必须在 save_book_source 成功后才结束；调试失败则根据返回的HTML修正规则后立即重试。\n\n" +
                     "边界：\n" +
                     "1. 不支持的请求应如实说明能力范围，不要编造答案。\n" +
                     "2. 回答保持简洁，默认使用中文。\n\n" +
                     "可用工具（具体参数与调用方式以工具定义为准）：\n"
         private const val SOURCE_CREATE_GUIDE =
-            "已获取网站首页并创建书源草稿，请按以下步骤逐步编写书源：\n" +
+            "已获取网站首页并创建书源草稿，请严格按以下步骤逐步编写书源，每一步验证通过后才能进入下一步，未通过则修正后重试：\n" +
                     "\n网站地址：{siteUrl}\n首页HTML片段：\n{html}\n\n" +
                     "当前书源草稿JSON：\n{draftJson}\n\n" +
-                    "步骤：\n" +
-                    "1. 分析首页HTML，找到搜索表单/搜索链接（通常是表单action、搜索按钮href或跳转接口）。\n" +
-                    "2. 构造搜索地址：用 {{key}} 占位搜索关键字，{{page}} 占位页码；" +
-                    "POST请求使用 url,{\"method\":\"POST\",\"body\":\"key=xxx\"} 的链接参数格式。" +
-                    "然后调用 update_book_source 把 searchUrl、ruleSearch（bookList/name/author/bookUrl等，JSON对象格式）写入草稿。\n" +
-                    "3. 调用 debug_source_search(\"斗破苍穹\") 调试搜索。成功则拿到 bookUrl 和 tocUrl，失败则根据返回的HTML修正后重试。\n" +
-                    "4. 调用 debug_source_book_info(bookUrl) 调试详情页，补充 ruleBookInfo（书名/作者/简介/封面/目录等）。\n" +
-                    "5. 调用 debug_source_toc(tocUrl) 调试目录页，补充 ruleToc（chapterList/name/url）。\n" +
-                    "6. 调用 debug_source_content(章节url) 调试正文页，补充 ruleContent（content、title、author）。\n" +
-                    "7. 全部调试通过后调用 save_book_source 校验保存。\n\n" +
-                    "规则语法提示：bookList 等列表选择器用XPath或CSS；name/author/bookUrl 等字段用规则表达式。" +
+                    "流程：\n" +
+                    "1. 分析首页HTML，找到搜索表单/搜索链接（搜索接口、关键字参数名）。\n" +
+                    "2. 用 fetch_page 访问搜索页（把测试词\"遮天\"代入），查看搜索结果的HTML结构。\n" +
+                    "3. 编写搜索规则：调用 update_book_source 写入 searchUrl（{{key}} 表示关键字，{{page}} 表示页码；" +
+                    "POST 用 url,{\"method\":\"POST\",\"body\":\"key=xxx\"}）和 ruleSearch（bookList/name/author/bookUrl/coverUrl/intro/lastChapter，JSON对象格式）。\n" +
+                    "4. 调用 debug_source_search(\"遮天\") 调试搜索；解析到书籍列表则继续，否则回到第2步修正 searchUrl 或 ruleSearch。\n" +
+                    "5. 取搜索结果中一本的 bookUrl，用 fetch_page 访问详情页，查看详情页HTML结构。\n" +
+                    "6. 编写详情规则：调用 update_book_source 写入 ruleBookInfo（name/author/intro/coverUrl/tocUrl）。\n" +
+                    "7. 调用 debug_source_book_info(bookUrl) 调试详情；解析到书名则继续，否则回到第5步修正 ruleBookInfo。\n" +
+                    "8. 取 tocUrl 用 fetch_page 访问目录页，查看章节列表HTML，编写 ruleToc（chapterList/chapterName/chapterUrl）。\n" +
+                    "9. 调用 debug_source_toc(tocUrl) 调试目录；解析到章节列表则继续，否则回到第8步修正 ruleToc。\n" +
+                    "10. 取某一章的章节url用 fetch_page 访问正文页，查看正文HTML，编写 ruleContent（content/title/author）。\n" +
+                    "11. 调用 debug_source_content(chapterUrl) 调试正文；解析到正文则继续，否则回到第10步修正 ruleContent。\n" +
+                    "12. 全部调试通过后调用 save_book_source 校验并保存，完成等待。\n\n" +
+                    "规则语法提示：bookList/chapterList 等列表选择器用XPath或CSS；name/author/bookUrl/content 等字段用规则表达式；" +
                     "ruleSearch、ruleBookInfo、ruleToc、ruleContent 必须使用JSON对象格式。\n\n" +
-                    "重要：请自主连续调用工具完成全部步骤，不要中途停下向用户解释。" +
-                    "必须在 save_book_source 成功后才结束并总结。若某步调试失败，根据返回的HTML修正对应规则后立即重试。"
+                    "重要：请自主连续调用工具完成全部步骤，不要中途停下向用户解释，直到 save_book_source 成功。" +
+                    "某步失败就根据返回的HTML修正对应规则后立即重试。"
     }
 
 }
