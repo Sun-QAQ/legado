@@ -192,7 +192,7 @@ class ReadView(context: Context, attrs: AttributeSet) :
 
         //图片缩放会话中, 处理缩放事件
         if (imageZoomSession) {
-            when (event.action) {
+            when (event.actionMasked) {
                 MotionEvent.ACTION_DOWN -> {
                     curPage.onImageZoomTouch(event)
                 }
