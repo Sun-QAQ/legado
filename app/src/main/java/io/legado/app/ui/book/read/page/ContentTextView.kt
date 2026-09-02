@@ -3,6 +3,7 @@ package io.legado.app.ui.book.read.page
 import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Paint
+import android.os.SystemClock
 import android.util.AttributeSet
 import android.view.MotionEvent
 import android.view.View
@@ -74,8 +75,15 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
     private var imageZoomLastPanX = 0f
     private var imageZoomLastPanY = 0f
     private var imageZoomPanMoved = false
+    private var imageZoomGestureStartX = 0f
+    private var imageZoomGestureStartY = 0f
+    private var imageZoomLastTapX = 0f
+    private var imageZoomLastTapY = 0f
+    private var imageZoomLastTapTime = 0L
     private val imageZoomMaxScale = 5f
     private val imageZoomTouchSlop = ViewConfiguration.get(context).scaledTouchSlop
+    private val imageZoomDoubleTapTimeout = 300L
+    private val imageZoomDoubleTapSlop = ViewConfiguration.get(context).scaledDoubleTapSlop
 
     //绘制图片的paint
     val imagePaint by lazy {
@@ -334,6 +342,8 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
     fun onImageZoomTouch(event: MotionEvent): Boolean {
         when (event.actionMasked) {
             MotionEvent.ACTION_DOWN -> {
+                imageZoomGestureStartX = event.x
+                imageZoomGestureStartY = event.y - callBack.headerHeight
                 imageZoomLastPanX = event.x
                 imageZoomLastPanY = event.y - callBack.headerHeight
                 imageZoomPanMoved = false
@@ -351,7 +361,10 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
                     val y = event.y - callBack.headerHeight
                     val dx = x - imageZoomLastPanX
                     val dy = y - imageZoomLastPanY
-                    if (abs(dx) > imageZoomTouchSlop || abs(dy) > imageZoomTouchSlop) {
+                    //以手势起点累计位移判断拖动, 避免短暂拖动被误判为单击
+                    if (abs(x - imageZoomGestureStartX) > imageZoomTouchSlop
+                        || abs(y - imageZoomGestureStartY) > imageZoomTouchSlop
+                    ) {
                         imageZoomPanMoved = true
                     }
                     imageZoomTranslateX += dx
@@ -373,6 +386,8 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
                 val index = if (event.actionIndex == 0) 1 else 0
                 imageZoomLastPanX = event.getX(index)
                 imageZoomLastPanY = event.getY(index) - callBack.headerHeight
+                imageZoomGestureStartX = imageZoomLastPanX
+                imageZoomGestureStartY = imageZoomLastPanY
                 imageZoomPanMoved = false
             }
 
@@ -387,12 +402,24 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
                     return true
                 }
                 //单指会话结束
-                if (!imageZoomPanMoved && imageZoomScale > 1f) {
-                    //单击复位
+                if (imageZoomPanMoved) {
+                    //拖动平移, 保持缩放
+                    return imageZoomScale > 1f
+                }
+                //单击不处理, 双击复位
+                val now = SystemClock.uptimeMillis()
+                if (now - imageZoomLastTapTime <= imageZoomDoubleTapTimeout
+                    && abs(event.x - imageZoomLastTapX) < imageZoomDoubleTapSlop
+                    && abs(event.y - callBack.headerHeight - imageZoomLastTapY) < imageZoomDoubleTapSlop
+                ) {
+                    imageZoomLastTapTime = 0L
                     resetImageZoom()
                     return false
                 }
-                return imageZoomScale > 1f
+                imageZoomLastTapTime = now
+                imageZoomLastTapX = event.x
+                imageZoomLastTapY = event.y - callBack.headerHeight
+                return true
             }
 
             MotionEvent.ACTION_CANCEL -> {
@@ -454,6 +481,7 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
         imageZoomTranslateX = 0f
         imageZoomTranslateY = 0f
         imageZoomPanMoved = false
+        imageZoomLastTapTime = 0L
         postInvalidate()
     }
 
