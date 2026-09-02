@@ -6,6 +6,7 @@ import android.graphics.Paint
 import android.util.AttributeSet
 import android.view.MotionEvent
 import android.view.View
+import android.view.ViewConfiguration
 import io.legado.app.R
 import io.legado.app.data.entities.Bookmark
 import io.legado.app.help.config.AppConfig
@@ -28,6 +29,8 @@ import io.legado.app.utils.getCompatColor
 import io.legado.app.utils.showDialogFragment
 import io.legado.app.utils.toastOnUi
 import java.util.concurrent.Executors
+import kotlin.math.abs
+import kotlin.math.hypot
 import kotlin.math.max
 import kotlin.math.min
 
@@ -61,6 +64,19 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
     private var isScroll = false
     private val renderRunnable by lazy { Runnable { preRenderPage() } }
 
+    //图片缩放
+    private var imageZoomScale = 1f
+    private var imageZoomTranslateX = 0f
+    private var imageZoomTranslateY = 0f
+    private var imageZooming = false
+    private var imageZoomInitialScale = 1f
+    private var imageZoomInitialDistance = 1f
+    private var imageZoomLastPanX = 0f
+    private var imageZoomLastPanY = 0f
+    private var imageZoomPanMoved = false
+    private val imageZoomMaxScale = 5f
+    private val imageZoomTouchSlop = ViewConfiguration.get(context).scaledTouchSlop
+
     //绘制图片的paint
     val imagePaint by lazy {
         Paint().apply {
@@ -77,6 +93,9 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
      */
     fun setContent(textPage: TextPage) {
         this.textPage = textPage
+        if (imageZoomScale > 1f || imageZooming) {
+            resetImageZoom()
+        }
         // 非滑动翻页动画需要同步重绘，不然翻页可能会出现闪烁
         if (isScroll) {
             postInvalidate()
@@ -87,6 +106,9 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
 
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
         super.onSizeChanged(w, h, oldw, oldh)
+        if (imageZoomScale > 1f || imageZooming) {
+            resetImageZoom()
+        }
         if (!isMainView) return
         ChapterProvider.upViewSize(w, h)
         textPage.format()
@@ -100,7 +122,15 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
         }
         check(!visibleRect.isEmpty) { "visibleRect 为空" }
         canvas.clipRect(visibleRect)
-        drawPage(canvas)
+        if (imageZoomScale > 1f) {
+            canvas.save()
+            canvas.translate(imageZoomTranslateX, imageZoomTranslateY)
+            canvas.scale(imageZoomScale, imageZoomScale)
+            drawPage(canvas)
+            canvas.restore()
+        } else {
+            drawPage(canvas)
+        }
     }
 
     /**
@@ -251,6 +281,180 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
             }
         }
         return handled
+    }
+
+    /**
+     * 当前页面是否处于图片放大状态
+     */
+    fun isImageZoomActive(): Boolean {
+        return imageZooming || imageZoomScale > 1f
+    }
+
+    /**
+     * 查找触点位置上的图片列
+     */
+    fun findImageAt(x: Float, y: Float): ImageColumn? {
+        if (isImageZoomActive()) return null
+        var relativeOffset: Float
+        for (relativePos in 0..2) {
+            relativeOffset = relativeOffset(relativePos)
+            if (relativePos > 0) {
+                //滚动翻页
+                if (!callBack.isScroll) break
+                if (relativeOffset >= ChapterProvider.visibleHeight) break
+            }
+            val page = relativePage(relativePos)
+            for (line in page.lines) {
+                if (line.isImage && line.isTouch(x, y, relativeOffset)) {
+                    return line.columns.firstOrNull() as? ImageColumn
+                }
+            }
+        }
+        return null
+    }
+
+    /**
+     * 开始图片缩放（双指按下）
+     */
+    fun startImageZoom(event: MotionEvent) {
+        imageZooming = true
+        imageZoomInitialScale = imageZoomScale
+        imageZoomInitialDistance = max(imageZoomDistance(event), 1f)
+        val (fx, fy) = imageZoomFocus(event)
+        imageZoomLastPanX = fx
+        imageZoomLastPanY = fy
+        imageZoomPanMoved = false
+        postInvalidate()
+    }
+
+    /**
+     * 处理图片缩放触摸事件
+     * @return 是否仍处于缩放会话
+     */
+    fun onImageZoomTouch(event: MotionEvent): Boolean {
+        when (event.actionMasked) {
+            MotionEvent.ACTION_DOWN -> {
+                imageZoomLastPanX = event.x
+                imageZoomLastPanY = event.y - callBack.headerHeight
+                imageZoomPanMoved = false
+            }
+
+            MotionEvent.ACTION_MOVE -> {
+                if (event.pointerCount >= 2 && imageZooming) {
+                    val distance = max(imageZoomDistance(event), 1f)
+                    val newScale = (imageZoomInitialScale * distance / imageZoomInitialDistance)
+                        .coerceIn(1f, imageZoomMaxScale)
+                    val (fx, fy) = imageZoomFocus(event)
+                    applyImageZoomScale(newScale, fx, fy)
+                } else if (event.pointerCount == 1 && imageZoomScale > 1f) {
+                    val x = event.x
+                    val y = event.y - callBack.headerHeight
+                    val dx = x - imageZoomLastPanX
+                    val dy = y - imageZoomLastPanY
+                    if (abs(dx) > imageZoomTouchSlop || abs(dy) > imageZoomTouchSlop) {
+                        imageZoomPanMoved = true
+                    }
+                    imageZoomTranslateX += dx
+                    imageZoomTranslateY += dy
+                    imageZoomLastPanX = x
+                    imageZoomLastPanY = y
+                    clampImageZoomTranslate()
+                    postInvalidate()
+                } else {
+                    val x = event.x
+                    val y = event.y - callBack.headerHeight
+                    imageZoomLastPanX = x
+                    imageZoomLastPanY = y
+                }
+            }
+
+            MotionEvent.ACTION_POINTER_UP -> {
+                //一根手指抬起，用剩余手指继续平移
+                val index = if (event.actionIndex == 0) 1 else 0
+                imageZoomLastPanX = event.getX(index)
+                imageZoomLastPanY = event.getY(index) - callBack.headerHeight
+                imageZoomPanMoved = false
+            }
+
+            MotionEvent.ACTION_UP -> {
+                if (imageZooming) {
+                    imageZooming = false
+                    if (imageZoomScale <= 1.01f) {
+                        resetImageZoom()
+                        return false
+                    }
+                    clampImageZoomTranslate()
+                    return true
+                }
+                //单指会话结束
+                if (!imageZoomPanMoved && imageZoomScale > 1f) {
+                    //单击复位
+                    resetImageZoom()
+                    return false
+                }
+                return imageZoomScale > 1f
+            }
+
+            MotionEvent.ACTION_CANCEL -> {
+                imageZooming = false
+                resetImageZoom()
+                return false
+            }
+        }
+        return true
+    }
+
+    private fun imageZoomDistance(event: MotionEvent): Float {
+        val x0 = event.getX(0)
+        val y0 = event.getY(0) - callBack.headerHeight
+        val x1 = event.getX(1)
+        val y1 = event.getY(1) - callBack.headerHeight
+        return hypot(x1 - x0, y1 - y0)
+    }
+
+    private fun imageZoomFocus(event: MotionEvent): Pair<Float, Float> {
+        val x0 = event.getX(0)
+        val y0 = event.getY(0) - callBack.headerHeight
+        val x1 = event.getX(1)
+        val y1 = event.getY(1) - callBack.headerHeight
+        return (x0 + x1) / 2f to (y0 + y1) / 2f
+    }
+
+    /**
+     * 以焦点为锚点应用缩放
+     */
+    private fun applyImageZoomScale(newScale: Float, fx: Float, fy: Float) {
+        if (newScale == imageZoomScale) return
+        val k = newScale / imageZoomScale
+        imageZoomTranslateX = fx - (fx - imageZoomTranslateX) * k
+        imageZoomTranslateY = fy - (fy - imageZoomTranslateY) * k
+        imageZoomScale = newScale
+        postInvalidate()
+    }
+
+    /**
+     * 限制平移范围，防止图片被移出可视区域
+     */
+    private fun clampImageZoomTranslate() {
+        val scale = imageZoomScale
+        if (scale <= 1f) return
+        val contentHeight = textPage.height.coerceAtLeast(height.toFloat())
+        val maxX = (scale - 1f) * width
+        val maxY = (scale - 1f) * contentHeight
+        imageZoomTranslateX = imageZoomTranslateX.coerceIn(-maxX, 0f)
+        imageZoomTranslateY = imageZoomTranslateY.coerceIn(-maxY, 0f)
+    }
+
+    /**
+     * 重置图片缩放
+     */
+    fun resetImageZoom() {
+        imageZooming = false
+        imageZoomScale = 1f
+        imageZoomTranslateX = 0f
+        imageZoomTranslateY = 0f
+        imageZoomPanMoved = false
+        postInvalidate()
     }
 
     /**

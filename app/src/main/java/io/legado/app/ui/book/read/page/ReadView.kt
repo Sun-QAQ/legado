@@ -13,6 +13,7 @@ import android.widget.FrameLayout
 import io.legado.app.R
 import io.legado.app.constant.PageAnim
 import io.legado.app.data.entities.BookProgress
+import io.legado.app.help.book.isImage
 import io.legado.app.help.config.AppConfig
 import io.legado.app.help.config.ReadBookConfig
 import io.legado.app.model.ReadAloud
@@ -71,6 +72,7 @@ class ReadView(context: Context, attrs: AttributeSet) :
     val defaultAnimationSpeed = 300
     private var pressDown = false
     private var isMove = false
+    private var imageZoomSession = false
 
     //起始点
     var startX: Float = 0f
@@ -188,13 +190,67 @@ class ReadView(context: Context, attrs: AttributeSet) :
             }
         }
 
+        //图片缩放会话中, 处理缩放事件
+        if (imageZoomSession) {
+            when (event.action) {
+                MotionEvent.ACTION_DOWN -> {
+                    curPage.onImageZoomTouch(event)
+                }
+
+                MotionEvent.ACTION_POINTER_DOWN -> {
+                    curPage.startImageZoom(event)
+                }
+
+                MotionEvent.ACTION_POINTER_UP,
+                MotionEvent.ACTION_MOVE,
+                MotionEvent.ACTION_UP -> if (!curPage.onImageZoomTouch(event)) {
+                    imageZoomSession = false
+                }
+
+                MotionEvent.ACTION_CANCEL -> {
+                    curPage.onImageZoomTouch(event)
+                    imageZoomSession = false
+                    autoPager.resume()
+                }
+            }
+            return true
+        }
+
         //在多点触控时，事件不走ACTION_DOWN分支而产生的特殊事件处理
-        if (event.actionMasked == MotionEvent.ACTION_POINTER_DOWN || event.actionMasked == MotionEvent.ACTION_POINTER_UP) {
+        if (event.actionMasked == MotionEvent.ACTION_POINTER_DOWN) {
+            if (!isTextSelected && ReadBook.book?.isImage == true) {
+                val x = event.getX(1)
+                val y = event.getY(1) - curPage.headerHeight
+                if (curPage.findImageAt(x, y) != null) {
+                    //进入图片缩放模式
+                    imageZoomSession = true
+                    longPressed = false
+                    removeCallbacks(longPressRunnable)
+                    pressDown = false
+                    isMove = false
+                    pageDelegate?.abortAnim()
+                    curPage.startImageZoom(event)
+                    return true
+                }
+            }
+            pageDelegate?.onTouch(event)
+        } else if (event.actionMasked == MotionEvent.ACTION_POINTER_UP) {
             pageDelegate?.onTouch(event)
         }
         when (event.action) {
             MotionEvent.ACTION_DOWN -> {
                 callBack.screenOffTimerStart()
+                if (curPage.isImageZoomActive()) {
+                    //放大状态下按下: 平移或单击复位
+                    imageZoomSession = true
+                    longPressed = false
+                    removeCallbacks(longPressRunnable)
+                    pressDown = true
+                    isMove = false
+                    curPage.onImageZoomTouch(event)
+                    setStartPoint(event.x, event.y, false)
+                    return true
+                }
                 if (isTextSelected) {
                     curPage.cancelSelect()
                     isTextSelected = false
@@ -566,6 +622,10 @@ class ReadView(context: Context, attrs: AttributeSet) :
      * @param resetPageOffset 滚动阅读是是否重置位置
      */
     override fun upContent(relativePosition: Int, resetPageOffset: Boolean) {
+        if (curPage.isImageZoomActive()) {
+            curPage.resetImageZoom()
+            imageZoomSession = false
+        }
         post {
             curPage.setContentDescription(pageFactory.curPage.text)
         }

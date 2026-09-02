@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.drawable.LayerDrawable
 import android.view.LayoutInflater
+import android.view.MotionEvent
 import android.widget.FrameLayout
 import androidx.core.content.ContextCompat
 import androidx.core.graphics.drawable.toDrawable
@@ -400,6 +401,39 @@ class PageView(context: Context) : FrameLayout(context) {
      */
     fun onClick(x: Float, y: Float): Boolean {
         return binding.contentTextView.click(x, y - headerHeight)
+    }
+
+    /**
+     * 是否处于图片放大状态
+     */
+    fun isImageZoomActive(): Boolean {
+        return binding.contentTextView.isImageZoomActive()
+    }
+
+    /**
+     * 查找触点位置上的图片列
+     */
+    fun findImageAt(x: Float, y: Float) = binding.contentTextView.findImageAt(x, y)
+
+    /**
+     * 开始图片缩放
+     */
+    fun startImageZoom(event: MotionEvent) {
+        binding.contentTextView.startImageZoom(event)
+    }
+
+    /**
+     * 处理图片缩放触摸事件
+     */
+    fun onImageZoomTouch(event: MotionEvent): Boolean {
+        return binding.contentTextView.onImageZoomTouch(event)
+    }
+
+    /**
+     * 重置图片缩放
+     */
+    fun resetImageZoom() {
+        binding.contentTextView.resetImageZoom()
     }
 
     /**
