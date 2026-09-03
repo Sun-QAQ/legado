@@ -392,6 +392,58 @@ object AgentTools {
         }
     )
 
+    private val readBookContentTool = AgentTool(
+        name = "read_book_content",
+        description = "按书名(可附作者，逗号分隔)或bookUrl定位书架上的书籍，读取从 startIndex(章节号，从0开始)起连续 count 章的正文。" +
+            "返回书籍信息、章节标题与正文全文。本地已缓存优先，网络书未缓存时自动联网抓取。count 默认1，最大20。maxChars 可选，用于限制返回正文长度",
+        parameters = objectParameters(
+            properties = JsonObject().apply {
+                add(
+                    "book",
+                    JsonObject().apply {
+                        addProperty("type", "string")
+                        addProperty("description", "书名；可附作者，格式如\"书名,作者\"；也可直接传 bookUrl")
+                    }
+                )
+                add(
+                    "startIndex",
+                    JsonObject().apply {
+                        addProperty("type", "integer")
+                        addProperty("description", "起始章节号，从0开始，0表示第一章")
+                    }
+                )
+                add(
+                    "count",
+                    JsonObject().apply {
+                        addProperty("type", "integer")
+                        addProperty("description", "连续读取的章节数，默认1，最大20")
+                    }
+                )
+                add(
+                    "maxChars",
+                    JsonObject().apply {
+                        addProperty("type", "integer")
+                        addProperty("description", "可选，返回正文的长度上限，0或省略表示不截断")
+                    }
+                )
+            },
+            required = arrayOf("book", "startIndex")
+        ),
+        execute = { arguments ->
+            val book = arguments.getStringValue("book")
+            if (book.isBlank()) {
+                "书名或书籍地址为空"
+            } else {
+                readBookContent(
+                    book,
+                    arguments.getIntValue("startIndex", 0),
+                    arguments.getIntValue("count", 1),
+                    arguments.getIntValue("maxChars", 0)
+                )
+            }
+        }
+    )
+
     private val allTools = listOf(
         searchBooksTool,
         addBookToShelfTool,
@@ -405,7 +457,8 @@ object AgentTools {
         saveBookSourceTool,
         readingReportTool,
         libraryStatsTool,
-        createAiBookTool
+        createAiBookTool,
+        readBookContentTool
     )
     private val toolMap = allTools.associateBy { it.name }
 

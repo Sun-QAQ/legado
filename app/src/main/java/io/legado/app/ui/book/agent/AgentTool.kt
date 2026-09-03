@@ -36,6 +36,13 @@ interface AgentToolContext {
         chapterCount: Int,
         wordsPerChapter: Int
     ): String
+
+    suspend fun readBookContent(
+        bookQuery: String,
+        startIndex: Int,
+        count: Int,
+        maxChars: Int
+    ): String
 }
 
 /**

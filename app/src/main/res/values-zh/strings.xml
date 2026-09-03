@@ -743,6 +743,12 @@
     <string name="agent_week">本周</string>
     <string name="agent_month">本月</string>
     <string name="agent_send">发送</string>
+    <string name="agent_step_read_book">正在读取书籍内容</string>
+    <string name="agent_step_read_book_done">已读取%1$d章，共%2$d字</string>
+    <string name="agent_book_no_chapters">书籍《%1$s》暂无章节目录</string>
+    <string name="agent_book_no_content">所选章节没有可读取的内容</string>
+    <string name="agent_book_read_failed">书籍内容读取失败：%1$s</string>
+    <string name="agent_book_content_missing">（本章无内容）</string>
     <string name="service_stop">服务已停止</string>
     <string name="service_start">正在启动服务\n具体信息请查看通知栏</string>
     <string name="default_path">默认路径</string>

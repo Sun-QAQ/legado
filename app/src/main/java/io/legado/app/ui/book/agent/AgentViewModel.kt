@@ -17,6 +17,7 @@ import io.legado.app.data.entities.BookSource
 import io.legado.app.data.entities.SearchBook
 import io.legado.app.exception.NoStackTraceException
 import io.legado.app.help.book.BookHelp
+import io.legado.app.help.book.isLocal
 import io.legado.app.help.book.removeType
 import io.legado.app.help.config.AppConfig
 import io.legado.app.help.http.addHeaders
@@ -42,6 +43,7 @@ import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flatMapMerge
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -1044,7 +1046,13 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
     private fun isToolFailure(name: String, result: String): Boolean {
         return (name == "create_book_source" && result.startsWith("书源创建失败")) ||
             (name == "save_book_source" && result.startsWith("书源保存失败")) ||
-            (name == "create_ai_book" && result.startsWith("小说创作失败"))
+            (name == "create_ai_book" && result.startsWith("小说创作失败")) ||
+            (name == "read_book_content" && (
+                result.startsWith(getString(R.string.agent_book_not_found)) ||
+                    result.startsWith(getString(R.string.agent_book_no_chapters, "")) ||
+                    result.startsWith(getString(R.string.agent_book_no_content)) ||
+                    result.startsWith(getString(R.string.agent_book_read_failed, ""))
+                ))
     }
 
     private fun summarizeToolArguments(name: String, args: JsonObject): String? {
@@ -1091,6 +1099,19 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
                         append("theme=$it")
                     }
             }.takeIf { it.isNotBlank() }
+            "read_book_content" -> buildString {
+                args.get("book")?.takeIf { !it.isJsonNull }?.asString?.let {
+                    append("book=$it")
+                }
+                args.get("startIndex")?.takeIf { !it.isJsonNull }?.asInt?.let {
+                    if (isNotEmpty()) append(", ")
+                    append("chapter=$it")
+                }
+                args.get("count")?.takeIf { !it.isJsonNull }?.asInt?.takeIf { it > 1 }?.let {
+                    if (isNotEmpty()) append(", ")
+                    append("count=$it")
+                }
+            }.takeIf { it.isNotBlank() }
             else -> null
         }
     }
@@ -1127,6 +1148,8 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
             "reading_report" -> getString(R.string.agent_step_reading_report_done)
             "library_stats" -> getString(R.string.agent_step_library_stats_done_short)
             "create_ai_book" -> result.lineSequence().firstOrNull()?.take(80)
+                ?: getString(R.string.agent_step_unknown_result)
+            "read_book_content" -> result.lineSequence().firstOrNull()?.take(60)
                 ?: getString(R.string.agent_step_unknown_result)
             else -> result.lineSequence().firstOrNull()?.take(60)
                 ?: getString(R.string.agent_step_unknown_result)
@@ -1241,6 +1264,147 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
         val title: String,
         val outline: String
     )
+
+    /**
+     * 按书籍与章节读取正文：定位书架上的书籍，读取指定章节区间的正文。
+     * 本地已缓存内容优先，网络书未缓存时自动联网抓取并缓存
+     */
+    override suspend fun readBookContent(
+        bookQuery: String,
+        startIndex: Int,
+        count: Int,
+        maxChars: Int
+    ): String {
+        if (bookQuery.isBlank()) {
+            return getString(R.string.agent_book_not_found)
+        }
+        val stepId = startStep(
+            getString(R.string.agent_step_read_book),
+            "$bookQuery · chapter=$startIndex count=$count"
+        )
+        return try {
+            val book = withContext(Dispatchers.IO) { resolveBook(bookQuery) }
+                ?: return failReadStep(stepId, getString(R.string.agent_book_not_found))
+            val chapters = withContext(Dispatchers.IO) { getBookChapters(book) }
+            if (chapters.isEmpty()) {
+                return failReadStep(stepId, getString(R.string.agent_book_no_chapters, book.name))
+            }
+            val from = startIndex.coerceAtLeast(0)
+            if (from >= chapters.size) {
+                return failReadStep(stepId, getString(R.string.agent_book_no_chapters, book.name))
+            }
+            val to = (from + count.coerceAtLeast(1) - 1).coerceAtMost(chapters.size - 1)
+            val selected = chapters.subList(from, to + 1).filterNot { it.isVolume }
+            if (selected.isEmpty()) {
+                return failReadStep(stepId, getString(R.string.agent_book_no_content))
+            }
+            val source = if (book.isLocal) null else appDb.bookSourceDao.getBookSource(book.origin)
+            val content = withContext(Dispatchers.IO) {
+                buildString {
+                    selected.forEachIndexed { i, chapter ->
+                        val next = chapters.getOrNull(from + i + 1)
+                        val text = getChapterText(book, chapter, next, source)
+                            ?: getString(R.string.agent_book_content_missing)
+                        append("【第${chapter.index + 1}章 ${chapter.title}】\n")
+                        append(text)
+                        if (i != selected.lastIndex) append("\n\n")
+                    }
+                }
+            }
+            val finalContent = if (maxChars > 0 && content.length > maxChars) {
+                content.take(maxChars) + "\n\n（内容过长，已截断至前${maxChars}字）"
+            } else {
+                content
+            }
+            finishStep(
+                stepId,
+                summary = getString(
+                    R.string.agent_step_read_book_done,
+                    selected.size,
+                    finalContent.length
+                )
+            )
+            "书名：《${book.name}》 作者：${book.author}，全书共${chapters.size}章，" +
+                "已返回第${from + 1}章到第${to + 1}章（共${selected.size}章）：\n\n$finalContent"
+        } catch (e: Exception) {
+            if (cancelRequested || e is CancellationException) {
+                throw e
+            }
+            failStep(stepId, e)
+            getString(
+                R.string.agent_book_read_failed,
+                e.localizedMessage ?: e.message ?: "未知错误"
+            )
+        }
+    }
+
+    private fun failReadStep(stepId: String, message: String): String {
+        failStep(stepId, NoStackTraceException(message))
+        return message
+    }
+
+    /**
+     * 定位书籍：bookUrl 精确匹配 → "书名,作者" 精确匹配 → 书名模糊搜索
+     */
+    private suspend fun resolveBook(query: String): Book? {
+        val trimmed = query.trim()
+        if (trimmed.isBlank()) return null
+        appDb.bookDao.getBook(trimmed)?.let { return it }
+        val (name, author) = if (trimmed.contains(",")) {
+            trimmed.substringBefore(",").trim() to trimmed.substringAfter(",").trim()
+        } else {
+            trimmed to ""
+        }
+        if (name.isBlank()) return null
+        if (author.isNotBlank()) {
+            appDb.bookDao.getBook(name, author)?.let { return it }
+        }
+        val candidates = appDb.bookDao.flowSearch(name).firstOrNull().orEmpty()
+        candidates.firstOrNull { it.name == name }?.let { return it }
+        return candidates.firstOrNull()
+    }
+
+    /**
+     * 获取章节列表：数据库优先；网络书无目录时用书源联网抓取并写入数据库
+     */
+    private suspend fun getBookChapters(book: Book): List<BookChapter> {
+        appDb.bookChapterDao.getChapterList(book.bookUrl)
+            .takeIf { it.isNotEmpty() }
+            ?.let { return it }
+        if (book.isLocal) return emptyList()
+        val source = appDb.bookSourceDao.getBookSource(book.origin)
+        if (source == null || book.tocUrl.isBlank()) return emptyList()
+        val toc = runCatching { WebBook.getChapterListAwait(source, book).getOrThrow() }
+            .onFailure { AppLog.put("读取《${book.name}》章节列表失败", it) }
+            .getOrDefault(emptyList())
+        if (toc.isNotEmpty()) {
+            appDb.bookChapterDao.insert(*toc.toTypedArray())
+        }
+        return toc
+    }
+
+    /**
+     * 读取单章正文：本地缓存优先；网络书未缓存时联网抓取并缓存
+     */
+    private suspend fun getChapterText(
+        book: Book,
+        chapter: BookChapter,
+        nextChapter: BookChapter?,
+        source: BookSource?
+    ): String? {
+        BookHelp.getContent(book, chapter)?.let { return it }
+        if (book.isLocal || source == null) return null
+        val nextUrl = nextChapter?.takeIf { !it.isVolume }?.getAbsoluteURL()
+        return runCatching {
+            WebBook.getContentAwait(
+                bookSource = source,
+                book = book,
+                bookChapter = chapter,
+                nextChapterUrl = nextUrl
+            )
+        }.getOrNull()
+            ?.takeIf { it.isNotBlank() && it != chapter.getAbsoluteURL() }
+    }
 
     private suspend fun generateBookMeta(
         supplier: io.legado.app.data.entities.AiSource,
@@ -2207,9 +2371,11 @@ val choices = chunk.get("choices")
                     "   ③ 用 update_book_source 依次写入 searchUrl+ruleSearch、ruleBookInfo、ruleToc、ruleContent；\n" +
                     "   ④ 每写完一类规则就用对应的 debug_source_search / debug_source_book_info / debug_source_toc / debug_source_content 调试，失败则根据返回的HTML修正后立即重试；\n" +
                     "   ⑤ 全部调试通过后调用 save_book_source 校验保存。\n" +
-                    "   ⑥ 编写书源时请自主连续调用工具完成全部流程，不要中途停下向用户解释，" +
-                    "必须在 save_book_source 成功后才结束；调试失败则根据返回的HTML修正规则后立即重试。\n\n" +
-                    "边界：\n" +
+"   ⑥ 编写书源时请自主连续调用工具完成全部流程，不要中途停下向用户解释，" +
+"必须在 save_book_source 成功后才结束；调试失败则根据返回的HTML修正规则后立即重试。\n" +
+"7. 用户询问书籍内容、要求总结或续写某本书的章节时，先调用 read_book_content 按书名和章节号读取正文，" +
+"基于真实内容回答，不要凭空编造。\n\n" +
+"边界：\n" +
                     "1. 不支持的请求应如实说明能力范围，不要编造答案。\n" +
                     "2. 回答保持简洁，默认使用中文。\n\n" +
                     "可用工具（具体参数与调用方式以工具定义为准）：\n"

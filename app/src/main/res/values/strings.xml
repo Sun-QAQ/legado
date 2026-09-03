@@ -750,6 +750,12 @@
     <string name="agent_step_add_shelf_done">Added: %1$s</string>
     <string name="agent_step_add_shelf_success">Added %1$s to the bookshelf</string>
     <string name="agent_add_shelf_failed">Failed to add to bookshelf: %1$s</string>
+    <string name="agent_step_read_book">Reading book content</string>
+    <string name="agent_step_read_book_done">Read %1$d chapter(s), %2$d chars</string>
+    <string name="agent_book_no_chapters">No chapter list for book: %1$s</string>
+    <string name="agent_book_no_content">No readable content in the selected chapters</string>
+    <string name="agent_book_read_failed">Failed to read book content: %1$s</string>
+    <string name="agent_book_content_missing">(no content)</string>
     <string name="service_stop">Service stopped</string>
     <string name="service_start">Starting service\nChecking notification bar for details</string>
     <string name="default_path">Default path</string>
