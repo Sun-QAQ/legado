@@ -44,6 +44,13 @@ class CoverImageView @JvmOverloads constructor(
     private var viewHeight: Float = 0f
     private val filletRadius: Float = 10.dpToPx().toFloat()
     private var defaultCover = true
+
+    /**
+     * 当前是否显示默认封面（无真实封面/加载失败）
+     */
+    val isDefaultCover: Boolean
+        get() = defaultCover
+
     var bitmapPath: String? = null
         private set
     private var name: String? = null

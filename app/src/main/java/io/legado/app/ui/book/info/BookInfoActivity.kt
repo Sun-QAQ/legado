@@ -428,7 +428,7 @@ class BookInfoActivity :
         ivCover.setOnLongClickListener {
             val book = viewModel.getBook()
             val path = book?.getDisplayCover()
-            if (book != null && path.isNullOrBlank()) {
+            if (ivCover.isDefaultCover) {
                 // 默认封面：把封面视图（含书名/作者文字）渲染成图片预览
                 showDialogFragment(PhotoDialog(ivCover.drawToBitmap()))
             } else if (path != null) {
