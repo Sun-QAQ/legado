@@ -17,13 +17,15 @@ $env:JAVA_HOME="G:\Software\Java\java17"; $env:GRADLE_USER_HOME="S:\Projects\And
 - 任务名带 flavor：`processAppDebugResources` / `compileAppDebugKotlin` / `assembleAppDebug`；`compileDebugKotlin` 是模糊匹配会失败。
 - 输出重定向到日志文件再检索，勿直接管道给 `Select-String`（子进程被 kill）。
 - 本机依赖缓存完整，`--offline` 可用（已多次验证）；新增/更换依赖时不要加。
-- 无 CI workflow、无单测套件；验证手段 = 编译通过 + 真机人工检查。
+- 仓库含 `.github/workflows/`（release/web/cronet/autoupdatefork 等，GitHub 端上游发布用，本地跑不了）；本地无单测套件，验证手段 = 编译通过 + 真机人工检查。
 
 ## 结构
 - 模块：`:app`（Android App，namespace `io.legado.app`）、`:modules:book`、`:modules:rhino`。minSdk 21 / targetSdk 36 / Java 17。
 - UI 基类在 `app/src/main/java/io/legado/app/base/`（`BaseActivity`/`BaseFragment`/`BaseDialogFragment`），viewBinding；`attachBaseContext` 统一走 `AppContextWrapper.wrap`（语言/字号配置）。
 - AI Agent：系统提示词在 `ui/book/agent/AgentViewModel.kt` 的 `SYSTEM_PROMPT`；书源创建用独立的 `SOURCE_CREATE_PROMPT`。工具注册表 `AgentTools.kt`（`AgentTools.overview()` 动态生成注入提示词，新增工具无需改 prompt）；`AgentTool.name`/`description` 同时驱动工具 schema 与提示词摘要，修改后两处同步生效。
 - 设计原型：仓库根 `ui-redesign-preview.html`（改 UI 前先参考）。
+- `modules/web/` 是**独立的 Vue3+Vite+Element Plus 网页端子项目（不属于 Gradle 构建，settings.gradle 未 include）**。构建需 node ≥20 / pnpm ≥9，`pnpm build` = type-check + build + sync。产物已提交在 `app/src/main/assets/web/vue/`；`scripts/sync.js` 只在 GitHub workflow 环境（`GITHUB_ENV`）自动拷贝 dist，本地改 web 后需手动把 `modules/web/dist` 拷到 `app/src/main/assets/web/vue` 再提交。
+- Cronet：jar 已提交在 `app/cronetlib/`。升 Cronet 需改 `gradle.properties` 的 `CronetVersion` 后跑 `gradlew app:downloadCronet`（下载新 jar/so 并重写 `assets/cronet.json`）。
 
 ## 主题系统（易踩坑）
 - 主题 `Theme.Material3.DayNight.NoActionBar`，主色紫罗兰 `#6C5CE7`（亮）/`#B9ACFF`（暗）。
