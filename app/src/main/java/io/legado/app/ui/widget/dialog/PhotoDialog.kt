@@ -1,6 +1,7 @@
 package io.legado.app.ui.widget.dialog
 
 import android.annotation.SuppressLint
+import android.graphics.Bitmap
 import android.os.Bundle
 import android.view.View
 import android.view.ViewGroup
@@ -31,6 +32,12 @@ class PhotoDialog() : BaseDialogFragment(R.layout.dialog_photo_view) {
         }
     }
 
+    constructor(bitmap: Bitmap) : this() {
+        arguments = Bundle().apply {
+            putParcelable("bitmap", bitmap)
+        }
+    }
+
     private val binding by viewBinding(DialogPhotoViewBinding::bind)
 
     override fun onStart() {
@@ -41,6 +48,10 @@ class PhotoDialog() : BaseDialogFragment(R.layout.dialog_photo_view) {
     @SuppressLint("CheckResult")
     override fun onFragmentCreated(view: View, savedInstanceState: Bundle?) {
         val arguments = arguments ?: return
+        arguments.getParcelable<Bitmap>("bitmap")?.let {
+            binding.photoView.setImageBitmap(it)
+            return
+        }
         val src = arguments.getString("src") ?: return
         ImageProvider.get(src)?.let {
             binding.photoView.setImageBitmap(it)

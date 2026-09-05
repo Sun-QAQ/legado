@@ -81,6 +81,16 @@ fun View.applyTint(
     TintHelper.setTintAuto(this, color, false, isDark)
 }
 
+/**
+ * 将视图当前渲染内容绘制到位图（含 onDraw 自定义绘制），用于把默认封面等视图内容转成图片预览。
+ */
+fun View.drawToBitmap(): Bitmap {
+    val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+    val canvas = Canvas(bitmap)
+    draw(canvas)
+    return bitmap
+}
+
 fun View.applyBackgroundTint(
     @ColorInt color: Int,
     isDark: Boolean = AppConfig.isNightTheme

@@ -66,6 +66,7 @@ import io.legado.app.utils.GSON
 import io.legado.app.utils.StartActivityContract
 import io.legado.app.utils.applyNavigationBarPadding
 import io.legado.app.utils.dpToPx
+import io.legado.app.utils.drawToBitmap
 import io.legado.app.utils.gone
 import io.legado.app.utils.longToastOnUi
 import io.legado.app.utils.openFileUri
@@ -425,7 +426,12 @@ class BookInfoActivity :
             }
         }
         ivCover.setOnLongClickListener {
-            viewModel.getBook()?.getDisplayCover()?.let { path ->
+            val book = viewModel.getBook()
+            val path = book?.getDisplayCover()
+            if (book != null && path.isNullOrBlank()) {
+                // 默认封面：把封面视图（含书名/作者文字）渲染成图片预览
+                showDialogFragment(PhotoDialog(ivCover.drawToBitmap()))
+            } else if (path != null) {
                 showDialogFragment(PhotoDialog(path))
             }
             true
