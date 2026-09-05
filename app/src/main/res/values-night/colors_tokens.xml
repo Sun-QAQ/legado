@@ -6,7 +6,6 @@
     -->
 
     <!-- Primary -->
-    <color name="md_theme_dark_primary">#B9ACFF</color>
     <color name="md_theme_dark_onPrimary">#352A6D</color>
     <color name="md_theme_dark_primaryContainer">#4A3B8F</color>
     <color name="md_theme_dark_onPrimaryContainer">#E6E0FF</color>
@@ -55,7 +54,4 @@
     <color name="color_surface">@color/md_theme_dark_surface</color>
     <color name="color_card">@color/md_theme_dark_surfaceContainer</color>
     <color name="color_surface_variant">@color/md_theme_dark_surfaceVariant</color>
-
-    <!-- 主色深色变体 -->
-    <color name="md_theme_dark_primary_dark">#9C8DF5</color>
 </resources>

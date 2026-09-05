@@ -1,6 +1,7 @@
 package io.legado.app.lib.theme.view
 
 import android.content.Context
+import android.content.res.ColorStateList
 import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
 import android.util.AttributeSet
@@ -21,7 +22,18 @@ class ThemeBottomNavigationVIew(context: Context, attrs: AttributeSet) :
     BottomNavigationView(context, attrs) {
 
     init {
-        // 悬浮胶囊背景由布局 drawable 提供，此处不再扁平填充
+        // 悬浮胶囊背景跟随主题设置的底栏背景色
+        backgroundTintList = ColorStateList.valueOf(context.bottomBackground)
+        // 选中胶囊指示器：由强调色派生的容器色调，选中图标仍用强调色保持对比
+        val accent = ThemeStore.accentColor(context)
+        val isLight = ColorUtils.isColorLight(context.bottomBackground)
+        val accentContainer = if (isLight) {
+            ColorUtils.blendColors(accent, Color.WHITE, 0.8f)
+        } else {
+            ColorUtils.blendColors(accent, Color.BLACK, 0.65f)
+        }
+        setItemActiveIndicatorColor(ColorStateList.valueOf(accentContainer))
+
         val textColor = context.getSecondaryTextColor(ColorUtils.isColorLight(context.bottomBackground))
         val colorStateList = Selector.colorBuild()
             .setDefaultColor(textColor)

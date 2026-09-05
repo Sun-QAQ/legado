@@ -1,6 +1,7 @@
 package io.legado.app.ui.book.audio
 
 import android.annotation.SuppressLint
+import android.content.res.ColorStateList
 import android.os.Build
 import android.os.Bundle
 import android.view.Gravity
@@ -24,6 +25,7 @@ import io.legado.app.help.book.isAudio
 import io.legado.app.help.book.removeType
 import io.legado.app.help.config.AppConfig
 import io.legado.app.lib.dialogs.alert
+import io.legado.app.lib.theme.ThemeStore
 import io.legado.app.model.AudioPlay
 import io.legado.app.model.BookCover
 import io.legado.app.service.AudioPlayService
@@ -85,6 +87,9 @@ class AudioPlayActivity :
 
     override fun onActivityCreated(savedInstanceState: Bundle?) {
         binding.titleBar.setBackgroundResource(R.color.transparent)
+        binding.ivCover.borderColor = ThemeStore.accentColor(this)
+        binding.fabPlayStop.backgroundTintList =
+            ColorStateList.valueOf(ThemeStore.accentColor(this))
         AudioPlay.register(this)
         viewModel.titleData.observe(this) {
             binding.titleBar.title = it

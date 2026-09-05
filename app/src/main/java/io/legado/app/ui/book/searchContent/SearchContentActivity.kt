@@ -2,6 +2,7 @@ package io.legado.app.ui.book.searchContent
 
 import android.annotation.SuppressLint
 import android.content.Intent
+import android.content.res.ColorStateList
 import android.os.Bundle
 import android.view.Menu
 import android.view.MenuItem
@@ -21,6 +22,8 @@ import io.legado.app.databinding.ActivitySearchContentBinding
 import io.legado.app.help.IntentData
 import io.legado.app.help.book.BookHelp
 import io.legado.app.help.book.isLocal
+import io.legado.app.lib.theme.ThemeStore
+import io.legado.app.lib.theme.accentColor
 import io.legado.app.lib.theme.bottomBackground
 import io.legado.app.lib.theme.getPrimaryTextColor
 import io.legado.app.lib.theme.primaryTextColor
@@ -147,6 +150,8 @@ class SearchContentActivity :
                 }
             }
         }
+        binding.fbStop.backgroundTintList =
+            ColorStateList.valueOf(ThemeStore.accentColor(this))
         binding.fbStop.setOnClickListener {
             searchJob?.cancel()
         }

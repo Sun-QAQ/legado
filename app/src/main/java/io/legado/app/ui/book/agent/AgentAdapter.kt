@@ -90,6 +90,8 @@ class AgentAdapter(
                 if (item.text.isBlank()) View.GONE else View.VISIBLE
             viewBinding.btnLoadMore.visibility =
                 if (item.canLoadMore) View.VISIBLE else View.GONE
+            viewBinding.btnLoadMore.backgroundTintList =
+                ColorStateList.valueOf(context.accentColor)
             viewBinding.btnLoadMore.setOnClickListener {
                 callBack.onLoadMore()
             }

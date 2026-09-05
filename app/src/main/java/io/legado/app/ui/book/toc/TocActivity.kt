@@ -19,6 +19,7 @@ import io.legado.app.help.book.isCreated
 import io.legado.app.help.book.isLocalTxt
 import io.legado.app.help.config.AppConfig
 import io.legado.app.lib.theme.accentColor
+import io.legado.app.utils.getCompatColor
 import io.legado.app.lib.theme.primaryTextColor
 import io.legado.app.model.ReadBook
 import io.legado.app.ui.about.AppLogDialog
@@ -57,6 +58,11 @@ class TocActivity : VMBaseActivity<ActivityChapterListBinding, TocViewModel>(),
         tabLayout = binding.titleBar.findViewById(R.id.tab_layout)
         tabLayout.isTabIndicatorFullWidth = false
         tabLayout.setSelectedTabIndicatorColor(accentColor)
+        tabLayout.setTabTextColors(
+            tabLayout.tabTextColors?.defaultColor
+                ?: tabLayout.context.getCompatColor(R.color.secondaryText),
+            accentColor
+        )
         binding.viewPager.adapter = TabFragmentPageAdapter()
         tabLayout.setupWithViewPager(binding.viewPager)
         tabLayout.tabGravity = TabLayout.GRAVITY_CENTER

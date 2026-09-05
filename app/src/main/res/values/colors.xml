@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="primary">@color/md_theme_light_primary</color>
-    <color name="primaryDark">@color/md_theme_light_primary_dark</color>
-    <color name="accent">@color/md_theme_light_primary</color>
+    <!-- 主色（亮色）：直接色值，主题属性使用；运行时可跟随 ThemeStore.primaryColor -->
+    <color name="primary">#6C5CE7</color>
+    <color name="primaryDark">#5A4BCF</color>
+    <color name="accent">#6C5CE7</color>
 
     <color name="disabled">@color/md_light_disabled</color>
 
@@ -22,7 +23,7 @@
 
     <color name="transparent">#00000000</color>
 
-    <!-- 默认封面背景（亮色） -->
+    <!-- 默认封面背景基础色（亮色，运行时叠加主题设置主色） -->
     <color name="default_cover_bg">#EDEDED</color>
 
     <color name="transparent10">#10000000</color>

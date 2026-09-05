@@ -27,6 +27,7 @@ import io.legado.app.help.config.ReadBookConfig
 import io.legado.app.lib.dialogs.alert
 import io.legado.app.lib.dialogs.selector
 import io.legado.app.lib.theme.ThemeStore
+import io.legado.app.utils.applyTint
 import io.legado.app.lib.theme.bottomBackground
 import io.legado.app.model.CacheBook
 import io.legado.app.model.ReadBook
@@ -292,6 +293,7 @@ abstract class BaseReadBookActivity :
         val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
         val alertBinding = DialogSimulatedReadingBinding.inflate(layoutInflater).apply {
             srEnabled.isChecked = book.getReadSimulating()
+            srEnabled.applyTint(ThemeStore.accentColor(root.context))
             editStart.setText(book.getStartChapter().toString())
             editNum.setText(book.getDailyChapters().toString())
             startDate.setText(book.getStartDate()?.format(dateFormatter))

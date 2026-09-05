@@ -6,8 +6,7 @@
       本文件为纯新增，不影响现有渲染；P1 阶段再让主题消费这些 token。
     -->
 
-    <!-- Primary：紫罗兰渐变主色 -->
-    <color name="md_theme_light_primary">#6C5CE7</color>
+    <!-- Primary：紫罗兰渐变主色（token 已移除，改为 colors.xml 直接色值 + 运行时 ThemeStore.primaryColor） -->
     <color name="md_theme_light_onPrimary">#FFFFFF</color>
     <color name="md_theme_light_primaryContainer">#E7E1FF</color>
     <color name="md_theme_light_onPrimaryContainer">#241A55</color>
@@ -56,7 +55,4 @@
     <color name="color_surface">@color/md_theme_light_surface</color>
     <color name="color_card">@color/md_theme_light_surfaceContainerLowest</color>
     <color name="color_surface_variant">@color/md_theme_light_surfaceVariant</color>
-
-    <!-- 主色深色变体（状态栏/primaryDark 使用） -->
-    <color name="md_theme_light_primary_dark">#5A4BCF</color>
 </resources>

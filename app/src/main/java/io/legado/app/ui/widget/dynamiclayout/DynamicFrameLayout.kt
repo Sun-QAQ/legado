@@ -1,6 +1,7 @@
 package io.legado.app.ui.widget.dynamiclayout
 
 import android.content.Context
+import android.content.res.ColorStateList
 import android.graphics.drawable.Drawable
 import android.util.AttributeSet
 import android.view.View
@@ -11,6 +12,7 @@ import androidx.appcompat.widget.AppCompatButton
 import androidx.appcompat.widget.AppCompatImageView
 import androidx.appcompat.widget.AppCompatTextView
 import io.legado.app.R
+import io.legado.app.lib.theme.accentColor
 
 @Suppress("unused")
 class DynamicFrameLayout @JvmOverloads constructor(
@@ -154,6 +156,7 @@ class DynamicFrameLayout @JvmOverloads constructor(
             errorImage = errorView?.findViewById(R.id.iv_error_image)
             errorTextView = errorView?.findViewById(R.id.tv_error_message)
             actionBtn = errorView?.findViewById(R.id.btn_error_retry)
+            actionBtn?.backgroundTintList = ColorStateList.valueOf(context.accentColor)
 
             actionBtn?.setOnClickListener {
                 when (it.tag) {
