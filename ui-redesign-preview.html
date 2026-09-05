@@ -86,7 +86,7 @@
 
   /* ============ 通用 ============ */
   .screen{overflow:hidden}
-  .screen > .page{position:absolute;inset:0;overflow-y:auto;scrollbar-width:none}
+  .screen > .page{position:absolute;inset:0;overflow-y:auto;scrollbar-width:none;opacity:1;transition:opacity .28s ease,transform .28s ease}
   .screen > .page::-webkit-scrollbar{display:none}
   .pad{padding:0 18px}
   .icon-btn{
@@ -730,12 +730,12 @@
               <div style="display:flex;gap:10px"><div class="icon-btn">🔖</div><div class="icon-btn">⋮</div></div>
             </div>
             <div class="detail-body">
-              <div class="cover g2"><div class="c-title">三体</div><div class="c-sub">刘慈欣</div></div>
+              <div class="cover g2" id="detailCover"><div class="c-title">三体</div><div class="c-sub">刘慈欣</div></div>
               <div class="detail-info">
-                <h1>三体</h1>
-                <div class="author">刘慈欣 · 科幻世界</div>
-                <div class="tags"><span class="tag">科幻</span><span class="tag">硬核</span><span class="tag">雨果奖</span></div>
-                <div class="rate">⭐ <b>9.4</b> · 92.1万人在读 · 127万字</div>
+                <h1 id="detailTitle">三体</h1>
+                <div class="author" id="detailAuthor">刘慈欣 · 科幻世界</div>
+                <div class="tags" id="detailTags"><span class="tag">科幻</span><span class="tag">硬核</span><span class="tag">雨果奖</span></div>
+                <div class="rate" id="detailRate">⭐ <b>9.4</b> · 92.1万人在读 · 127万字</div>
               </div>
             </div>
             <div class="detail-actions">
@@ -746,14 +746,11 @@
           <div class="pad">
             <div class="detail-section">
               <h4>简介</h4>
-              <p class="intro">文化大革命如火如荼进行的同时，军方探寻外星文明的绝秘计划"红岸工程"取得了突破性进展。但在按下发射键的那一刻，历经劫难的叶文洁没有意识到，她彻底改变了人类的命运……</p>
+              <p class="intro" id="detailIntro">文化大革命如火如荼进行的同时，军方探寻外星文明的绝秘计划"红岸工程"取得了突破性进展。但在按下发射键的那一刻，历经劫难的叶文洁没有意识到，她彻底改变了人类的命运……</p>
             </div>
             <div class="detail-section">
               <h4>目录 <span style="font-size:11px;color:var(--text-3);font-weight:400">共 62 章 · 点击阅读</span></h4>
-              <div class="chapter-item"><span>第一章 科学边界</span><span class="cur">已读</span></div>
-              <div class="chapter-item"><span>第二章 台球</span><span class="cur">已读</span></div>
-              <div class="chapter-item"><span>第三章 射手和农场主</span><span>▸ 继续阅读</span></div>
-              <div class="chapter-item"><span>第四章 三体、周文王和长夜</span><span style="color:var(--text-3)">12:45</span></div>
+              <div id="detailToc"></div>
             </div>
             <div style="height:110px"></div>
           </div>
@@ -763,20 +760,20 @@
         <div class="page" id="page-reader" style="transform:translateY(100%);display:none">
           <div class="reader-tools" id="readerTools">
             <div class="icon-btn" onclick="goBack()">←</div>
-            <b style="font-size:14px">三体 · 第三章</b>
+            <b style="font-size:14px" id="readerTitle">三体 · 第一章</b>
             <div class="icon-btn">⋮</div>
           </div>
           <div class="reader" onclick="toggleReaderTools()">
-            <div class="chap-title serif">第三章　射手和农场主</div>
-            <p class="para serif">"我们把一个疯子的想法放到一边，继续讲物理学。"汪淼说，"我请你来是因为，你是我认识的人中，唯一能证实一件事的人。"</p>
-            <p class="para serif">"什么事？"</p>
-            <p class="para serif">"生命是一件很脆弱的事情。"史强端起茶，"但总有人相信，在这片黑暗的森林里，规则是存在的。"</p>
-            <p class="para serif">汪淼沉默了片刻，窗外的霓虹在雾里晕成一片光斑。他想起了那场诡异的实验——台球桌上，两个球每次撞击后的轨迹都不相同。球桌在变，空间在变，规则也在变。</p>
-            <p class="para serif">"如果规则可以被随意改变，"他慢慢说，"那科学又算什么呢？"</p>
-            <p class="para serif">史强咧嘴笑了："所以我说，别太相信你那双眼睛。"</p>
+            <div class="chap-title serif" id="chapTitle">第一章　开端</div>
+            <p class="para serif">天色渐暗，风从长街尽头卷来，把路边的落叶吹得沙沙作响。他站在街角，望着远处亮起的第一盏灯，忽然有些恍惚。</p>
+            <p class="para serif">很多年后，他依然记得这个傍晚。所有的故事，似乎都是从这一刻开始的——在那个无人注意的角落，命运的齿轮悄然转动了一下。</p>
+            <p class="para serif">"你真的决定了吗？"身后传来一个熟悉的声音。</p>
+            <p class="para serif">他没有回头，只是点了点头，目光仍停留在那盏昏黄的灯上。有些事情一旦开始，就再没有回头的余地。</p>
+            <p class="para serif">远处的钟声敲响了，一下，又一下，像某种无声的催促。他深吸一口气，迈出了第一步。</p>
+            <p class="para serif">夜色漫上来时，整条街都安静了，只有他的脚步声，一下一下，敲在空旷的石板路上。</p>
           </div>
           <div class="reader-controls" id="readerControls">
-            <div class="progress-top"><span>第三章 射手和农场主</span><span>31%</span></div>
+            <div class="progress-top"><span id="progressChapter">第一章 开端</span><span>31%</span></div>
             <div class="slider"><i style="width:31%"></i></div>
             <div class="tools-row">
               <button onclick="openToc()">📖<span>目录</span></button>
@@ -802,17 +799,17 @@
               <div class="lbl">字号 <span style="float:right;color:var(--primary)" id="fontSizeLbl">18</span></div>
               <div style="display:flex;align-items:center;gap:14px">
                 <button class="opt fb" onclick="setFontSize(-1)">A−</button>
-                <div class="slider" style="flex:1"><i style="width:42%"></i></div>
+                <div class="slider" style="flex:1"><i id="fontSizeSlider" style="width:33%"></i></div>
                 <button class="opt fb" onclick="setFontSize(1)">A＋</button>
               </div>
             </div>
             <div class="setting-row">
               <div class="lbl">阅读背景</div>
               <div class="opt-row">
-                <button class="opt active" onclick="pickBg(this,'#F4F2EE')">☀️ 白昼</button>
-                <button class="opt" onclick="pickBg(this,'#EFE6D5')">📜 羊皮纸</button>
-                <button class="opt" onclick="pickBg(this,'#25302B')">🌙 深绿</button>
-                <button class="opt" onclick="pickBg(this,'#16151D')">🕶 夜间</button>
+                <button class="opt active" data-bg="#F4F2EE" onclick="pickBg(this,'#F4F2EE')">☀️ 白昼</button>
+                <button class="opt" data-bg="#EFE6D5" onclick="pickBg(this,'#EFE6D5')">📜 羊皮纸</button>
+                <button class="opt" data-bg="#25302B" onclick="pickBg(this,'#25302B')">🌙 深绿</button>
+                <button class="opt" data-bg="#16151D" onclick="pickBg(this,'#16151D')">🕶 夜间</button>
               </div>
             </div>
             <div class="setting-row" style="margin-bottom:6px">
@@ -827,20 +824,10 @@
 
           <div class="drawer" id="tocDrawer">
             <div class="drawer-head">
-              <b>目录 · 三体</b>
+              <b id="tocTitle">目录</b>
               <div class="icon-btn" onclick="closeSheets()">✕</div>
             </div>
-            <div class="drawer-list">
-              <div class="d-item"><span>第一章　科学边界</span><span class="len">已读</span></div>
-              <div class="d-item"><span>第二章　台球</span><span class="len">已读</span></div>
-              <div class="d-item cur"><span>第三章　射手和农场主</span><span class="len">当前</span></div>
-              <div class="d-item"><span>第四章　三体、周文王和长夜</span><span class="len">28:44</span></div>
-              <div class="d-item"><span>第五章　三体、牛顿、冯·诺依曼</span><span class="len">31:12</span></div>
-              <div class="d-item"><span>第六章　宇宙闪烁之一</span><span class="len">26:08</span></div>
-              <div class="d-item"><span>第七章　宇宙闪烁之二</span><span class="len">33:50</span></div>
-              <div class="d-item"><span>第八章　三体、远征</span><span class="len">29:15</span></div>
-              <div class="d-item"><span>第九章　面壁计划</span><span class="len">35:47</span></div>
-            </div>
+            <div class="drawer-list" id="tocList"></div>
           </div>
         </div>
 
@@ -932,44 +919,109 @@
   let current = 'bookshelf';
   let stack = [];
 
+  const TABS = ['bookshelf','explore','rss','ai','my'];
+  function isTab(name){ return TABS.includes(name); }
+
+  const BOOKS = [
+    {t:'三体',a:'刘慈欣',tags:['科幻','硬核','雨果奖'],rate:'9.4',p:'92.1万',w:'127',g:'g2',intro:'文化大革命如火如荼进行的同时，军方探寻外星文明的绝密计划"红岸工程"取得突破性进展。按下发射键的那一刻，叶文洁彻底改变了人类的命运……'},
+    {t:'白夜行',a:'东野圭吾',tags:['悬疑','推理'],rate:'9.1',p:'68.5万',w:'48',g:'g6',intro:'1973年，大阪一栋废弃建筑内发现一具男尸。此后十九年，嫌疑人之女雪穗与被害者之子亮司走上了截然不同的人生道路，而两人身边接连有人离奇死去……'},
+    {t:'雪中悍刀行',a:'烽火戏诸侯',tags:['武侠','玄幻'],rate:'8.7',p:'45.2万',w:'440',g:'g9',intro:'庙堂之上，江湖之外。纨绔世子徐凤年白衣仗剑，从北凉到江湖，一场关于家国与江湖的恩怨情仇就此展开……'},
+    {t:'明朝那些事儿',a:'当年明月',tags:['历史','通俗'],rate:'9.0',p:'120万',w:'96',g:'g4',intro:'从朱元璋到崇祯，三百年大明王朝的兴衰荣辱，在一个个鲜活人物的故事里娓娓道来。历史也可以很好看。'},
+    {t:'活着',a:'余华',tags:['文学','现实'],rate:'9.3',p:'88.7万',w:'12',g:'g3',intro:'地主少爷福贵嗜赌成性，家道中落。此后的一生，亲人一个个离他而去，只剩一头老牛与他相依为命。活着本身，就是意义。'},
+    {t:'诡秘之主',a:'爱潜水的乌贼',tags:['奇幻','西幻'],rate:'9.0',p:'54.3万',w:'389',g:'g7',intro:'蒸汽与机械的时代，愚者从迷雾中醒来。他掌握着不属于这个时代的知识，在诡秘而危险的世界里步步为营。'},
+    {t:'解忧杂货店',a:'东野圭吾',tags:['治愈','奇幻'],rate:'8.6',p:'42.1万',w:'28',g:'g5',intro:'僻静的街道上有一家杂货店，只要写下烦恼投进卷帘门的投信口，第二天就会在店后的牛奶箱里得到回答……'},
+    {t:'平凡的世界',a:'路遥',tags:['文学','现实'],rate:'9.2',p:'65.8万',w:'104',g:'g10',intro:'在黄土高原的双水村，孙少安、孙少平兄弟在时代的浪潮中挣扎、奋斗。平凡的世界里，是无数普通人不平凡的命运。'},
+    {t:'盗墓笔记',a:'南派三叔',tags:['悬疑','探险'],rate:'8.3',p:'73.6万',w:'120',g:'g8',intro:'五十年前，一群长沙土夫子挖到一部战国帛书。半个世纪后，吴邪跟随三叔踏上探险之旅，一段尘封的往事就此揭开。'},
+    {t:'围城',a:'钱钟书',tags:['文学','讽刺'],rate:'9.1',p:'38.9万',w:'25',g:'g1',intro:'留学归来的方鸿渐，在爱情、婚姻与事业的围城里进进出出。城外的人想进去，城里的人想出来。'},
+    {t:'百年孤独',a:'加西亚·马尔克斯',tags:['文学','魔幻'],rate:'9.2',p:'56.4万',w:'32',g:'g2',intro:'布恩迪亚家族七代人的传奇故事，以及加勒比海沿岸小镇马孔多的百年兴衰。孤独，是家族共同的宿命。'},
+    {t:'斗破苍穹',a:'天蚕土豆',tags:['玄幻','热血'],rate:'8.0',p:'98.5万',w:'502',g:'g6',intro:'这里是属于斗气的世界。天才少年萧炎在丧失斗气后，凭借一枚戒指中的灵魂，一步步踏上巅峰之路。'}
+  ];
+  const CHAPTERS = ['开端','相遇','转折','暗流','风暴','裂痕','抉择','真相','远征','归来','黎明','终章'];
+  const CN = ['一','二','三','四','五','六','七','八','九','十','十一','十二'];
+  let currentBook = BOOKS[0];
+
   function showPage(name){
-    for(const k in pages) pages[k].style.display = 'none';
+    for(const k in pages){
+      if(k === name) continue;
+      pages[k].style.display = 'none';
+    }
     const p = pages[name];
     p.style.display = 'block';
     p.scrollTop = 0;
+    p.style.opacity = '0';
+    p.style.transform = 'translateY(10px)';
+    void p.offsetHeight;
+    p.style.opacity = '1';
     p.style.transform = 'translateY(0)';
-  }
-  function isTab(name){ return ['bookshelf','explore','rss','ai','my'].includes(name); }
-
-  function switchTab(name){
-    current = name;
-    showPage(name);
-    navbar.classList.remove('hidden');
-    fab.style.display = name === 'ai' ? 'none' : 'flex';
+    const tab = isTab(name);
+    navbar.classList.toggle('hidden', !tab);
+    fab.style.display = (tab && name !== 'ai') ? 'flex' : 'none';
     document.querySelectorAll('.nav-item').forEach(n => {
       n.classList.toggle('active', n.dataset.tab === name);
+    });
+    current = name;
+  }
+
+  function switchTab(name){
+    stack = [];
+    showPage(name);
+  }
+
+  function updateDetail(i){
+    currentBook = BOOKS[i] || BOOKS[0];
+    const b = currentBook;
+    const cover = document.getElementById('detailCover');
+    cover.className = 'cover ' + b.g;
+    cover.innerHTML = '<div class="c-title">'+b.t+'</div><div class="c-sub">'+b.a+'</div>';
+    document.getElementById('detailTitle').textContent = b.t;
+    document.getElementById('detailAuthor').textContent = b.a + ' · 出版';
+    document.getElementById('detailTags').innerHTML = b.tags.map(t => '<span class="tag">'+t+'</span>').join('');
+    document.getElementById('detailRate').innerHTML = '⭐ <b>'+b.rate+'</b> · '+b.p+'人在读 · '+b.w+'万字';
+    document.getElementById('detailIntro').textContent = b.intro;
+    const toc = document.getElementById('detailToc');
+    toc.innerHTML = '';
+    CHAPTERS.forEach((c, idx) => {
+      const div = document.createElement('div');
+      div.className = 'chapter-item';
+      const right = idx === 0 || idx === 1 ? '<span class="cur">已读</span>'
+                  : idx === 2 ? '<span>▸ 继续阅读</span>'
+                  : '<span style="color:var(--text-3)">—</span>';
+      div.innerHTML = '<span>第'+CN[idx]+'章 '+c+'</span>'+right;
+      toc.appendChild(div);
+    });
+  }
+
+  function syncReaderBook(){
+    const b = currentBook;
+    document.getElementById('readerTitle').textContent = b.t + ' · 第一章';
+    document.getElementById('chapTitle').textContent = '第一章　' + CHAPTERS[0];
+    document.getElementById('progressChapter').textContent = '第一章 ' + CHAPTERS[0];
+    document.getElementById('tocTitle').textContent = '目录 · ' + b.t;
+    const list = document.getElementById('tocList');
+    list.innerHTML = '';
+    CHAPTERS.forEach((c, idx) => {
+      const d = document.createElement('div');
+      d.className = 'd-item' + (idx === 0 ? ' cur' : '');
+      const len = idx === 0 ? '当前' : (idx < 2 ? '已读' : '—');
+      d.innerHTML = '<span>第'+CN[idx]+'章　'+c+'</span><span class="len">'+len+'</span>';
+      list.appendChild(d);
     });
   }
 
   function openDetail(i){
     stack.push(current);
-    current = 'detail';
+    updateDetail(i);
     showPage('detail');
-    navbar.classList.add('hidden');
-    fab.style.display = 'none';
   }
   function openReader(){
     stack.push(current);
-    current = 'reader';
+    syncReaderBook();
     showPage('reader');
-    navbar.classList.add('hidden');
-    fab.style.display = 'none';
     readerTools.classList.remove('hidden');
     readerControls.classList.remove('hidden');
   }
   function goBack(){
-    const prev = stack.pop() || 'bookshelf';
-    switchTab(isTab(prev) ? prev : 'bookshelf');
+    showPage(stack.length ? stack.pop() : 'bookshelf');
   }
 
   // 阅读器工具栏
@@ -1017,9 +1069,14 @@
     const cur = parseFloat(getComputedStyle(paras[0]).fontSize);
     const next = Math.max(14, Math.min(26, cur + dir));
     paras.forEach(p => p.style.fontSize = next + 'px');
+    const ct = document.getElementById('chapTitle');
+    if(ct) ct.style.fontSize = (next + 6) + 'px';
     document.getElementById('fontSizeLbl').textContent = next;
+    const fs = document.getElementById('fontSizeSlider');
+    if(fs) fs.style.width = ((next - 14) / 12 * 100) + '%';
   }
   function pickBg(el, color){
+    if(!el) el = document.querySelector('#readerSheet .opt[data-bg="'+color+'"]');
     if(el){
       document.querySelectorAll('#readerSheet .opt').forEach(x => x.classList.remove('active'));
       el.classList.add('active');
@@ -1045,7 +1102,10 @@
   // 键盘快捷键
   document.addEventListener('keydown', e => {
     if((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k'){ e.preventDefault(); openSearch(); }
-    if(e.key === 'Escape'){ closeSearch(); }
+    if(e.key === 'Escape'){
+      if(overlay.classList.contains('open')) closeSearch();
+      else if(readerSheet.classList.contains('open') || tocDrawer.classList.contains('open')) closeSheets();
+    }
   });
 </script>
 </body>
