@@ -125,7 +125,7 @@
                         android:id="@+id/tv_reading_time"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:textColor="@color/primary"
+                        android:textColor="@color/accent"
                         android:textSize="20sp"
                         android:textStyle="bold"
                         tools:text="1284" />
@@ -157,7 +157,7 @@
                         android:id="@+id/tv_finished"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:textColor="@color/primary"
+                        android:textColor="@color/accent"
                         android:textSize="20sp"
                         android:textStyle="bold"
                         tools:text="36" />
@@ -189,7 +189,7 @@
                         android:id="@+id/tv_shelf"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:textColor="@color/primary"
+                        android:textColor="@color/accent"
                         android:textSize="20sp"
                         android:textStyle="bold"
                         tools:text="92" />
@@ -232,7 +232,7 @@
                         android:contentDescription="@string/book_source_manage"
                         android:padding="8dp"
                         android:src="@drawable/ic_cfg_source"
-                        app:tint="@color/primary" />
+                        app:tint="@color/accent" />
 
                     <TextView
                         android:layout_width="0dp"
@@ -458,7 +458,7 @@
                         android:contentDescription="@string/read_record"
                         android:padding="8dp"
                         android:src="@drawable/ic_history"
-                        app:tint="@color/primary" />
+                        app:tint="@color/accent" />
 
                     <TextView
                         android:layout_width="0dp"
