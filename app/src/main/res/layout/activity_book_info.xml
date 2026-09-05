@@ -4,6 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="@color/background"
     android:orientation="vertical">
 
     <ImageView
@@ -12,13 +13,13 @@
         android:layout_height="match_parent"
         android:contentDescription="@string/bg_image"
         android:scaleType="centerCrop"
+        android:visibility="gone"
         app:layout_constraintTop_toTopOf="parent" />
 
     <LinearLayout
         android:id="@+id/vw_bg"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="#50000000"
         android:orientation="vertical">
 
         <io.legado.app.ui.widget.TitleBar
@@ -26,7 +27,6 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             app:layout_constraintTop_toTopOf="parent"
-            app:themeMode="dark"
             app:title="@string/book_info" />
 
         <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
@@ -49,67 +49,45 @@
 
                 <LinearLayout
                     android:layout_width="match_parent"
-                    android:layout_height="0dp"
+                    android:layout_height="wrap_content"
                     android:orientation="vertical">
 
-                    <RelativeLayout
+                    <!-- ============ 横排 Hero（浅色） ============ -->
+                    <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp">
-
-                        <io.legado.app.ui.widget.image.ArcView
-                            android:id="@+id/arc_view"
-                            android:layout_width="match_parent"
-                            android:layout_height="78dp"
-                            android:layout_marginTop="90dp"
-                            app:arcDirectionTop="true"
-                            app:arcHeight="36dp"
-                            app:bgColor="@color/background" />
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:paddingLeft="16dp"
+                        android:paddingTop="14dp"
+                        android:paddingRight="16dp">
 
                         <androidx.cardview.widget.CardView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_centerHorizontal="true"
-                            android:layout_margin="3dp"
-                            app:cardCornerRadius="5dp"
-                            app:cardElevation="8dp">
+                            app:cardCornerRadius="14dp"
+                            app:cardElevation="6dp">
 
                             <io.legado.app.ui.widget.image.CoverImageView
                                 android:id="@+id/iv_cover"
-                                android:layout_width="110dp"
-                                android:layout_height="160dp"
+                                android:layout_width="116dp"
+                                android:layout_height="166dp"
                                 android:contentDescription="@string/img_cover"
                                 android:scaleType="centerCrop"
                                 android:src="@drawable/image_cover_default" />
 
                         </androidx.cardview.widget.CardView>
 
-                    </RelativeLayout>
-
-                    <LinearLayout
-                        android:id="@+id/ll_info"
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:background="@color/background"
-                        android:orientation="vertical"
-                        android:paddingLeft="8dp"
-                        android:paddingRight="8dp"
-                        android:paddingBottom="8dp">
-
                         <LinearLayout
-                            android:layout_width="match_parent"
+                            android:layout_width="0dp"
                             android:layout_height="wrap_content"
-                            android:orientation="vertical"
-                            android:paddingLeft="10dp"
-                            android:paddingTop="8dp"
-                            android:paddingRight="10dp"
-                            android:paddingBottom="3dp">
+                            android:layout_marginStart="18dp"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
 
                             <HorizontalScrollView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:layout_gravity="center"
-                                android:layout_marginBottom="6dp"
                                 android:scrollbars="none">
 
                                 <TextView
@@ -117,18 +95,18 @@
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
                                     android:includeFontPadding="false"
-                                    android:singleLine="true"
+                                    android:maxLines="2"
                                     android:text="@string/book_name"
                                     android:textColor="@color/primaryText"
-                                    android:textSize="18sp"
+                                    android:textSize="22sp"
+                                    android:textStyle="bold"
                                     tools:ignore="RtlHardcoded" />
                             </HorizontalScrollView>
 
                             <HorizontalScrollView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:layout_gravity="center"
-                                android:layout_marginBottom="6dp"
+                                android:layout_marginTop="6dp"
                                 android:scrollbars="none">
 
                                 <io.legado.app.ui.widget.LabelsBar
@@ -138,30 +116,18 @@
                                     android:visibility="gone" />
                             </HorizontalScrollView>
 
-                        </LinearLayout>
-
-                        <LinearLayout
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:orientation="vertical"
-                            android:paddingLeft="8dp"
-                            android:paddingRight="8dp"
-                            android:paddingBottom="8dp">
-
                             <LinearLayout
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
+                                android:layout_marginTop="10dp"
                                 android:gravity="center_vertical"
                                 android:orientation="horizontal"
-                                android:paddingTop="3dp"
-                                android:paddingBottom="3dp"
                                 tools:ignore="UseCompoundDrawables">
 
                                 <ImageView
-                                    android:layout_width="18sp"
-                                    android:layout_height="18sp"
+                                    android:layout_width="16dp"
+                                    android:layout_height="16dp"
                                     android:contentDescription="@string/author"
-                                    android:paddingRight="2dp"
                                     android:src="@drawable/ic_author"
                                     app:tint="@color/tv_text_summary"
                                     tools:ignore="RtlHardcoded,RtlSymmetry" />
@@ -170,14 +136,14 @@
                                     android:id="@+id/tv_author"
                                     android:layout_width="0dp"
                                     android:layout_height="wrap_content"
+                                    android:layout_marginStart="4dp"
                                     android:layout_weight="1"
                                     android:ellipsize="end"
                                     android:includeFontPadding="false"
-                                    android:paddingRight="6dp"
                                     android:singleLine="true"
                                     android:text="@string/author"
                                     android:textColor="@color/tv_text_summary"
-                                    android:textSize="13sp"
+                                    android:textSize="15sp"
                                     tools:ignore="NestedWeights,RtlHardcoded,RtlSymmetry" />
 
                             </LinearLayout>
@@ -185,17 +151,15 @@
                             <LinearLayout
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
+                                android:layout_marginTop="6dp"
                                 android:gravity="center_vertical"
-                                android:orientation="horizontal"
-                                android:paddingTop="3dp"
-                                android:paddingBottom="3dp">
+                                android:orientation="horizontal">
 
                                 <ImageView
                                     android:id="@+id/iv_web"
-                                    android:layout_width="18sp"
-                                    android:layout_height="18sp"
+                                    android:layout_width="16dp"
+                                    android:layout_height="16dp"
                                     android:contentDescription="@string/origin_format"
-                                    android:paddingRight="2dp"
                                     android:src="@drawable/ic_web_outline"
                                     app:tint="@color/tv_text_summary"
                                     tools:ignore="RtlHardcoded,RtlSymmetry" />
@@ -204,13 +168,13 @@
                                     android:id="@+id/tv_origin"
                                     android:layout_width="0dp"
                                     android:layout_height="wrap_content"
+                                    android:layout_marginStart="4dp"
                                     android:layout_weight="1"
                                     android:ellipsize="end"
                                     android:includeFontPadding="false"
-                                    android:paddingRight="6dp"
                                     android:singleLine="true"
                                     android:textColor="@color/tv_text_summary"
-                                    android:textSize="13sp"
+                                    android:textSize="15sp"
                                     tools:ignore="NestedWeights,RtlHardcoded,RtlSymmetry"
                                     tools:text="@string/origin_format" />
 
@@ -219,27 +183,98 @@
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
                                     android:layout_marginStart="8dp"
-                                    android:paddingLeft="5dp"
-                                    android:paddingRight="5dp"
+                                    android:paddingLeft="10dp"
+                                    android:paddingRight="10dp"
+                                    android:paddingTop="4dp"
+                                    android:paddingBottom="4dp"
                                     android:text="@string/change_origin"
-                                    android:textSize="13sp"
-                                    app:radius="2dp" />
+                                    android:textSize="12sp"
+                                    app:radius="10dp" />
 
                             </LinearLayout>
+
+                        </LinearLayout>
+
+                    </LinearLayout>
+
+                    <!-- ============ 操作按钮（卡片上方） ============ -->
+                    <LinearLayout
+                        android:id="@+id/fl_action"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:paddingLeft="16dp"
+                        android:paddingTop="16dp"
+                        android:paddingRight="16dp"
+                        android:paddingBottom="4dp">
+
+                        <TextView
+                            android:id="@+id/tv_shelf"
+                            android:layout_width="0dp"
+                            android:layout_height="48dp"
+                            android:layout_weight="0.85"
+                            android:layout_marginEnd="12dp"
+                            android:background="@drawable/bg_btn_shelf"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:gravity="center"
+                            android:includeFontPadding="false"
+                            android:text="@string/add_to_bookshelf"
+                            android:textColor="@color/primaryText"
+                            android:textSize="14sp"
+                            android:textStyle="bold" />
+
+                        <io.legado.app.ui.widget.text.AccentBgTextView
+                            android:id="@+id/tv_read"
+                            android:layout_width="0dp"
+                            android:layout_height="48dp"
+                            android:layout_weight="1.6"
+                            android:gravity="center"
+                            android:includeFontPadding="false"
+                            android:text="@string/book_info_read_play"
+                            android:textSize="16sp"
+                            android:textStyle="bold"
+                            app:radius="24dp" />
+
+                    </LinearLayout>
+
+                    <!-- ============ 内容区卡片 ============ -->
+                    <LinearLayout
+                        android:id="@+id/ll_info"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:background="@color/background"
+                        android:orientation="vertical"
+                        android:paddingLeft="16dp"
+                        android:paddingRight="16dp"
+                        android:paddingTop="13dp"
+                        android:paddingBottom="12dp">
+
+                        <!-- 信息卡片 -->
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:background="@drawable/bg_card_rounded"
+                            android:orientation="vertical"
+                            android:paddingLeft="14dp"
+                            android:paddingTop="6dp"
+                            android:paddingRight="14dp"
+                            android:paddingBottom="6dp">
 
                             <LinearLayout
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
                                 android:gravity="center_vertical"
                                 android:orientation="horizontal"
-                                android:paddingTop="3dp"
-                                android:paddingBottom="3dp"
+                                android:paddingTop="13dp"
+                                android:paddingBottom="13dp"
                                 tools:ignore="UseCompoundDrawables">
 
                                 <ImageView
                                     android:id="@+id/ic_book_last"
-                                    android:layout_width="18sp"
-                                    android:layout_height="18sp"
+                                    android:layout_width="18dp"
+                                    android:layout_height="18dp"
                                     android:contentDescription="@string/read_dur_progress"
                                     android:paddingRight="2dp"
                                     android:src="@drawable/ic_book_last"
@@ -256,23 +291,28 @@
                                     android:paddingRight="6dp"
                                     android:singleLine="true"
                                     android:textColor="@color/tv_text_summary"
-                                    android:textSize="13sp"
+                                    android:textSize="17sp"
                                     tools:ignore="NestedWeights,RtlHardcoded,RtlSymmetry"
                                     tools:text="@string/read_dur_progress" />
 
                             </LinearLayout>
+
+                            <View
+                                android:layout_width="match_parent"
+                                android:layout_height="1dp"
+                                android:background="@color/bg_divider_line" />
 
                             <LinearLayout
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
                                 android:gravity="center_vertical"
                                 android:orientation="horizontal"
-                                android:paddingTop="3dp"
-                                android:paddingBottom="3dp">
+                                android:paddingTop="13dp"
+                                android:paddingBottom="13dp">
 
                                 <ImageView
-                                    android:layout_width="18sp"
-                                    android:layout_height="18sp"
+                                    android:layout_width="18dp"
+                                    android:layout_height="18dp"
                                     android:contentDescription="@string/read_dur_progress"
                                     android:paddingRight="2dp"
                                     android:src="@drawable/ic_groups"
@@ -289,7 +329,7 @@
                                     android:paddingRight="6dp"
                                     android:singleLine="true"
                                     android:textColor="@color/tv_text_summary"
-                                    android:textSize="13sp"
+                                    android:textSize="17sp"
                                     tools:ignore="NestedWeights,RtlHardcoded,RtlSymmetry"
                                     tools:text="@string/group_s" />
 
@@ -298,13 +338,20 @@
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
                                     android:layout_marginStart="8dp"
-                                    android:paddingLeft="5dp"
-                                    android:paddingRight="5dp"
+                                    android:paddingLeft="10dp"
+                                    android:paddingRight="10dp"
+                                    android:paddingTop="4dp"
+                                    android:paddingBottom="4dp"
                                     android:text="@string/change_group"
-                                    android:textSize="13sp"
-                                    app:radius="2dp" />
+                                    android:textSize="12sp"
+                                    app:radius="10dp" />
 
                             </LinearLayout>
+
+                            <View
+                                android:layout_width="match_parent"
+                                android:layout_height="1dp"
+                                android:background="@color/bg_divider_line" />
 
                             <LinearLayout
                                 android:id="@+id/ll_toc"
@@ -312,12 +359,12 @@
                                 android:layout_height="wrap_content"
                                 android:gravity="center_vertical"
                                 android:orientation="horizontal"
-                                android:paddingTop="3dp"
-                                android:paddingBottom="3dp">
+                                android:paddingTop="13dp"
+                                android:paddingBottom="13dp">
 
                                 <ImageView
-                                    android:layout_width="18sp"
-                                    android:layout_height="18sp"
+                                    android:layout_width="18dp"
+                                    android:layout_height="18dp"
                                     android:contentDescription="@string/read_dur_progress"
                                     android:paddingRight="2dp"
                                     android:src="@drawable/ic_folder_open"
@@ -334,7 +381,7 @@
                                     android:paddingRight="6dp"
                                     android:singleLine="true"
                                     android:textColor="@color/tv_text_summary"
-                                    android:textSize="13sp"
+                                    android:textSize="17sp"
                                     tools:ignore="NestedWeights,RtlHardcoded,RtlSymmetry"
                                     tools:text="@string/toc_s" />
 
@@ -343,32 +390,53 @@
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
                                     android:layout_marginStart="8dp"
-                                    android:paddingLeft="5dp"
-                                    android:paddingRight="5dp"
+                                    android:paddingLeft="10dp"
+                                    android:paddingRight="10dp"
+                                    android:paddingTop="4dp"
+                                    android:paddingBottom="4dp"
                                     android:text="@string/view_toc"
-                                    android:textSize="13sp"
-                                    app:radius="2dp" />
+                                    android:textSize="12sp"
+                                    app:radius="10dp" />
 
                             </LinearLayout>
 
                         </LinearLayout>
 
-                        <io.legado.app.ui.widget.text.ScrollTextView
-                            android:id="@+id/tv_intro"
+                        <!-- 简介卡片 -->
+                        <LinearLayout
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="8dp"
-                            android:clickable="true"
-                            android:focusable="true"
-                            android:minHeight="48dp"
-                            android:paddingLeft="8dp"
-                            android:paddingBottom="8dp"
-                            android:text="@string/book_intro"
-                            android:textColor="@color/secondaryText"
-                            android:textIsSelectable="true"
-                            android:textSize="14sp"
-                            android:visibility="visible"
-                            tools:ignore="RtlHardcoded,RtlSymmetry" />
+                            android:layout_marginTop="12dp"
+                            android:background="@drawable/bg_card_rounded"
+                            android:orientation="vertical"
+                            android:padding="14dp">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginBottom="8dp"
+                                android:text="@string/book_intro"
+                                android:textColor="@color/primaryText"
+                                android:textSize="16sp"
+                                android:textStyle="bold" />
+
+                            <io.legado.app.ui.widget.text.ScrollTextView
+                                android:id="@+id/tv_intro"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:clickable="true"
+                                android:focusable="true"
+                                android:minHeight="48dp"
+                                android:text="@string/book_intro"
+                                android:textColor="@color/secondaryText"
+                                android:textIsSelectable="true"
+                                android:textSize="18sp"
+                                android:lineSpacingMultiplier="1.5"
+                                android:justificationMode="inter_word"
+                                android:visibility="visible"
+                                tools:ignore="RtlHardcoded,RtlSymmetry,UnusedAttribute" />
+
+                        </LinearLayout>
 
                     </LinearLayout>
 
@@ -377,45 +445,6 @@
             </io.legado.app.ui.widget.NoChildScrollNestedScrollView>
 
         </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
-
-        <View
-            android:layout_width="match_parent"
-            android:layout_height="1px"
-            android:background="@color/bg_divider_line" />
-
-        <LinearLayout
-            android:id="@+id/fl_action"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:background="@color/background_menu"
-            android:orientation="horizontal"
-            app:layout_constraintBottom_toBottomOf="parent">
-
-            <TextView
-                android:id="@+id/tv_shelf"
-                android:layout_width="0dp"
-                android:layout_height="50dp"
-                android:layout_weight="1"
-                android:background="?attr/selectableItemBackground"
-                android:clickable="true"
-                android:focusable="true"
-                android:gravity="center"
-                android:includeFontPadding="false"
-                android:text="@string/remove_from_bookshelf"
-                android:textColor="@color/primaryText"
-                android:textSize="15sp" />
-
-            <io.legado.app.ui.widget.text.AccentBgTextView
-                android:id="@+id/tv_read"
-                android:layout_width="0dp"
-                android:layout_height="50dp"
-                android:layout_weight="1"
-                android:gravity="center"
-                android:includeFontPadding="false"
-                android:text="@string/reading"
-                android:textSize="15sp" />
-
-        </LinearLayout>
 
     </LinearLayout>
 

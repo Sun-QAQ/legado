@@ -10,6 +10,7 @@ import androidx.activity.addCallback
 import androidx.activity.viewModels
 import androidx.core.view.get
 import androidx.core.view.postDelayed
+import androidx.core.view.updateLayoutParams
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentManager
 import androidx.fragment.app.FragmentStatePagerAdapter
@@ -48,6 +49,7 @@ import io.legado.app.utils.isCreated
 import io.legado.app.utils.navigationBarHeight
 import io.legado.app.utils.observeEvent
 import io.legado.app.utils.setEdgeEffectColor
+import io.legado.app.utils.dpToPx
 import io.legado.app.utils.setOnApplyWindowInsetsListenerCompat
 import io.legado.app.utils.showDialogFragment
 import io.legado.app.utils.toastOnUi
@@ -194,7 +196,9 @@ class MainActivity : VMBaseActivity<ActivityMainBinding, MainViewModel>(),
         }
         bottomNavigationView.setOnApplyWindowInsetsListenerCompat { view, windowInsets ->
             val height = windowInsets.navigationBarHeight
-            view.bottomPadding = height
+            view.updateLayoutParams<ViewGroup.MarginLayoutParams> {
+                bottomMargin = height + 26.dpToPx()
+            }
             windowInsets.inset(0, 0, 0, height)
         }
     }

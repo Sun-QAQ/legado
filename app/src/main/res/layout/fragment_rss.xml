@@ -15,15 +15,17 @@
         app:layout_constraintTop_toTopOf="parent"
         app:title="@string/rss" />
 
-    <io.legado.app.ui.widget.recycler.RecyclerViewAtPager2
-        android:id="@+id/recycler_view"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        app:layout_constraintTop_toBottomOf="@id/title_bar"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layoutManager="androidx.recyclerview.widget.GridLayoutManager"
-        app:spanCount="4"
-        tools:listitem="@layout/item_rss" />
+<io.legado.app.ui.widget.recycler.RecyclerViewAtPager2
+            android:id="@+id/recycler_view"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:clipToPadding="false"
+            android:paddingBottom="100dp"
+            app:layout_constraintTop_toBottomOf="@id/title_bar"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layoutManager="androidx.recyclerview.widget.GridLayoutManager"
+            app:spanCount="3"
+            tools:listitem="@layout/item_rss" />
 
     <TextView
         android:id="@+id/tv_empty_msg"

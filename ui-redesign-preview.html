@@ -1,0 +1,1052 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Legado 阅读 · 界面现代化重构预览</title>
+<style>
+  :root{
+    --primary:#6C5CE7;
+    --primary-2:#8E7BFF;
+    --primary-soft:rgba(108,92,231,.12);
+    --bg:#F4F2EE;
+    --bg-grad-1:#E9E4F5;
+    --bg-grad-2:#F4F2EE;
+    --surface:#FFFFFF;
+    --surface-2:#F0EDE9;
+    --surface-3:#EAE7E3;
+    --text:#211D1A;
+    --text-2:#6E6760;
+    --text-3:#A39C94;
+    --line:rgba(0,0,0,.06);
+    --shadow:0 8px 24px rgba(33,29,26,.08), 0 2px 6px rgba(33,29,26,.05);
+    --shadow-sm:0 2px 8px rgba(33,29,26,.06);
+    --radius:20px;
+    --radius-sm:14px;
+    --nav-h:72px;
+  }
+  [data-theme="dark"]{
+    --bg:#0F0E14;
+    --bg-grad-1:#191627;
+    --bg-grad-2:#0F0E14;
+    --surface:#1A1822;
+    --surface-2:#24212E;
+    --surface-3:#2D2A39;
+    --text:#F2EFEA;
+    --text-2:#B8B2A8;
+    --text-3:#7A746C;
+    --line:rgba(255,255,255,.07);
+    --shadow:0 8px 24px rgba(0,0,0,.45), 0 2px 6px rgba(0,0,0,.3);
+    --shadow-sm:0 2px 8px rgba(0,0,0,.35);
+    --primary-soft:rgba(142,123,255,.16);
+  }
+
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{
+    font-family:"PingFang SC","HarmonyOS Sans SC","Microsoft YaHei","Noto Sans SC",system-ui,sans-serif;
+    background:linear-gradient(135deg,var(--bg-grad-1),var(--bg-grad-2) 55%,var(--bg-grad-1));
+    min-height:100vh;
+    display:flex;align-items:center;justify-content:center;
+    padding:32px 16px;
+    color:var(--text);
+    transition:background .5s;
+    overflow-x:hidden;
+  }
+  ::selection{background:var(--primary);color:#fff}
+
+  /* ============ 舞台背景点缀 ============ */
+  .orb{position:fixed;border-radius:50%;filter:blur(90px);opacity:.45;pointer-events:none;z-index:0;transition:opacity .5s}
+  .orb-1{width:420px;height:420px;background:#7C6BF0;top:-120px;left:-80px}
+  .orb-2{width:360px;height:360px;background:#FF9A8B;bottom:-100px;right:-60px;opacity:.28}
+
+  /* ============ 页面布局 ============ */
+  .layout{position:relative;z-index:1;display:flex;gap:48px;align-items:center;justify-content:center;flex-wrap:wrap}
+
+  /* ============ 手机壳 ============ */
+  .phone{
+    width:400px;height:840px;max-height:92vh;border-radius:56px;
+    background:linear-gradient(160deg,#3A3A44,#1B1B22 60%);
+    padding:14px;box-shadow:0 40px 80px rgba(0,0,0,.35), inset 0 0 0 2px rgba(255,255,255,.06);
+    position:relative;flex:0 0 auto;
+  }
+  .phone::before{
+    content:"";position:absolute;top:14px;left:50%;transform:translateX(-50%);
+    width:120px;height:26px;border-radius:0 0 18px 18px;background:#1B1B22;z-index:50;
+  }
+  .screen{
+    width:100%;height:100%;border-radius:42px;overflow:hidden;position:relative;
+    background:var(--bg);transition:background .4s;
+  }
+  .statusbar{
+    position:absolute;top:0;left:0;right:0;height:48px;z-index:40;
+    display:flex;justify-content:space-between;align-items:flex-end;
+    padding:0 30px 8px;font-size:12px;font-weight:600;color:var(--text);
+  }
+  .statusbar .icons{display:flex;gap:5px;align-items:center;font-size:11px;opacity:.85}
+
+  /* ============ 通用 ============ */
+  .screen{overflow:hidden}
+  .screen > .page{position:absolute;inset:0;overflow-y:auto;scrollbar-width:none}
+  .screen > .page::-webkit-scrollbar{display:none}
+  .pad{padding:0 18px}
+  .icon-btn{
+    width:40px;height:40px;border-radius:14px;background:var(--surface);
+    display:flex;align-items:center;justify-content:center;font-size:18px;color:var(--text);
+    box-shadow:var(--shadow-sm);cursor:pointer;border:none;transition:transform .15s;
+  }
+  .icon-btn:active{transform:scale(.92)}
+  .chip{
+    display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:999px;
+    background:var(--surface);color:var(--text-2);font-size:13px;font-weight:500;
+    white-space:nowrap;cursor:pointer;transition:all .2s;border:none;box-shadow:var(--shadow-sm);
+  }
+  .chip.active{background:var(--primary);color:#fff;box-shadow:0 4px 14px var(--primary-soft)}
+  .sec-title{display:flex;justify-content:space-between;align-items:baseline;margin:22px 0 12px}
+  .sec-title h3{font-size:17px;font-weight:700}
+  .sec-title .more{font-size:12px;color:var(--text-3);cursor:pointer}
+
+  /* 封面生成 */
+  .cover{
+    border-radius:var(--radius-sm);position:relative;overflow:hidden;color:#fff;
+    display:flex;flex-direction:column;justify-content:flex-end;
+    padding:10px;box-shadow:var(--shadow-sm);
+    background-size:cover;flex:none;
+  }
+  .cover .c-title{font-size:14px;font-weight:700;letter-spacing:1px;text-shadow:0 1px 4px rgba(0,0,0,.3)}
+  .cover .c-sub{font-size:10px;opacity:.85;margin-top:2px;text-shadow:0 1px 3px rgba(0,0,0,.3)}
+  .g1{background:linear-gradient(160deg,#FF9A8B,#FF6A88 60%,#E64A6F)}
+  .g2{background:linear-gradient(160deg,#667EEA,#764BA2)}
+  .g3{background:linear-gradient(160deg,#11998E,#38EF7D 130%)}
+  .g4{background:linear-gradient(160deg,#F7971E,#F5AF19)}
+  .g5{background:linear-gradient(160deg,#00C9FF,#8FD3F4 160%)}
+  .g6{background:linear-gradient(160deg,#FC466B,#3F5EFB 140%)}
+  .g7{background:linear-gradient(160deg,#7F00FF,#E100FF)}
+  .g8{background:linear-gradient(160deg,#2B2D42,#14151C)}
+  .g9{background:linear-gradient(160deg,#FF512F,#DD2476)}
+  .g10{background:linear-gradient(160deg,#136A8A,#267871)}
+  .cover::after{
+    content:"";position:absolute;inset:0;
+    background:radial-gradient(120% 60% at 100% 0%,rgba(255,255,255,.22),transparent 55%);
+    pointer-events:none;
+  }
+
+  /* ============ 底部导航 ============ */
+  .navbar{
+    position:absolute;left:16px;right:16px;bottom:20px;height:64px;z-index:30;
+    background:var(--surface);border-radius:24px;box-shadow:var(--shadow);
+    display:flex;align-items:center;justify-content:space-around;
+    transition:transform .3s cubic-bezier(.34,1.56,.64,1),opacity .3s;
+  }
+  .navbar.hidden{transform:translateY(120%);opacity:0}
+  .nav-item{
+    display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;
+    color:var(--text-3);font-size:10px;font-weight:600;border:none;background:none;position:relative;
+    transition:color .25s;padding:6px 12px;border-radius:16px;
+  }
+  .nav-item .ic{font-size:21px;line-height:1;transition:transform .3s cubic-bezier(.34,1.56,.64,1)}
+  .nav-item.active{color:var(--primary)}
+  .nav-item.active .ic{transform:translateY(-2px) scale(1.12)}
+  .nav-item.active::before{
+    content:"";position:absolute;left:50%;bottom:-3px;transform:translateX(-50%);
+    width:18px;height:3px;border-radius:3px;background:var(--primary);
+  }
+
+  /* ============ 书架页 ============ */
+  .header{padding-top:56px}
+  .greet{display:flex;justify-content:space-between;align-items:center}
+  .greet .hello{font-size:13px;color:var(--text-2)}
+  .greet .hello b{font-size:21px;color:var(--text);font-weight:800;display:block;margin-top:2px}
+  .avatar{width:42px;height:42px;border-radius:50%;overflow:hidden;box-shadow:var(--shadow-sm);background:var(--surface);display:flex;align-items:center;justify-content:center;font-size:20px;cursor:pointer}
+  .searchbar{
+    margin-top:16px;display:flex;align-items:center;gap:10px;
+    background:var(--surface);border-radius:16px;padding:12px 16px;box-shadow:var(--shadow-sm);cursor:pointer;
+  }
+  .searchbar input{flex:1;border:none;background:none;outline:none;font-size:14px;color:var(--text)}
+  .searchbar input::placeholder{color:var(--text-3)}
+  .searchbar .kbd{font-size:11px;color:var(--text-3);background:var(--surface-2);padding:2px 8px;border-radius:6px}
+
+  /* 最近阅读 */
+  .recent-row{display:flex;gap:14px;overflow-x:auto;scrollbar-width:none;margin:0 -18px;padding:0 18px}
+  .recent-row::-webkit-scrollbar{display:none}
+  .recent-card{flex:0 0 148px;background:var(--surface);border-radius:var(--radius);padding:12px;box-shadow:var(--shadow-sm);cursor:pointer}
+  .recent-card .cover{width:124px;height:168px}
+  .recent-card .name{font-size:13px;font-weight:600;margin-top:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .recent-card .prog{font-size:11px;color:var(--text-3);margin-top:2px}
+  .prog-bar{height:4px;border-radius:4px;background:var(--surface-3);margin-top:8px;overflow:hidden}
+  .prog-bar i{display:block;height:100%;background:linear-gradient(90deg,var(--primary),var(--primary-2));border-radius:4px}
+
+  /* 书格 */
+  .book-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+  .book-card .cover{width:100%;aspect-ratio:3/4}
+  .book-card .name{font-size:12.5px;font-weight:600;margin-top:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .book-card .prog{font-size:10.5px;color:var(--text-3);margin-top:2px}
+
+  .floating{
+    position:absolute;right:18px;bottom:100px;z-index:35;width:54px;height:54px;border-radius:50%;
+    background:linear-gradient(135deg,var(--primary),var(--primary-2));color:#fff;border:none;
+    font-size:24px;box-shadow:0 10px 24px rgba(108,92,231,.45);cursor:pointer;
+    display:flex;align-items:center;justify-content:center;transition:transform .2s;
+  }
+  .floating:active{transform:scale(.9)}
+
+  /* ============ 发现页 ============ */
+  .banner{
+    border-radius:var(--radius);padding:20px;position:relative;overflow:hidden;color:#fff;
+    background:linear-gradient(120deg,#6C5CE7,#8E7BFF 55%,#B79CFF);box-shadow:0 12px 28px rgba(108,92,231,.4);
+  }
+  .banner::after{content:"";position:absolute;right:-40px;top:-40px;width:180px;height:180px;border-radius:50%;background:rgba(255,255,255,.14)}
+  .banner .tag{font-size:11px;background:rgba(255,255,255,.22);padding:3px 10px;border-radius:999px;display:inline-block;backdrop-filter:blur(4px)}
+  .banner h2{font-size:20px;font-weight:800;margin:10px 0 4px}
+  .banner p{font-size:12px;opacity:.9}
+  .banner .row{display:flex;align-items:center;justify-content:space-between;margin-top:14px}
+  .banner .btn{background:#fff;color:var(--primary);border:none;padding:8px 18px;border-radius:999px;font-size:12px;font-weight:700;cursor:pointer}
+  .rank-list{margin-top:6px}
+  .rank-item{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--line)}
+  .rank-item .no{font-size:18px;font-weight:900;font-style:italic;width:26px;text-align:center}
+  .rank-item .no:nth-child(1){color:#E64A6F}
+  .rank-item .no.r2{color:#F7971E}
+  .rank-item .no.r3{color:#11998E}
+  .rank-item .no.else{color:var(--text-3)}
+  .rank-item .name{font-size:14px;font-weight:600}
+  .rank-item .meta{font-size:11.5px;color:var(--text-3);margin-top:2px}
+  .rank-item .cover{width:44px;height:60px;margin-left:auto}
+
+  /* ============ 书籍详情 ============ */
+  .detail-hero{
+    padding:56px 24px 24px;background:
+      radial-gradient(120% 90% at 50% 0%,var(--primary-soft),transparent 60%);
+  }
+  .detail-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}
+  .detail-body{display:flex;gap:18px}
+  .detail-body .cover{width:110px;height:150px;border-radius:16px}
+  .detail-info{flex:1;padding-top:4px}
+  .detail-info h1{font-size:20px;font-weight:800}
+  .detail-info .author{font-size:13px;color:var(--text-2);margin-top:4px}
+  .detail-info .tags{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
+  .detail-info .tag{font-size:10.5px;padding:3px 10px;border-radius:999px;background:var(--primary-soft);color:var(--primary)}
+  .detail-info .rate{display:flex;align-items:center;gap:6px;margin-top:10px;font-size:12px;color:var(--text-2)}
+  .detail-info .rate b{color:#F7971E;font-size:15px}
+  .detail-actions{display:flex;gap:12px;margin-top:20px}
+  .detail-actions .btn-read{
+    flex:1;background:linear-gradient(135deg,var(--primary),var(--primary-2));color:#fff;border:none;
+    padding:14px;border-radius:16px;font-size:14px;font-weight:700;cursor:pointer;box-shadow:0 8px 20px var(--primary-soft);
+  }
+  .detail-actions .btn-shelf{
+    background:var(--surface);box-shadow:var(--shadow-sm);border:none;color:var(--text);
+    padding:14px 20px;border-radius:16px;font-size:14px;font-weight:600;cursor:pointer;
+  }
+  .detail-section{background:var(--surface);border-radius:var(--radius);padding:16px;margin:14px 0;box-shadow:var(--shadow-sm)}
+  .detail-section h4{font-size:14px;font-weight:700;margin-bottom:8px}
+  .detail-section .intro{font-size:13px;line-height:1.7;color:var(--text-2)}
+  .chapter-item{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--line);font-size:13px}
+  .chapter-item:last-child{border-bottom:none}
+  .chapter-item .cur{color:var(--primary);font-weight:700}
+
+  /* ============ 阅读器 ============ */
+  .reader-tools{
+    position:absolute;top:0;left:0;right:0;z-index:40;
+    display:flex;justify-content:space-between;align-items:center;
+    padding:52px 18px 14px;transition:transform .3s,opacity .3s;
+    background:linear-gradient(var(--bg),transparent);
+  }
+  .reader-tools.hidden{transform:translateY(-100%);opacity:0}
+  .reader{position:absolute;inset:0;overflow-y:auto;scrollbar-width:none;padding:100px 30px 40px}
+  .reader::-webkit-scrollbar{display:none}
+  .reader .chap-title{font-size:24px;font-weight:800;text-align:center;margin-bottom:26px;line-height:1.5}
+  .reader .serif{font-family:"Songti SC","STSong","Noto Serif SC","SimSun",serif}
+  .reader .para{font-size:18px;line-height:1.95;text-align:justify;letter-spacing:.3px;margin-bottom:20px;color:var(--text)}
+  .reader-controls{
+    position:absolute;left:16px;right:16px;bottom:22px;z-index:40;border-radius:24px;
+    background:var(--surface);box-shadow:var(--shadow);padding:16px;transition:transform .3s,opacity .3s;
+  }
+  .reader-controls.hidden{transform:translateY(130%);opacity:0}
+  .reader-controls .progress-top{display:flex;justify-content:space-between;font-size:11px;color:var(--text-3);margin-bottom:8px}
+  .slider{height:5px;border-radius:5px;background:var(--surface-3);position:relative;cursor:pointer}
+  .slider i{position:absolute;left:0;top:0;bottom:0;width:32%;border-radius:5px;background:linear-gradient(90deg,var(--primary),var(--primary-2))}
+  .slider i::after{content:"";position:absolute;right:-7px;top:50%;transform:translateY(-50%);width:16px;height:16px;border-radius:50%;background:var(--primary);box-shadow:0 2px 8px var(--primary-soft)}
+  .reader-controls .tools-row{display:flex;justify-content:space-around;margin-top:14px}
+  .reader-controls .tools-row button{
+    display:flex;flex-direction:column;align-items:center;gap:4px;background:none;border:none;
+    font-size:10px;color:var(--text-2);cursor:pointer;padding:4px 10px;
+  }
+  .reader-controls .tools-row .ic{font-size:20px}
+
+  /* ============ 我的页 ============ */
+  .profile-card{
+    margin-top:16px;background:linear-gradient(140deg,var(--primary),var(--primary-2));border-radius:var(--radius);
+    padding:22px;color:#fff;box-shadow:0 12px 28px rgba(108,92,231,.35);display:flex;gap:16px;align-items:center;
+  }
+  .profile-card .avatar-lg{width:60px;height:60px;border-radius:50%;background:rgba(255,255,255,.25);display:flex;align-items:center;justify-content:center;font-size:28px;border:2px solid rgba(255,255,255,.4)}
+  .profile-card .uname{font-size:18px;font-weight:800}
+  .profile-card .uid{font-size:12px;opacity:.85;margin-top:3px}
+  .stats{display:flex;gap:12px;margin-top:14px}
+  .stat{flex:1;background:var(--surface);border-radius:var(--radius);padding:14px;text-align:center;box-shadow:var(--shadow-sm)}
+  .stat b{font-size:19px;font-weight:800;color:var(--primary)}
+  .stat span{font-size:11px;color:var(--text-3);display:block;margin-top:3px}
+  .menu-group{background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow-sm);margin-top:14px;overflow:hidden}
+  .menu-item{display:flex;align-items:center;gap:14px;padding:15px 16px;cursor:pointer;border-bottom:1px solid var(--line)}
+  .menu-item:last-child{border-bottom:none}
+  .menu-item .mic{width:36px;height:36px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:17px}
+  .menu-item .txt{flex:1}
+  .menu-item .txt b{font-size:14px;font-weight:600;display:block}
+  .menu-item .txt span{font-size:11px;color:var(--text-3)}
+  .menu-item .chev{color:var(--text-3)}
+  .mic.purple{background:var(--primary-soft)}
+  .mic.green{background:rgba(17,153,142,.14)}
+  .mic.orange{background:rgba(247,151,30,.16)}
+  .mic.blue{background:rgba(0,140,255,.14)}
+  .mic.pink{background:rgba(230,74,111,.14)}
+
+  /* ============ 搜索覆盖层 ============ */
+  .overlay{
+    position:absolute;inset:0;z-index:60;background:var(--bg);
+    transform:translateY(100%);transition:transform .35s cubic-bezier(.32,.72,.3,1);
+    display:flex;flex-direction:column;
+  }
+  .overlay.open{transform:translateY(0)}
+  .overlay .search-top{display:flex;align-items:center;gap:12px;padding:54px 18px 10px}
+  .hot-list{padding:4px 18px;overflow-y:auto;scrollbar-width:none}
+  .hot-list::-webkit-scrollbar{display:none}
+  .hot-item{display:flex;align-items:center;gap:12px;padding:13px 0;border-bottom:1px solid var(--line);font-size:14px}
+  .hot-item .idx{font-weight:900;color:var(--text-3);width:24px;text-align:center}
+  .hot-item .idx.hot{color:#E64A6F}
+
+  /* ============ 订阅页 ============ */
+  .source-card{
+    flex:0 0 150px;background:var(--surface);border-radius:var(--radius);padding:14px;
+    box-shadow:var(--shadow-sm);cursor:pointer;position:relative;overflow:hidden;
+  }
+  .source-card .src-icon{width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:19px}
+  .source-card .src-name{font-size:13px;font-weight:600;margin-top:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .source-card .src-meta{font-size:10.5px;color:var(--text-3);margin-top:2px}
+  .source-card .badge{
+    position:absolute;top:10px;right:10px;background:#E64A6F;color:#fff;font-size:10px;font-weight:700;
+    min-width:18px;height:18px;border-radius:9px;display:flex;align-items:center;justify-content:center;padding:0 5px;
+  }
+  .article-item{display:flex;gap:12px;padding:13px 0;border-bottom:1px solid var(--line);cursor:pointer}
+  .article-item .a-thumb{width:64px;height:64px;border-radius:14px;flex:none;display:flex;align-items:center;justify-content:center;font-size:26px;color:#fff}
+  .article-item .a-body{flex:1;overflow:hidden}
+  .article-item .a-title{font-size:14px;font-weight:600;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .article-item .a-meta{font-size:11px;color:var(--text-3);margin-top:6px;display:flex;gap:8px;align-items:center}
+  .article-item .a-src{display:flex;align-items:center;gap:5px}
+
+  /* ============ AI 页 ============ */
+  .ai-chat{position:absolute;inset:0;display:flex;flex-direction:column;padding-top:56px;padding-bottom:88px}
+  .ai-msgs{flex:1;overflow-y:auto;scrollbar-width:none;padding:10px 18px;display:flex;flex-direction:column;gap:14px}
+  .ai-msgs::-webkit-scrollbar{display:none}
+  .msg{max-width:82%;padding:12px 14px;border-radius:18px;font-size:13.5px;line-height:1.65}
+  .msg.ai{background:var(--surface);box-shadow:var(--shadow-sm);align-self:flex-start;border-bottom-left-radius:6px}
+  .msg.me{background:linear-gradient(135deg,var(--primary),var(--primary-2));color:#fff;align-self:flex-end;border-bottom-right-radius:6px}
+  .msg .sender{font-size:10px;color:var(--text-3);margin-bottom:4px;font-weight:600}
+  .msg.me .sender{color:rgba(255,255,255,.75);text-align:right}
+  .ai-suggest{display:flex;gap:8px;padding:6px 18px;overflow-x:auto;scrollbar-width:none}
+  .ai-suggest::-webkit-scrollbar{display:none}
+  .ai-inputbar{
+    display:flex;align-items:center;gap:10px;margin:0 16px 18px;padding:10px 14px;
+    background:var(--surface);border-radius:22px;box-shadow:var(--shadow);flex:none;
+  }
+  .ai-inputbar input{flex:1;border:none;background:none;outline:none;font-size:14px;color:var(--text)}
+  .ai-inputbar input::placeholder{color:var(--text-3)}
+  .ai-inputbar .send{
+    width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--primary),var(--primary-2));
+    color:#fff;border:none;font-size:15px;cursor:pointer;flex:none;display:flex;align-items:center;justify-content:center;
+  }
+
+  /* ============ 搜索结果 ============ */
+  .search-results{padding:4px 18px;overflow-y:auto;scrollbar-width:none;display:none;flex:1}
+  .search-results::-webkit-scrollbar{display:none}
+  .search-results.show{display:block}
+  .result-item{display:flex;gap:12px;padding:12px 0;border-bottom:1px solid var(--line);cursor:pointer}
+  .result-item .cover{width:46px;height:62px;font-size:11px}
+  .result-item .r-body{flex:1;overflow:hidden}
+  .result-item .r-title{font-size:14px;font-weight:600}
+  .result-item .r-meta{font-size:11px;color:var(--text-3);margin-top:4px}
+  .result-item .r-src{display:inline-flex;align-items:center;gap:4px;font-size:10px;color:var(--primary);background:var(--primary-soft);padding:2px 8px;border-radius:999px;margin-top:6px}
+
+  /* ============ 阅读器设置面板 & 目录抽屉 ============ */
+  .scrim{position:absolute;inset:0;z-index:54;background:rgba(0,0,0,.4);opacity:0;pointer-events:none;transition:opacity .3s}
+  .scrim.show{opacity:1;pointer-events:auto}
+  .sheet{
+    position:absolute;left:0;right:0;bottom:0;z-index:55;
+    background:var(--surface);border-radius:26px 26px 0 0;box-shadow:0 -10px 40px rgba(0,0,0,.18);
+    padding:10px 20px 26px;transform:translateY(105%);transition:transform .35s cubic-bezier(.32,.72,.3,1);
+  }
+  .sheet.open{transform:translateY(0)}
+  .sheet .handle{width:40px;height:4px;border-radius:4px;background:var(--surface-3);margin:6px auto 16px}
+  .sheet h4{font-size:14px;font-weight:700;margin-bottom:14px}
+  .setting-row{margin-bottom:18px}
+  .setting-row .lbl{font-size:12px;color:var(--text-3);margin-bottom:10px}
+  .opt-row{display:flex;gap:10px;flex-wrap:wrap}
+  .opt{
+    display:flex;align-items:center;justify-content:center;padding:9px 16px;border-radius:12px;
+    background:var(--surface-2);font-size:13px;color:var(--text);cursor:pointer;transition:all .2s;border:none;
+  }
+  .opt.active{background:var(--primary);color:#fff}
+  .opt.fb{width:44px;height:44px;padding:0;font-weight:700}
+  .font-preview{
+    display:flex;align-items:center;gap:8px;border:2px solid var(--surface-3);border-radius:14px;
+    padding:8px 12px;cursor:pointer;transition:all .2s;
+  }
+  .font-preview.active{border-color:var(--primary);background:var(--primary-soft)}
+  .font-preview .fp{width:36px;height:36px;border-radius:10px;background:var(--surface);display:flex;align-items:center;justify-content:center;font-size:20px}
+  .font-preview span{font-size:13px;font-weight:600}
+  .font-preview small{display:block;font-size:10px;color:var(--text-3);font-weight:400}
+  .drawer{
+    position:absolute;top:0;bottom:0;right:0;width:86%;z-index:58;
+    background:var(--surface);border-radius:26px 0 0 26px;box-shadow:-10px 0 40px rgba(0,0,0,.2);
+    transform:translateX(105%);transition:transform .35s cubic-bezier(.32,.72,.3,1);
+    display:flex;flex-direction:column;
+  }
+  .drawer.open{transform:translateX(0)}
+  .drawer .drawer-head{display:flex;align-items:center;gap:10px;padding:56px 16px 14px}
+  .drawer .drawer-head b{font-size:15px;font-weight:700;flex:1}
+  .drawer-list{flex:1;overflow-y:auto;scrollbar-width:none;padding:0 16px 20px}
+  .drawer-list::-webkit-scrollbar{display:none}
+  .drawer-list .d-item{display:flex;justify-content:space-between;padding:11px 12px;border-radius:12px;font-size:13px;color:var(--text-2);cursor:pointer}
+  .drawer-list .d-item:hover{background:var(--surface-2)}
+  .drawer-list .d-item.cur{background:var(--primary-soft);color:var(--primary);font-weight:700}
+  .drawer-list .d-item .len{font-size:10.5px;color:var(--text-3)}
+
+  /* ============ 主题切换 ============ */
+  .theme-toggle{
+    position:fixed;right:24px;top:24px;z-index:100;width:46px;height:46px;border-radius:50%;
+    border:none;cursor:pointer;font-size:20px;
+    background:var(--surface);box-shadow:var(--shadow);display:flex;align-items:center;justify-content:center;
+  }
+
+  /* ============ 设计说明面板 ============ */
+  .notes-toggle{
+    position:fixed;left:24px;bottom:24px;z-index:100;
+    background:var(--primary);color:#fff;border:none;padding:11px 20px;border-radius:999px;
+    font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 10px 24px rgba(108,92,231,.4);
+  }
+  .notes-panel{
+    position:fixed;left:24px;bottom:80px;z-index:100;width:340px;max-height:70vh;overflow-y:auto;
+    background:var(--surface);border-radius:22px;box-shadow:var(--shadow);padding:22px;
+    transform:translateY(20px);opacity:0;pointer-events:none;transition:all .3s;
+  }
+  .notes-panel.open{transform:translateY(0);opacity:1;pointer-events:auto}
+  .notes-panel h3{font-size:16px;font-weight:800;margin-bottom:4px}
+  .notes-panel .sub{font-size:12px;color:var(--text-3);margin-bottom:14px}
+  .note-card{background:var(--surface-2);border-radius:14px;padding:12px 14px;margin-bottom:10px}
+  .note-card b{font-size:13px;display:block;margin-bottom:4px}
+  .note-card b .dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px;background:var(--primary)}
+  .note-card p{font-size:12px;line-height:1.6;color:var(--text-2)}
+
+  .caption{position:relative;z-index:1;text-align:center;margin-top:12px}
+  .caption h1{font-size:26px;font-weight:900;letter-spacing:.5px}
+  .caption p{font-size:14px;color:var(--text-2);margin-top:6px;max-width:340px;line-height:1.7}
+  .caption .hint{display:inline-block;margin-top:16px;font-size:12px;color:var(--text-3);background:var(--surface);padding:8px 16px;border-radius:999px;box-shadow:var(--shadow-sm)}
+
+  @media (max-width:1080px){ .caption{display:none} .layout{justify-content:center} }
+  @media (max-width:460px){ body{padding:8px} .phone{width:100%;height:96vh;border-radius:36px;max-height:none} .screen{border-radius:26px} }
+</style>
+</head>
+<body data-theme="light">
+  <div class="orb orb-1"></div><div class="orb orb-2"></div>
+
+  <button class="theme-toggle" onclick="toggleTheme()" title="切换主题">🌙</button>
+  <button class="notes-toggle" onclick="toggleNotes()">✦ 设计说明</button>
+  <div class="notes-panel" id="notesPanel">
+    <h3>界面现代化重构 · 设计说明</h3>
+    <p class="sub">Legado 阅读 · 概念原型（非真实数据，仅展示视觉方向）</p>
+    <div class="note-card"><b><span class="dot"></span>Material You 动态取色</b><p>主色单一化（紫罗兰渐变），背景采用柔和中性色，支持亮/暗双主题一键切换，接近 Android 12+ 原生质感。</p></div>
+    <div class="note-card"><b><span class="dot"></span>去线框化 · 卡片即分隔</b><p>用 20px 大圆角 + 柔和阴影替代分割线，信息层级依靠字号/字重/透明度三级体系表达。</p></div>
+    <div class="note-card"><b><span class="dot"></span>封面即视觉重心</b><p>书架/榜单均以封面卡片呈现，渐变占位封面模拟真实书架质感，阅读进度直接叠加在卡片上。</p></div>
+    <div class="note-card"><b><span class="dot"></span>底部导航胶囊指示器</b><p>激活项带胶囊下划线 + 图标上浮的弹簧动效，保留 书架/发现/订阅/AI/我的 五大入口。</p></div>
+    <div class="note-card"><b><span class="dot"></span>沉浸式阅读器</b><p>轻点屏幕唤出/隐藏工具栏，衬线体优化中文排版，进度滑杆与章节切换在底部面板聚合。</p></div>
+    <div class="note-card"><b><span class="dot"></span>微交互细节</b><p>搜索覆盖层下滑展开、输入即出结果、卡片按压缩放、详情页背景渐变晕染，强调"翻页"的顺手感。</p></div>
+    <div class="note-card"><b><span class="dot"></span>订阅与 AI 页</b><p>订阅页用订阅源卡片 + 未读角标 + 文章流；AI 页采用聊天气泡布局，输入栏悬浮于底部导航之上，契合阅读助手场景。</p></div>
+  </div>
+
+  <div class="layout">
+    <div class="phone">
+      <div class="screen" id="screen">
+        <div class="statusbar">
+          <span>9:41</span>
+          <span class="icons">📶 🔋</span>
+        </div>
+
+        <!-- ============ 书架 ============ -->
+        <div class="page" id="page-bookshelf">
+          <div class="pad">
+            <div class="header">
+              <div class="greet">
+                <div class="hello">下午好，继续阅读吧<b>书架</b></div>
+                <div class="avatar">🙂</div>
+              </div>
+              <div class="searchbar" onclick="openSearch()">
+                <span style="font-size:16px;opacity:.7">🔍</span>
+                <input placeholder="搜索书籍、作者、来源…" readonly>
+                <span class="kbd">⌘K</span>
+              </div>
+              <div class="recent-row" style="margin-top:16px;display:flex;gap:10px;overflow-x:auto;white-space:nowrap">
+                <button class="chip active">全部</button>
+                <button class="chip">最近阅读</button>
+                <button class="chip">玄幻</button>
+                <button class="chip">都市</button>
+                <button class="chip">科幻</button>
+                <button class="chip">完结</button>
+              </div>
+            </div>
+
+            <div class="sec-title"><h3>继续阅读</h3><span class="more">查看全部 ›</span></div>
+            <div class="recent-row">
+              <div class="recent-card" onclick="openDetail(0)">
+                <div class="cover g2">
+                  <div class="c-title">三体</div><div class="c-sub">刘慈欣</div>
+                </div>
+                <div class="name">三体</div>
+                <div class="prog">读到 62% · 黑暗森林</div>
+                <div class="prog-bar"><i style="width:62%"></i></div>
+              </div>
+              <div class="recent-card" onclick="openDetail(1)">
+                <div class="cover g6">
+                  <div class="c-title">白夜行</div><div class="c-sub">东野圭吾</div>
+                </div>
+                <div class="name">白夜行</div>
+                <div class="prog">读到 31% · 第八章</div>
+                <div class="prog-bar"><i style="width:31%"></i></div>
+              </div>
+              <div class="recent-card" onclick="openDetail(2)">
+                <div class="cover g9">
+                  <div class="c-title">雪中悍刀行</div><div class="c-sub">烽火戏诸侯</div>
+                </div>
+                <div class="name">雪中悍刀行</div>
+                <div class="prog">读到 88% · 下册</div>
+                <div class="prog-bar"><i style="width:88%"></i></div>
+              </div>
+            </div>
+
+            <div class="sec-title"><h3>全部书籍 <span style="font-size:12px;color:var(--text-3);font-weight:400">(24)</span></h3><span class="more">排序 ›</span></div>
+            <div class="book-grid">
+              <div class="book-card" onclick="openDetail(3)"><div class="cover g4"><div class="c-title">明朝那些事儿</div></div><div class="name">明朝那些事儿</div><div class="prog">读完 · 完结</div></div>
+              <div class="book-card" onclick="openDetail(4)"><div class="cover g3"><div class="c-title">活着</div></div><div class="name">活着</div><div class="prog">读到 45%</div></div>
+              <div class="book-card" onclick="openDetail(5)"><div class="cover g7"><div class="c-title">诡秘之主</div></div><div class="name">诡秘之主</div><div class="prog">读到 12%</div></div>
+              <div class="book-card" onclick="openDetail(6)"><div class="cover g5"><div class="c-title">解忧杂货店</div></div><div class="name">解忧杂货店</div><div class="prog">读到 70%</div></div>
+              <div class="book-card" onclick="openDetail(7)"><div class="cover g10"><div class="c-title">平凡的世界</div></div><div class="name">平凡的世界</div><div class="prog">读完 · 完结</div></div>
+              <div class="book-card" onclick="openDetail(8)"><div class="cover g8"><div class="c-title">盗墓笔记</div></div><div class="name">盗墓笔记</div><div class="prog">读到 5%</div></div>
+              <div class="book-card" onclick="openDetail(9)"><div class="cover g1"><div class="c-title">围城</div></div><div class="name">围城</div><div class="prog">读到 22%</div></div>
+              <div class="book-card" onclick="openDetail(10)"><div class="cover g2"><div class="c-title">百年孤独</div></div><div class="name">百年孤独</div><div class="prog">读到 58%</div></div>
+              <div class="book-card" onclick="openDetail(11)"><div class="cover g6"><div class="c-title">斗破苍穹</div></div><div class="name">斗破苍穹</div><div class="prog">读到 36%</div></div>
+            </div>
+            <div style="height:110px"></div>
+          </div>
+        </div>
+
+        <!-- ============ 发现 ============ -->
+        <div class="page" id="page-explore" style="transform:translateY(100%);display:none">
+          <div class="pad">
+            <div class="header">
+              <div class="greet">
+                <div class="hello">发现好内容<b>今日精选</b></div>
+                <div class="icon-btn">🔔</div>
+              </div>
+              <div class="searchbar" style="margin-top:16px" onclick="openSearch()">
+                <span style="font-size:16px;opacity:.7">🔍</span>
+                <input placeholder="搜索全网书籍、源…" readonly>
+              </div>
+            </div>
+
+            <div style="margin-top:18px">
+              <div class="banner">
+                <span class="tag">✨ 本周编辑推荐</span>
+                <h2>《三体》系列合集</h2>
+                <p>黑暗森林法则下的人类文明与宇宙图景</p>
+                <div class="row">
+                  <span style="font-size:11px;opacity:.85">科幻 · 刘慈欣 · 92.1万人在读</span>
+                  <button class="btn" onclick="openDetail(0)">立即阅读</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="sec-title"><h3>热门分类</h3></div>
+            <div style="display:flex;gap:10px;overflow-x:auto;scrollbar-width:none">
+              <button class="chip">🔥 玄幻</button><button class="chip">都市</button><button class="chip">科幻</button><button class="chip">悬疑</button><button class="chip">历史</button><button class="chip">言情</button>
+            </div>
+
+            <div class="sec-title"><h3>热门榜单</h3><span class="more">完整榜单 ›</span></div>
+            <div class="rank-list">
+              <div class="rank-item" onclick="openDetail(0)">
+                <span class="no">1</span>
+                <div><div class="name">三体</div><div class="meta">刘慈欣 · 科幻 · 热度 98.2</div></div>
+                <div class="cover g2"><div class="c-title" style="font-size:11px">三体</div></div>
+              </div>
+              <div class="rank-item" onclick="openDetail(4)">
+                <span class="no r2">2</span>
+                <div><div class="name">活着</div><div class="meta">余华 · 文学 · 热度 95.7</div></div>
+                <div class="cover g3"><div class="c-title" style="font-size:11px">活着</div></div>
+              </div>
+              <div class="rank-item" onclick="openDetail(3)">
+                <span class="no r3">3</span>
+                <div><div class="name">明朝那些事儿</div><div class="meta">当年明月 · 历史 · 热度 91.4</div></div>
+                <div class="cover g4"><div class="c-title" style="font-size:11px">明朝</div></div>
+              </div>
+              <div class="rank-item" onclick="openDetail(1)">
+                <span class="no else">4</span>
+                <div><div class="name">白夜行</div><div class="meta">东野圭吾 · 悬疑 · 热度 88.9</div></div>
+                <div class="cover g6"><div class="c-title" style="font-size:11px">白夜行</div></div>
+              </div>
+            </div>
+            <div style="height:110px"></div>
+          </div>
+        </div>
+
+        <!-- ============ 我的 ============ -->
+        <div class="page" id="page-my" style="transform:translateY(100%);display:none">
+          <div class="pad">
+            <div class="header">
+              <div class="greet">
+                <div class="hello">个人中心<b>我的</b></div>
+                <div class="icon-btn">⚙️</div>
+              </div>
+            </div>
+
+            <div class="profile-card">
+              <div class="avatar-lg">🙂</div>
+              <div>
+                <div class="uname">书海漫游者</div>
+                <div class="uid">UID 1024 · 阅读会员 高级版</div>
+              </div>
+            </div>
+
+            <div class="stats">
+              <div class="stat"><b>1,284</b><span>累计阅读时长(h)</span></div>
+              <div class="stat"><b>36</b><span>读完书籍</span></div>
+              <div class="stat"><b>92</b><span>已加入书架</span></div>
+            </div>
+
+            <div class="menu-group">
+              <div class="menu-item"><div class="mic purple">🎨</div><div class="txt"><b>主题外观</b><span>动态取色 / 亮暗模式 / 深色阅读</span></div><span class="chev">›</span></div>
+              <div class="menu-item"><div class="mic blue">📖</div><div class="txt"><b>阅读设置</b><span>字体 · 行距 · 翻页动画 · 朗读</span></div><span class="chev">›</span></div>
+              <div class="menu-item"><div class="mic green">🌐</div><div class="txt"><b>书源与规则</b><span>书源管理 · 订阅 · 净化替换规则</span></div><span class="chev">›</span></div>
+              <div class="menu-item"><div class="mic orange">☁️</div><div class="txt"><b>备份与同步</b><span>WebDAV · 本地备份 · 自动同步</span></div><span class="chev">›</span></div>
+              <div class="menu-item"><div class="mic pink">🤖</div><div class="txt"><b>AI 对话</b><span>智能问答 · 章节总结 · 书源调试</span></div><span class="chev">›</span></div>
+            </div>
+            <div style="height:110px"></div>
+          </div>
+        </div>
+
+        <!-- ============ 订阅 ============ -->
+        <div class="page" id="page-rss" style="transform:translateY(100%);display:none">
+          <div class="pad">
+            <div class="header">
+              <div class="greet">
+                <div class="hello">新鲜内容不漏看<b>订阅</b></div>
+                <div class="icon-btn">➕</div>
+              </div>
+              <div class="searchbar" style="margin-top:16px">
+                <span style="font-size:16px;opacity:.7">🔍</span>
+                <input placeholder="搜索订阅源、文章…" readonly>
+              </div>
+            </div>
+
+            <div class="sec-title"><h3>我的订阅源</h3><span class="more">管理 ›</span></div>
+            <div class="recent-row">
+              <div class="source-card">
+                <div class="src-icon" style="background:var(--primary-soft)">📰</div>
+                <div class="src-name">人人影视</div><div class="src-meta">12 篇未读</div>
+                <div class="badge">3</div>
+              </div>
+              <div class="source-card">
+                <div class="src-icon" style="background:rgba(247,151,30,.16)">🖥️</div>
+                <div class="src-name">少数派</div><div class="src-meta">8 篇未读</div>
+                <div class="badge">1</div>
+              </div>
+              <div class="source-card">
+                <div class="src-icon" style="background:rgba(17,153,142,.14)">📚</div>
+                <div class="src-name">豆瓣阅读</div><div class="src-meta">5 篇未读</div>
+              </div>
+            </div>
+
+            <div class="sec-title"><h3>最新更新</h3><span class="more">排序 ›</span></div>
+            <div class="article-list">
+              <div class="article-item">
+                <div class="a-thumb g2">📺</div>
+                <div class="a-body">
+                  <div class="a-title">三体动画版今晚开播，第一集剧情梳理与幕后访谈</div>
+                  <div class="a-meta"><span class="a-src">📰 人人影视</span><span>·</span><span>2 小时前</span></div>
+                </div>
+              </div>
+              <div class="article-item">
+                <div class="a-thumb g4">🖥️</div>
+                <div class="a-body">
+                  <div class="a-title">为什么说 Material You 正在改变 Android 应用的设计语言</div>
+                  <div class="a-meta"><span class="a-src">🖥️ 少数派</span><span>·</span><span>5 小时前</span></div>
+                </div>
+              </div>
+              <div class="article-item">
+                <div class="a-thumb g3">📚</div>
+                <div class="a-body">
+                  <div class="a-title">豆瓣 2026 年度高分书单：文学、科幻与人文社科精选 25 本</div>
+                  <div class="a-meta"><span class="a-src">📚 豆瓣阅读</span><span>·</span><span>昨天</span></div>
+                </div>
+              </div>
+            </div>
+            <div style="height:110px"></div>
+          </div>
+        </div>
+
+        <!-- ============ AI ============ -->
+        <div class="page" id="page-ai" style="transform:translateY(100%);display:none">
+          <div class="ai-chat">
+            <div class="pad" style="display:flex;justify-content:space-between;align-items:center;padding-top:8px">
+              <b style="font-size:17px">AI 助手</b>
+              <div class="icon-btn">⋮</div>
+            </div>
+            <div class="ai-msgs">
+              <div class="msg ai">
+                <div class="sender">🤖 阅读助手 · 基于当前书架</div>
+                你好，我是你的阅读助手。可以帮你总结章节、推荐书单、解析书源规则，也可以和你聊聊刚读到的内容。
+              </div>
+              <div class="msg me"><div class="sender">我</div>帮我总结一下《三体》第三章讲了什么？</div>
+              <div class="msg ai">
+                <div class="sender">🤖 阅读助手</div>
+                第三章《射手和农场主》讲述了"射手假说"：神枪手在靶纸上每隔 10 厘米打一个洞，靶上的二维智能生物由此得出"宇宙每隔 10 厘米存在智慧印记"的定律——暗示人类自认为的科学规律，可能只是更高维文明实验的偶然结果。这也是全书"宇宙观坍塌"的核心伏笔。
+              </div>
+              <div class="msg me"><div class="sender">我</div>那"周文王和长夜"这个标题有什么隐喻？</div>
+              <div class="msg ai">
+                <div class="sender">🤖 阅读助手</div>
+                周文王演绎的是"恒纪元与乱纪元"的循环观，对应三体世界的混沌岁月。刘慈欣用东方古老的占卜意象来结构宇宙尺度的灾难，暗指人类面对不可知规律时的宿命感，为后文"黑暗森林"埋下伏笔。
+              </div>
+            </div>
+            <div class="ai-suggest">
+              <button class="chip">总结当前章节</button>
+              <button class="chip">推荐类似书籍</button>
+              <button class="chip">解析书源规则</button>
+            </div>
+            <div class="ai-inputbar">
+              <input placeholder="输入问题，回车发送…">
+              <button class="send">➤</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ============ 书籍详情 ============ -->
+        <div class="page" id="page-detail" style="transform:translateY(100%);display:none">
+          <div class="detail-hero">
+            <div class="detail-top">
+              <div class="icon-btn" onclick="goBack()">←</div>
+              <div style="display:flex;gap:10px"><div class="icon-btn">🔖</div><div class="icon-btn">⋮</div></div>
+            </div>
+            <div class="detail-body">
+              <div class="cover g2"><div class="c-title">三体</div><div class="c-sub">刘慈欣</div></div>
+              <div class="detail-info">
+                <h1>三体</h1>
+                <div class="author">刘慈欣 · 科幻世界</div>
+                <div class="tags"><span class="tag">科幻</span><span class="tag">硬核</span><span class="tag">雨果奖</span></div>
+                <div class="rate">⭐ <b>9.4</b> · 92.1万人在读 · 127万字</div>
+              </div>
+            </div>
+            <div class="detail-actions">
+              <button class="btn-read" onclick="openReader()">▶ 开始阅读</button>
+              <button class="btn-shelf">＋ 书架</button>
+            </div>
+          </div>
+          <div class="pad">
+            <div class="detail-section">
+              <h4>简介</h4>
+              <p class="intro">文化大革命如火如荼进行的同时，军方探寻外星文明的绝秘计划"红岸工程"取得了突破性进展。但在按下发射键的那一刻，历经劫难的叶文洁没有意识到，她彻底改变了人类的命运……</p>
+            </div>
+            <div class="detail-section">
+              <h4>目录 <span style="font-size:11px;color:var(--text-3);font-weight:400">共 62 章 · 点击阅读</span></h4>
+              <div class="chapter-item"><span>第一章 科学边界</span><span class="cur">已读</span></div>
+              <div class="chapter-item"><span>第二章 台球</span><span class="cur">已读</span></div>
+              <div class="chapter-item"><span>第三章 射手和农场主</span><span>▸ 继续阅读</span></div>
+              <div class="chapter-item"><span>第四章 三体、周文王和长夜</span><span style="color:var(--text-3)">12:45</span></div>
+            </div>
+            <div style="height:110px"></div>
+          </div>
+        </div>
+
+        <!-- ============ 阅读器 ============ -->
+        <div class="page" id="page-reader" style="transform:translateY(100%);display:none">
+          <div class="reader-tools" id="readerTools">
+            <div class="icon-btn" onclick="goBack()">←</div>
+            <b style="font-size:14px">三体 · 第三章</b>
+            <div class="icon-btn">⋮</div>
+          </div>
+          <div class="reader" onclick="toggleReaderTools()">
+            <div class="chap-title serif">第三章　射手和农场主</div>
+            <p class="para serif">"我们把一个疯子的想法放到一边，继续讲物理学。"汪淼说，"我请你来是因为，你是我认识的人中，唯一能证实一件事的人。"</p>
+            <p class="para serif">"什么事？"</p>
+            <p class="para serif">"生命是一件很脆弱的事情。"史强端起茶，"但总有人相信，在这片黑暗的森林里，规则是存在的。"</p>
+            <p class="para serif">汪淼沉默了片刻，窗外的霓虹在雾里晕成一片光斑。他想起了那场诡异的实验——台球桌上，两个球每次撞击后的轨迹都不相同。球桌在变，空间在变，规则也在变。</p>
+            <p class="para serif">"如果规则可以被随意改变，"他慢慢说，"那科学又算什么呢？"</p>
+            <p class="para serif">史强咧嘴笑了："所以我说，别太相信你那双眼睛。"</p>
+          </div>
+          <div class="reader-controls" id="readerControls">
+            <div class="progress-top"><span>第三章 射手和农场主</span><span>31%</span></div>
+            <div class="slider"><i style="width:31%"></i></div>
+            <div class="tools-row">
+              <button onclick="openToc()">📖<span>目录</span></button>
+              <button onclick="openSheet()">🔠<span>字体</span></button>
+              <button onclick="openSheet()">📐<span>排版</span></button>
+              <button onclick="pickBg(null,'#16151D')">🌙<span>夜间</span></button>
+              <button onclick="openSheet()">⚙️<span>更多</span></button>
+            </div>
+          </div>
+
+          <div class="scrim" id="readerScrim" onclick="closeSheets()"></div>
+          <div class="sheet" id="readerSheet">
+            <div class="handle"></div>
+            <div class="setting-row">
+              <div class="lbl">字体</div>
+              <div class="opt-row" style="gap:8px">
+                <div class="font-preview active" onclick="pickFont(this,'serif')"><div class="fp" style="font-family:'Songti SC',serif">宋</div><span>衬线体<small>宋体 · 传统</small></span></div>
+                <div class="font-preview" onclick="pickFont(this,'sans')"><div class="fp" style="font-family:sans-serif">黑</div><span>无衬线<small>黑体 · 现代</small></span></div>
+                <div class="font-preview" onclick="pickFont(this,'round')"><div class="fp" style="font-family:'PingFang SC'">圆</div><span>圆体<small>柔和 · 护眼</small></span></div>
+              </div>
+            </div>
+            <div class="setting-row">
+              <div class="lbl">字号 <span style="float:right;color:var(--primary)" id="fontSizeLbl">18</span></div>
+              <div style="display:flex;align-items:center;gap:14px">
+                <button class="opt fb" onclick="setFontSize(-1)">A−</button>
+                <div class="slider" style="flex:1"><i style="width:42%"></i></div>
+                <button class="opt fb" onclick="setFontSize(1)">A＋</button>
+              </div>
+            </div>
+            <div class="setting-row">
+              <div class="lbl">阅读背景</div>
+              <div class="opt-row">
+                <button class="opt active" onclick="pickBg(this,'#F4F2EE')">☀️ 白昼</button>
+                <button class="opt" onclick="pickBg(this,'#EFE6D5')">📜 羊皮纸</button>
+                <button class="opt" onclick="pickBg(this,'#25302B')">🌙 深绿</button>
+                <button class="opt" onclick="pickBg(this,'#16151D')">🕶 夜间</button>
+              </div>
+            </div>
+            <div class="setting-row" style="margin-bottom:6px">
+              <div class="lbl">翻页动画</div>
+              <div class="opt-row">
+                <button class="opt active">上下滚动</button>
+                <button class="opt">左右滑屏</button>
+                <button class="opt">仿真翻页</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="drawer" id="tocDrawer">
+            <div class="drawer-head">
+              <b>目录 · 三体</b>
+              <div class="icon-btn" onclick="closeSheets()">✕</div>
+            </div>
+            <div class="drawer-list">
+              <div class="d-item"><span>第一章　科学边界</span><span class="len">已读</span></div>
+              <div class="d-item"><span>第二章　台球</span><span class="len">已读</span></div>
+              <div class="d-item cur"><span>第三章　射手和农场主</span><span class="len">当前</span></div>
+              <div class="d-item"><span>第四章　三体、周文王和长夜</span><span class="len">28:44</span></div>
+              <div class="d-item"><span>第五章　三体、牛顿、冯·诺依曼</span><span class="len">31:12</span></div>
+              <div class="d-item"><span>第六章　宇宙闪烁之一</span><span class="len">26:08</span></div>
+              <div class="d-item"><span>第七章　宇宙闪烁之二</span><span class="len">33:50</span></div>
+              <div class="d-item"><span>第八章　三体、远征</span><span class="len">29:15</span></div>
+              <div class="d-item"><span>第九章　面壁计划</span><span class="len">35:47</span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ============ 底部导航 ============ -->
+        <nav class="navbar" id="navbar">
+          <button class="nav-item active" data-tab="bookshelf" onclick="switchTab('bookshelf')"><span class="ic">📚</span>书架</button>
+          <button class="nav-item" data-tab="explore" onclick="switchTab('explore')"><span class="ic">🧭</span>发现</button>
+          <button class="nav-item" data-tab="rss" onclick="switchTab('rss')"><span class="ic">📡</span>订阅</button>
+          <button class="nav-item" data-tab="ai" onclick="switchTab('ai')"><span class="ic">🤖</span>AI</button>
+          <button class="nav-item" data-tab="my" onclick="switchTab('my')"><span class="ic">👤</span>我的</button>
+        </nav>
+
+        <!-- ============ 搜索覆盖层 ============ -->
+        <div class="overlay" id="overlay">
+          <div class="search-top">
+            <div class="icon-btn" onclick="closeSearch()">←</div>
+            <div class="searchbar" style="flex:1">
+              <span style="font-size:16px;opacity:.7">🔍</span>
+              <input id="searchInput" placeholder="搜索书籍、作者、来源…" autofocus oninput="onSearchInput(this.value)">
+            </div>
+          </div>
+          <div id="searchIdle" style="display:flex;flex-direction:column;flex:1;overflow-y:auto;scrollbar-width:none">
+            <div class="sec-title pad" style="margin-top:8px"><h3>搜索历史</h3><span class="more">清空</span></div>
+            <div class="pad" style="display:flex;gap:8px;flex-wrap:wrap">
+              <span class="chip">三体</span><span class="chip">诡秘之主</span><span class="chip">余华</span><span class="chip">斗破苍穹</span>
+            </div>
+            <div class="sec-title pad"><h3>热门搜索</h3></div>
+            <div class="hot-list">
+              <div class="hot-item"><span class="idx hot">1</span><span>诡秘之主</span></div>
+              <div class="hot-item"><span class="idx hot">2</span><span>道诡异仙</span></div>
+              <div class="hot-item"><span class="idx hot">3</span><span>长夜余火</span></div>
+              <div class="hot-item"><span class="idx">4</span><span>天之下</span></div>
+              <div class="hot-item"><span class="idx">5</span><span>哈利·波特</span></div>
+            </div>
+          </div>
+          <div class="search-results" id="searchResults">
+            <div class="result-item" onclick="closeSearch()">
+              <div class="cover g2"><div class="c-title">三体</div></div>
+              <div class="r-body">
+                <div class="r-title">三体</div>
+                <div class="r-meta">刘慈欣 · 科幻 · 127万字 · 92.1万人在读</div>
+                <div class="r-src">📚 3 个书源可读</div>
+              </div>
+            </div>
+            <div class="result-item" onclick="closeSearch()">
+              <div class="cover g2"><div class="c-title" style="font-size:10px">三体Ⅱ</div></div>
+              <div class="r-body">
+                <div class="r-title">三体Ⅱ·黑暗森林</div>
+                <div class="r-meta">刘慈欣 · 科幻 · 88万字 · 85.4万人在读</div>
+                <div class="r-src">📚 3 个书源可读</div>
+              </div>
+            </div>
+            <div class="result-item" onclick="closeSearch()">
+              <div class="cover g2"><div class="c-title" style="font-size:10px">三体Ⅲ</div></div>
+              <div class="r-body">
+                <div class="r-title">三体Ⅲ·死神永生</div>
+                <div class="r-meta">刘慈欣 · 科幻 · 110万字 · 81.2万人在读</div>
+                <div class="r-src">📚 3 个书源可读</div>
+              </div>
+            </div>
+            <div style="height:20px"></div>
+          </div>
+        </div>
+
+        <button class="floating" id="fab" onclick="openSearch()">＋</button>
+      </div>
+    </div>
+
+    <div class="caption">
+      <h1>Legado 阅读<br>界面现代化重构</h1>
+      <p>Material You 动态取色 · 去线框化卡片 · 封面即视觉重心 · 沉浸式阅读器<br>支持亮/暗主题，含交互演示</p>
+      <div class="hint">👇 书卡 → 详情 → 阅读；底部导航含 订阅/AI；阅读页点「字体」体验设置面板、点「目录」开抽屉</div>
+    </div>
+  </div>
+
+<script>
+  const screen = document.getElementById('screen');
+  const pages = {
+    bookshelf: document.getElementById('page-bookshelf'),
+    explore: document.getElementById('page-explore'),
+    rss: document.getElementById('page-rss'),
+    ai: document.getElementById('page-ai'),
+    my: document.getElementById('page-my'),
+    detail: document.getElementById('page-detail'),
+    reader: document.getElementById('page-reader')
+  };
+  const navbar = document.getElementById('navbar');
+  const fab = document.getElementById('fab');
+  let current = 'bookshelf';
+  let stack = [];
+
+  function showPage(name){
+    for(const k in pages) pages[k].style.display = 'none';
+    const p = pages[name];
+    p.style.display = 'block';
+    p.scrollTop = 0;
+    p.style.transform = 'translateY(0)';
+  }
+  function isTab(name){ return ['bookshelf','explore','rss','ai','my'].includes(name); }
+
+  function switchTab(name){
+    current = name;
+    showPage(name);
+    navbar.classList.remove('hidden');
+    fab.style.display = name === 'ai' ? 'none' : 'flex';
+    document.querySelectorAll('.nav-item').forEach(n => {
+      n.classList.toggle('active', n.dataset.tab === name);
+    });
+  }
+
+  function openDetail(i){
+    stack.push(current);
+    current = 'detail';
+    showPage('detail');
+    navbar.classList.add('hidden');
+    fab.style.display = 'none';
+  }
+  function openReader(){
+    stack.push(current);
+    current = 'reader';
+    showPage('reader');
+    navbar.classList.add('hidden');
+    fab.style.display = 'none';
+    readerTools.classList.remove('hidden');
+    readerControls.classList.remove('hidden');
+  }
+  function goBack(){
+    const prev = stack.pop() || 'bookshelf';
+    switchTab(isTab(prev) ? prev : 'bookshelf');
+  }
+
+  // 阅读器工具栏
+  const readerTools = document.getElementById('readerTools');
+  const readerControls = document.getElementById('readerControls');
+  let toolsShown = true;
+  function toggleReaderTools(){
+    toolsShown = !toolsShown;
+    readerTools.classList.toggle('hidden', !toolsShown);
+    readerControls.classList.toggle('hidden', !toolsShown);
+  }
+
+  // 搜索
+  const overlay = document.getElementById('overlay');
+  function openSearch(){ overlay.classList.add('open'); }
+  function closeSearch(){ overlay.classList.remove('open'); }
+  function onSearchInput(v){
+    const idle = document.getElementById('searchIdle');
+    const res = document.getElementById('searchResults');
+    const has = v.trim().length > 0;
+    idle.style.display = has ? 'none' : 'flex';
+    res.classList.toggle('show', has);
+  }
+
+  // 阅读器设置面板 & 目录抽屉
+  const readerSheet = document.getElementById('readerSheet');
+  const tocDrawer = document.getElementById('tocDrawer');
+  const readerScrim = document.getElementById('readerScrim');
+  function openSheet(){ readerSheet.classList.add('open'); readerScrim.classList.add('show'); }
+  function openToc(){ tocDrawer.classList.add('open'); readerScrim.classList.add('show'); }
+  function closeSheets(){ readerSheet.classList.remove('open'); tocDrawer.classList.remove('open'); readerScrim.classList.remove('show'); }
+  function pickFont(el, kind){
+    document.querySelectorAll('.font-preview').forEach(x => x.classList.remove('active'));
+    el.classList.add('active');
+    const fonts = { serif:'"Songti SC","STSong","Noto Serif SC","SimSun",serif',
+                    sans:'"PingFang SC","HarmonyOS Sans SC","Microsoft YaHei",sans-serif',
+                    round:'"PingFang SC","Microsoft YaHei","System UI",sans-serif' };
+    document.querySelectorAll('#page-reader .para, #page-reader .chap-title').forEach(p => {
+      p.style.fontFamily = fonts[kind];
+    });
+  }
+  function setFontSize(dir){
+    const paras = document.querySelectorAll('#page-reader .para');
+    if(!paras.length) return;
+    const cur = parseFloat(getComputedStyle(paras[0]).fontSize);
+    const next = Math.max(14, Math.min(26, cur + dir));
+    paras.forEach(p => p.style.fontSize = next + 'px');
+    document.getElementById('fontSizeLbl').textContent = next;
+  }
+  function pickBg(el, color){
+    if(el){
+      document.querySelectorAll('#readerSheet .opt').forEach(x => x.classList.remove('active'));
+      el.classList.add('active');
+    }
+    const page = document.getElementById('page-reader');
+    page.style.background = color;
+    const dark = color === '#25302B' || color === '#16151D';
+    const tc = dark ? '#E8E6E3' : 'var(--text)';
+    page.style.color = tc;
+    document.querySelectorAll('#page-reader .para, #page-reader .chap-title').forEach(p => p.style.color = tc);
+  }
+
+  // 主题
+  function toggleTheme(){
+    const dark = document.body.dataset.theme === 'dark';
+    document.body.dataset.theme = dark ? 'light' : 'dark';
+    document.querySelector('.theme-toggle').textContent = dark ? '🌙' : '☀️';
+  }
+
+  // 设计说明
+  function toggleNotes(){ document.getElementById('notesPanel').classList.toggle('open'); }
+
+  // 键盘快捷键
+  document.addEventListener('keydown', e => {
+    if((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k'){ e.preventDefault(); openSearch(); }
+    if(e.key === 'Escape'){ closeSearch(); }
+  });
+</script>
+</body>
+</html>

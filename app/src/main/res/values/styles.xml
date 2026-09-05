@@ -24,7 +24,7 @@
     </style>
 
     <!-- Base application theme. -->
-    <style name="Base.AppTheme" parent="Theme.AppCompat.DayNight.NoActionBar">
+    <style name="Base.AppTheme" parent="Theme.Material3.DayNight.NoActionBar">
         <item name="colorPrimary">@color/primary</item>
         <item name="colorPrimaryDark">@color/primaryDark</item>
         <item name="colorAccent">@color/accent</item>
@@ -33,6 +33,8 @@
         <item name="android:popupMenuStyle">@style/Style.PopupMenu</item>
         <item name="android:statusBarColor">@color/transparent</item>
         <item name="android:windowDrawsSystemBarBackgrounds">true</item>
+        <item name="colorSurface">@color/background</item>
+        <item name="android:colorBackground">@color/background</item>
     </style>
 
     <style name="AppTheme.AppBarOverlay.Light" parent="ThemeOverlay.AppCompat.Light">
@@ -125,6 +127,19 @@
 
     <style name="Style.Text.Second.Normal.Wrap">
         <item name="android:layout_width">wrap_content</item>
+    </style>
+
+    <!-- P2 底部导航胶囊指示器：全圆角 pill -->
+    <style name="ShapeAppearance.Legado.Pill" parent="">
+        <item name="cornerSize">999dp</item>
+    </style>
+
+    <style name="Widget.Legado.BottomNav.ActiveIndicator" parent="">
+        <item name="android:color">@color/color_primary_container</item>
+        <item name="shapeAppearance">@style/ShapeAppearance.Legado.Pill</item>
+        <item name="android:width">44dp</item>
+        <item name="android:height">26dp</item>
+        <item name="marginHorizontal">6dp</item>
     </style>
 
 </resources>

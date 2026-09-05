@@ -2,7 +2,6 @@ package io.legado.app.ui.widget.image
 
 import android.content.Context
 import android.graphics.Canvas
-import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Path
 import android.graphics.Typeface
@@ -24,6 +23,7 @@ import io.legado.app.help.glide.ImageLoader
 import io.legado.app.help.glide.OkHttpModelLoader
 import io.legado.app.lib.theme.accentColor
 import io.legado.app.model.BookCover
+import io.legado.app.utils.dpToPx
 import io.legado.app.utils.textHeight
 import io.legado.app.utils.toStringArray
 
@@ -38,6 +38,7 @@ class CoverImageView @JvmOverloads constructor(
     private var filletPath = Path()
     private var viewWidth: Float = 0f
     private var viewHeight: Float = 0f
+    private val filletRadius: Float = 10.dpToPx().toFloat()
     private var defaultCover = true
     var bitmapPath: String? = null
         private set
@@ -86,17 +87,17 @@ class CoverImageView @JvmOverloads constructor(
         viewWidth = width.toFloat()
         viewHeight = height.toFloat()
         filletPath.reset()
-        if (width > 10 && viewHeight > 10) {
+        if (width > filletRadius && viewHeight > filletRadius) {
             filletPath.apply {
-                moveTo(10f, 0f)
-                lineTo(viewWidth - 10, 0f)
-                quadTo(viewWidth, 0f, viewWidth, 10f)
-                lineTo(viewWidth, viewHeight - 10)
-                quadTo(viewWidth, viewHeight, viewWidth - 10, viewHeight)
-                lineTo(10f, viewHeight)
-                quadTo(0f, viewHeight, 0f, viewHeight - 10)
-                lineTo(0f, 10f)
-                quadTo(0f, 0f, 10f, 0f)
+                moveTo(filletRadius, 0f)
+                lineTo(viewWidth - filletRadius, 0f)
+                quadTo(viewWidth, 0f, viewWidth, filletRadius)
+                lineTo(viewWidth, viewHeight - filletRadius)
+                quadTo(viewWidth, viewHeight, viewWidth - filletRadius, viewHeight)
+                lineTo(filletRadius, viewHeight)
+                quadTo(0f, viewHeight, 0f, viewHeight - filletRadius)
+                lineTo(0f, filletRadius)
+                quadTo(0f, 0f, filletRadius, 0f)
                 close()
             }
         }
@@ -120,9 +121,6 @@ class CoverImageView @JvmOverloads constructor(
             namePaint.textSize = viewWidth / 6
             namePaint.strokeWidth = namePaint.textSize / 5
             name.forEachIndexed { index, char ->
-                namePaint.color = Color.WHITE
-                namePaint.style = Paint.Style.STROKE
-                canvas.drawText(char, startX, startY, namePaint)
                 namePaint.color = context.accentColor
                 namePaint.style = Paint.Style.FILL
                 canvas.drawText(char, startX, startY, namePaint)
@@ -142,9 +140,6 @@ class CoverImageView @JvmOverloads constructor(
             startY = viewHeight * 0.95f - author.size * authorPaint.textHeight
             startY = maxOf(startY, viewHeight * 0.3f)
             author.forEach {
-                authorPaint.color = Color.WHITE
-                authorPaint.style = Paint.Style.STROKE
-                canvas.drawText(it, startX, startY, authorPaint)
                 authorPaint.color = context.accentColor
                 authorPaint.style = Paint.Style.FILL
                 canvas.drawText(it, startX, startY, authorPaint)

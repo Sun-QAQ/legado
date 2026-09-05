@@ -1,6 +1,7 @@
 package io.legado.app.ui.book.agent
 
 import android.content.Context
+import android.content.res.ColorStateList
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -15,6 +16,7 @@ import io.legado.app.databinding.ItemAgentReplyBinding
 import io.legado.app.databinding.ItemSearchBinding
 import io.legado.app.databinding.ItemAgentStepBinding
 import io.legado.app.help.config.AppConfig
+import io.legado.app.lib.theme.accentColor
 import io.legado.app.utils.visible
 import java.util.Locale
 
@@ -80,6 +82,7 @@ class AgentAdapter(
         if (item.isUser) {
             val viewBinding = ItemAgentMessageBinding.bind(binding)
             viewBinding.tvMessage.text = item.text
+            viewBinding.tvMessage.backgroundTintList = ColorStateList.valueOf(context.accentColor)
         } else {
             val viewBinding = ItemAgentReplyBinding.bind(binding)
             viewBinding.tvMessage.text = item.text

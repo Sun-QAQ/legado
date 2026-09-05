@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="primary">@color/md_light_blue_600</color>
-    <color name="primaryDark">@color/md_light_blue_700</color>
-    <color name="accent">@color/md_pink_800</color>
+    <color name="primary">@color/md_theme_light_primary</color>
+    <color name="primaryDark">@color/md_theme_light_primary_dark</color>
+    <color name="accent">@color/md_theme_light_primary</color>
 
     <color name="disabled">@color/md_light_disabled</color>
 
@@ -15,12 +15,15 @@
 
     <color name="night_mask">#00000000</color>
 
-    <color name="background">@color/md_grey_50</color>
-    <color name="background_card">@color/md_grey_100</color>
-    <color name="background_menu">@color/md_grey_200</color>
+    <color name="background">@color/md_theme_light_background</color>
+    <color name="background_card">@color/color_card</color>
+    <color name="background_menu">@color/color_surface_variant</color>
     <color name="background_prefs">#7fffffff</color>
 
     <color name="transparent">#00000000</color>
+
+    <!-- 默认封面背景（亮色） -->
+    <color name="default_cover_bg">#EDEDED</color>
 
     <color name="transparent10">#10000000</color>
     <color name="transparent20">#20000000</color>
@@ -36,9 +39,9 @@
     <color name="tv_btn_normal_black">#737373</color>
     <color name="tv_btn_press_black">#adadad</color>
 
-    <color name="primaryText">#de000000</color>
-    <color name="secondaryText">#8a000000</color>
-    <color name="tv_text_summary">#8A2C2C2C</color>
+    <color name="primaryText">@color/md_theme_light_onSurface</color>
+    <color name="secondaryText">@color/md_theme_light_onSurfaceVariant</color>
+    <color name="tv_text_summary">@color/md_theme_light_onSurfaceVariant</color>
     <color name="tv_text_book_detail">#dfdfdf</color>
     <color name="menu_color_default">#383838</color>
 
@@ -50,10 +53,10 @@
     <color name="darker_gray">#aaaaaaaa</color>
 
     <!-- 分格线背景色 -->
-    <color name="bg_divider_line">#8fe0e0e0</color>
+    <color name="bg_divider_line">@color/md_theme_light_outlineVariant</color>
     <!--statusBarBackground-->
     <color name="status_bar_bag">#19000000</color>
-    <color name="navigation_bar_bag">#f4f4f4</color>
+    <color name="navigation_bar_bag">@color/md_theme_light_background</color>
 
     <!--base-color-->
     <color name="translucent">#99343434</color>

@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+      P0 设计 Token · 形状（圆角）
+      md_shape_* 对应 M3 标准形状阶梯；md_shape_*_legado 为原型自定义圆角，可直接引用。
+      纯新增，不影响现有布局。
+    -->
+
+    <!-- M3 标准形状阶梯 -->
+    <dimen name="md_shape_corner_extra_small">4dp</dimen>
+    <dimen name="md_shape_corner_small">8dp</dimen>
+    <dimen name="md_shape_corner_medium">12dp</dimen>
+    <dimen name="md_shape_corner_large">16dp</dimen>
+    <dimen name="md_shape_corner_extra_large">28dp</dimen>
+    <dimen name="md_shape_corner_full">999dp</dimen>
+
+    <!-- 原型自定义形状 -->
+    <dimen name="md_shape_card">20dp</dimen>
+    <dimen name="md_shape_card_small">14dp</dimen>
+    <dimen name="md_shape_nav_bar">24dp</dimen>
+    <dimen name="md_shape_sheet_top">26dp</dimen>
+    <dimen name="md_shape_pill">999dp</dimen>
+</resources>

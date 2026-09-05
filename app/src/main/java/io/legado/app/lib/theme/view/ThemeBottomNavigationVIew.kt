@@ -21,10 +21,8 @@ class ThemeBottomNavigationVIew(context: Context, attrs: AttributeSet) :
     BottomNavigationView(context, attrs) {
 
     init {
-        val bgColor = context.bottomBackground
-        setBackgroundColor(bgColor)
-        val textIsDark = ColorUtils.isColorLight(bgColor)
-        val textColor = context.getSecondaryTextColor(textIsDark)
+        // 悬浮胶囊背景由布局 drawable 提供，此处不再扁平填充
+        val textColor = context.getSecondaryTextColor(ColorUtils.isColorLight(context.bottomBackground))
         val colorStateList = Selector.colorBuild()
             .setDefaultColor(textColor)
             .setSelectedColor(ThemeStore.accentColor(context)).create()

@@ -9,16 +9,17 @@
     <View
         android:id="@+id/preference_divider_above"
         android:layout_width="match_parent"
-        android:layout_height="8dp" />
+        android:layout_height="10dp" />
 
     <TextView
         android:id="@+id/preference_title"
-        android:paddingTop="16dp"
-        android:paddingBottom="8dp"
+        android:paddingTop="18dp"
+        android:paddingBottom="10dp"
         android:background="@drawable/bg_prefs_color"
         android:paddingLeft="16dp"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:textStyle="bold"
         android:textColor="@color/accent"
         tools:ignore="RtlHardcoded,RtlSymmetry" />
 

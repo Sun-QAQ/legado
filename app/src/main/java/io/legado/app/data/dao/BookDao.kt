@@ -168,4 +168,10 @@ interface BookDao {
 
     @Query("delete from books where type & ${BookType.notShelf} > 0")
     fun deleteNotShelfBook()
+
+    @Query("select count(*) from books")
+    fun countAll(): Int
+
+    @Query("select count(*) from books where totalChapterNum > 0 and durChapterIndex + 1 >= totalChapterNum")
+    fun countFinished(): Int
 }

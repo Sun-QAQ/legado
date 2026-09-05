@@ -1,9 +1,12 @@
 package io.legado.app.ui.book.agent
 
 import android.os.Bundle
+import android.content.res.ColorStateList
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
+import android.view.ViewGroup
+import androidx.core.view.updateLayoutParams
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
@@ -16,11 +19,15 @@ import io.legado.app.data.appDb
 import io.legado.app.data.entities.SearchBook
 import io.legado.app.databinding.FragmentAgentBinding
 import io.legado.app.lib.dialogs.selector
+import io.legado.app.lib.theme.accentColor
 import io.legado.app.ui.about.AppLogDialog
 import io.legado.app.ui.book.info.BookInfoActivity
 import io.legado.app.ui.main.MainFragmentInterface
 import io.legado.app.ui.widget.recycler.VerticalDivider
 import io.legado.app.utils.applyTint
+import io.legado.app.utils.dpToPx
+import io.legado.app.utils.navigationBarHeight
+import io.legado.app.utils.setOnApplyWindowInsetsListenerCompat
 import io.legado.app.utils.showDialogFragment
 import io.legado.app.utils.startActivity
 import io.legado.app.utils.toastOnUi
@@ -56,6 +63,15 @@ class AgentFragment() : BaseFragment(R.layout.fragment_agent), MainFragmentInter
 
     override fun onFragmentCreated(view: View, savedInstanceState: Bundle?) {
         setSupportToolbar(binding.titleBar.toolbar)
+        binding.btnSend.backgroundTintList = ColorStateList.valueOf(requireContext().accentColor)
+        // 输入栏上移，避免被悬浮导航胶囊遮挡
+        binding.llInput.setOnApplyWindowInsetsListenerCompat { view, windowInsets ->
+            val navBarHeight = windowInsets.navigationBarHeight
+            view.updateLayoutParams<ViewGroup.MarginLayoutParams> {
+                bottomMargin = navBarHeight + 88.dpToPx()
+            }
+            windowInsets
+        }
         binding.recyclerView.layoutManager = LinearLayoutManager(requireContext())
         binding.recyclerView.addItemDecoration(VerticalDivider(requireContext()))
         binding.recyclerView.adapter = adapter

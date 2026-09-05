@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+      P0 设计 Token · 字阶（字号/字重，仅字体规格，不含颜色，避免覆盖主题色）
+      对应原型三级信息层级：Display/Headline/Title 为大字号强调，Body 为正文，Label 为辅助说明。
+      纯新增，不影响现有渲染。
+    -->
+
+    <!-- Display：超大标题（用于营销位/空白态） -->
+    <style name="TextAppearance.Legado.DisplaySmall" parent="TextAppearance.AppCompat">
+        <item name="android:textSize">36sp</item>
+        <item name="android:textStyle">normal</item>
+    </style>
+
+    <!-- Headline：页级大标题（阅读章节标题） -->
+    <style name="TextAppearance.Legado.HeadlineSmall" parent="TextAppearance.AppCompat">
+        <item name="android:textSize">24sp</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
+    <!-- Title：页面/区块标题 -->
+    <style name="TextAppearance.Legado.TitleLarge" parent="TextAppearance.AppCompat">
+        <item name="android:textSize">22sp</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
+    <style name="TextAppearance.Legado.TitleMedium" parent="TextAppearance.AppCompat">
+        <item name="android:textSize">17sp</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
+    <style name="TextAppearance.Legado.TitleSmall" parent="TextAppearance.AppCompat">
+        <item name="android:textSize">14sp</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
+    <!-- Body：正文 -->
+    <style name="TextAppearance.Legado.BodyLarge" parent="TextAppearance.AppCompat">
+        <item name="android:textSize">16sp</item>
+        <item name="android:textStyle">normal</item>
+    </style>
+
+    <style name="TextAppearance.Legado.BodyMedium" parent="TextAppearance.AppCompat">
+        <item name="android:textSize">14sp</item>
+        <item name="android:textStyle">normal</item>
+    </style>
+
+    <style name="TextAppearance.Legado.BodySmall" parent="TextAppearance.AppCompat">
+        <item name="android:textSize">12sp</item>
+        <item name="android:textStyle">normal</item>
+    </style>
+
+    <!-- Label：辅助/元信息 -->
+    <style name="TextAppearance.Legado.LabelLarge" parent="TextAppearance.AppCompat">
+        <item name="android:textSize">13sp</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
+    <style name="TextAppearance.Legado.LabelSmall" parent="TextAppearance.AppCompat">
+        <item name="android:textSize">11sp</item>
+        <item name="android:textStyle">normal</item>
+    </style>
+</resources>

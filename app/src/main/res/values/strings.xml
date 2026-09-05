@@ -1347,4 +1347,18 @@
     <string name="auto_check_new_backup_t">自动检查新备份</string>
     <string name="auto_check_new_backup_s">打开软件时检查是否有新备份，有新备份时提示是否更新</string>
     <string name="sys_image_picker">系统图片选择器</string>
+    <string name="user_nickname_default">书海漫游者</string>
+    <string name="my_reading_time">累计阅读时长</string>
+    <string name="my_reading_time_unit">小时</string>
+    <string name="my_finished">读完书籍</string>
+    <string name="my_shelf_count">加入书架</string>
+    <string name="my_key_settings">关键设置</string>
+    <string name="my_all_settings">全部设置</string>
+    <string name="my_edit_nickname">修改昵称</string>
+    <string name="my_nickname_hint">请输入昵称</string>
+    <string name="my_avatar">选择头像</string>
+    <string name="my_avatar_local">使用本地图片</string>
+    <string name="my_avatar_emoji">表情头像</string>
+    <string name="my_avatar_reset">恢复默认</string>
+    <string name="book_info_read_play">▶ 阅读</string>
 </resources>
