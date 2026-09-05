@@ -6,7 +6,6 @@ import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.Paint.FontMetricsInt
 import android.graphics.Rect
-import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.text.*
@@ -16,7 +15,6 @@ import android.text.style.ReplacementSpan
 import android.util.AttributeSet
 import android.widget.TextView
 import androidx.annotation.ColorInt
-import androidx.core.content.ContextCompat
 import io.legado.app.R
 import io.legado.app.lib.theme.ThemeStore
 import io.legado.app.lib.theme.TintHelper
@@ -113,23 +111,21 @@ class CodeView @JvmOverloads constructor(context: Context, attrs: AttributeSet? 
     @SuppressLint("DiscouragedPrivateApi", "SoonBlockedPrivateApi")
     private fun initCursorColor() {
         val accent = ThemeStore.accentColor(context)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            setTextCursorDrawable(
-                TintHelper.createTintedDrawable(
-                    ContextCompat.getDrawable(context, R.drawable.shape_text_cursor),
-                    accent
-                )
-            )
-        } else {
-            try {
-                val fRes = TextView::class.java.getDeclaredField("mCursorDrawableRes")
-                fRes.isAccessible = true
-                if (fRes.getInt(this) == 0) {
-                    fRes.setInt(this, R.drawable.shape_text_cursor)
-                }
-                TintHelper.setCursorTint(this, accent)
-            } catch (ignored: Exception) {
+        try {
+            val fRes = TextView::class.java.getDeclaredField("mCursorDrawableRes")
+            fRes.isAccessible = true
+            if (fRes.getInt(this) == 0) {
+                fRes.setInt(this, R.drawable.shape_text_cursor)
             }
+            TintHelper.setCursorTint(this, accent)
+        } catch (ignored: Exception) {
+        }
+    }
+
+    override fun onFocusChanged(focused: Boolean, direction: Int, previouslyFocusedRect: Rect?) {
+        super.onFocusChanged(focused, direction, previouslyFocusedRect)
+        if (focused) {
+            initCursorColor()
         }
     }
 
