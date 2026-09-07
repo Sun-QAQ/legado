@@ -50,6 +50,37 @@
 
     <color name="md_theme_light_scrim">#000000</color>
 
+    <!-- 暗色 token（base 兜底声明，夜间由 values-night 以相同值覆盖；避免 MissingDefaultResource） -->
+    <color name="md_theme_dark_onPrimary">#352A6D</color>
+    <color name="md_theme_dark_primaryContainer">#4A3B8F</color>
+    <color name="md_theme_dark_onPrimaryContainer">#E6E0FF</color>
+    <color name="md_theme_dark_secondary">#C6C1B9</color>
+    <color name="md_theme_dark_onSecondary">#312B25</color>
+    <color name="md_theme_dark_secondaryContainer">#48413A</color>
+    <color name="md_theme_dark_onSecondaryContainer">#E3DCD3</color>
+    <color name="md_theme_dark_tertiary">#A4C9BE</color>
+    <color name="md_theme_dark_onTertiary">#1D352E</color>
+    <color name="md_theme_dark_tertiaryContainer">#344C44</color>
+    <color name="md_theme_dark_onTertiaryContainer">#BFE6DA</color>
+    <color name="md_theme_dark_error">#FFB4AB</color>
+    <color name="md_theme_dark_onError">#690005</color>
+    <color name="md_theme_dark_errorContainer">#93000A</color>
+    <color name="md_theme_dark_onErrorContainer">#FFDAD6</color>
+    <color name="md_theme_dark_background">#0F0E14</color>
+    <color name="md_theme_dark_onBackground">#F2EFEA</color>
+    <color name="md_theme_dark_surface">#0F0E14</color>
+    <color name="md_theme_dark_onSurface">#F2EFEA</color>
+    <color name="md_theme_dark_surfaceVariant">#24212E</color>
+    <color name="md_theme_dark_onSurfaceVariant">#B8B2A8</color>
+    <color name="md_theme_dark_surfaceContainerLowest">#0A090E</color>
+    <color name="md_theme_dark_surfaceContainerLow">#17151C</color>
+    <color name="md_theme_dark_surfaceContainer">#1A1822</color>
+    <color name="md_theme_dark_surfaceContainerHigh">#211F29</color>
+    <color name="md_theme_dark_surfaceContainerHighest">#2C2935</color>
+    <color name="md_theme_dark_outline">#8F8981</color>
+    <color name="md_theme_dark_outlineVariant">#38343C</color>
+    <color name="md_theme_dark_scrim">#000000</color>
+
     <!-- 昼夜自适应别名（供布局/样式引用，P1 换 M3 主题后可迁移为 ?attr/colorPrimaryContainer） -->
     <color name="color_primary_container">@color/md_theme_light_primaryContainer</color>
     <color name="color_surface">@color/md_theme_light_surface</color>
