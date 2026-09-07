@@ -86,7 +86,16 @@ object ImageProvider {
     }
 
     private const val gifCacheMaxSize = 32 * M
+    private const val notGifCacheMaxSize = 2048
     val gifLruCache = GifLruCache()
+
+    //非gif负缓存, 避免每次draw都重新读文件头
+    private val notGifCache = object : LruCache<String, Boolean>(notGifCacheMaxSize) {
+        override fun sizeOf(key: String, value: Boolean): Int = 1
+    }
+
+    //单槽兜底: 超过缓存上限的gif不放进LruCache(放进去会立即被淘汰回收帧), 单独持有避免反复解码
+    private var lastLargeGif: Pair<String, GifData>? = null
 
     class GifLruCache : LruCache<String, GifData>(gifCacheMaxSize) {
 
@@ -284,9 +293,22 @@ object ImageProvider {
         if (!vFile.exists()) return null
         val path = vFile.absolutePath
         gifLruCache.get(path)?.let { return it }
-        if (!isGif(path)) return null
+        lastLargeGif?.takeIf { it.first == path }?.let { return it.second }
+        if (notGifCache.get(path) == true) return null
+        if (!isGif(path)) {
+            notGifCache.put(path, true)
+            return null
+        }
         val gifData = decodeGif(path, width, height) ?: return null
-        gifLruCache.put(path, gifData)
+        val size = gifData.frames.sumOf { it.byteCount }
+        if (size > gifCacheMaxSize) {
+            lastLargeGif?.let { (_, old) ->
+                old.frames.forEach { if (!it.isRecycled) it.recycle() }
+            }
+            lastLargeGif = path to gifData
+        } else {
+            gifLruCache.put(path, gifData)
+        }
         return gifData
     }
 
@@ -341,6 +363,10 @@ object ImageProvider {
     fun clear() {
         bitmapLruCache.evictAll()
         gifLruCache.evictAll()
+        lastLargeGif?.let { (_, gifData) ->
+            gifData.frames.forEach { if (!it.isRecycled) it.recycle() }
+        }
+        lastLargeGif = null
     }
 
 }

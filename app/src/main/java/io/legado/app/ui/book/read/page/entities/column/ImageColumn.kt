@@ -56,6 +56,8 @@ data class ImageColumn(
             }
             //gif自驱动动画, 帧离开屏幕后不再draw, 自动停止
             view.postInvalidateDelayed(gif.nextFrameDelayAt(elapsed).toLong())
+            //optimizeRender下TextLine录制到bitmap, 需标记脏以逐帧重录
+            textLine.canvasRecorder.invalidate()
         } else {
             val bitmap = ImageProvider.getImage(
                 book,
