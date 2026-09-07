@@ -51,6 +51,10 @@ class CoverImageView @JvmOverloads constructor(
     val isDefaultCover: Boolean
         get() = defaultCover
 
+    init {
+        imageTintList = ColorStateList.valueOf(ThemeStore.primaryColor(context))
+    }
+
     var bitmapPath: String? = null
         private set
     private var name: String? = null
