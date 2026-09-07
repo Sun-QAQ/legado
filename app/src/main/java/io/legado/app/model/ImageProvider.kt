@@ -4,6 +4,9 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.util.Size
 import androidx.collection.LruCache
+import com.bumptech.glide.gifdecoder.GifDecoder
+import com.bumptech.glide.gifdecoder.GifHeaderParser
+import com.bumptech.glide.gifdecoder.StandardGifDecoder
 import io.legado.app.R
 import io.legado.app.constant.AppLog.putDebug
 import io.legado.app.data.entities.Book
@@ -25,7 +28,9 @@ import kotlinx.coroutines.Dispatchers.IO
 import kotlinx.coroutines.withContext
 import splitties.init.appCtx
 import java.io.File
+import java.io.FileInputStream
 import java.io.FileOutputStream
+import java.nio.ByteBuffer
 import kotlin.math.min
 
 object ImageProvider {
@@ -78,6 +83,72 @@ object ImageProvider {
             }
         }
 
+    }
+
+    private const val gifCacheMaxSize = 32 * M
+    val gifLruCache = GifLruCache()
+
+    class GifLruCache : LruCache<String, GifData>(gifCacheMaxSize) {
+
+        override fun sizeOf(key: String, value: GifData): Int {
+            return value.frames.sumOf { it.byteCount }
+        }
+
+        override fun entryRemoved(
+            evicted: Boolean,
+            key: String,
+            oldValue: GifData,
+            newValue: GifData?
+        ) {
+            oldValue.frames.forEach {
+                if (!it.isRecycled) it.recycle()
+            }
+        }
+
+    }
+
+    class GifData(
+        val frames: List<Bitmap>,
+        val delays: IntArray,
+        val totalDuration: Int,
+        val width: Int,
+        val height: Int
+    ) {
+        fun frameIndexAt(elapsedMs: Int): Int {
+            var acc = 0
+            for (i in delays.indices) {
+                acc += delays[i]
+                if (elapsedMs < acc) return i
+            }
+            return delays.lastIndex
+        }
+
+        fun nextFrameDelayAt(elapsedMs: Int): Int {
+            var acc = 0
+            for (i in delays.indices) {
+                acc += delays[i]
+                if (elapsedMs < acc) return (acc - elapsedMs).coerceAtLeast(1)
+            }
+            return (totalDuration - elapsedMs).coerceAtLeast(1)
+        }
+    }
+
+    private object GifBitmapProvider : GifDecoder.BitmapProvider {
+        override fun obtain(width: Int, height: Int, config: Bitmap.Config): Bitmap {
+            return Bitmap.createBitmap(width, height, config)
+        }
+
+        override fun obtainByteArray(size: Int): ByteArray = ByteArray(size)
+
+        override fun obtainIntArray(size: Int): IntArray = IntArray(size)
+
+        override fun release(bitmap: Bitmap) {
+            if (!bitmap.isRecycled) bitmap.recycle()
+        }
+
+        override fun release(bytes: ByteArray) = Unit
+
+        override fun release(array: IntArray) = Unit
     }
 
     fun put(key: String, bitmap: Bitmap) {
@@ -205,8 +276,71 @@ object ImageProvider {
         }.getOrDefault(errorBitmap)
     }
 
+    /**
+     * 获取gif动图数据, 非gif返回null
+     */
+    fun getGif(book: Book, src: String, width: Int, height: Int): GifData? {
+        val vFile = BookHelp.getImage(book, src)
+        if (!vFile.exists()) return null
+        val path = vFile.absolutePath
+        gifLruCache.get(path)?.let { return it }
+        if (!isGif(path)) return null
+        val gifData = decodeGif(path, width, height) ?: return null
+        gifLruCache.put(path, gifData)
+        return gifData
+    }
+
+    private fun isGif(path: String): Boolean {
+        return kotlin.runCatching {
+            FileInputStream(path).use { ins ->
+                val bytes = ByteArray(6)
+                val n = ins.read(bytes)
+                n == 6 &&
+                    bytes[0] == 'G'.code.toByte() &&
+                    bytes[1] == 'I'.code.toByte() &&
+                    bytes[2] == 'F'.code.toByte() &&
+                    bytes[3] == '8'.code.toByte() &&
+                    (bytes[4] == '7'.code.toByte() || bytes[4] == '9'.code.toByte()) &&
+                    bytes[5] == 'a'.code.toByte()
+            }
+        }.getOrDefault(false)
+    }
+
+    private fun decodeGif(path: String, targetWidth: Int, targetHeight: Int): GifData? {
+        val bytes = kotlin.runCatching { File(path).readBytes() }.getOrNull() ?: return null
+        val header = GifHeaderParser().setData(bytes).parseHeader()
+        if (header.status != GifDecoder.STATUS_OK) return null
+        var sampleSize = 1
+        val gifWidth = header.width
+        val gifHeight = header.height
+        while (gifWidth / (sampleSize * 2) > targetWidth
+            && gifHeight / (sampleSize * 2) > targetHeight
+            && sampleSize < 8
+        ) {
+            sampleSize *= 2
+        }
+        val decoder = StandardGifDecoder(GifBitmapProvider)
+        decoder.setData(header, ByteBuffer.wrap(bytes), sampleSize)
+        val count = decoder.getFrameCount()
+        if (count <= 0) return null
+        val frames = ArrayList<Bitmap>(count)
+        val delays = IntArray(count)
+        var totalDuration = 0
+        for (i in 0 until count) {
+            decoder.advance()
+            val bitmap = decoder.getNextFrame() ?: break
+            frames.add(bitmap)
+            val delay = decoder.getDelay(i).takeIf { it > 0 } ?: 100
+            delays[i] = delay
+            totalDuration += delay
+        }
+        if (frames.isEmpty()) return null
+        return GifData(frames, delays, totalDuration, frames[0].width, frames[0].height)
+    }
+
     fun clear() {
         bitmapLruCache.evictAll()
+        gifLruCache.evictAll()
     }
 
 }
