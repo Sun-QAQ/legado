@@ -215,8 +215,11 @@ if (!BookCover.drawBookName) return
         defaultCover = true
         imageTintList = ColorStateList.valueOf(ThemeStore.primaryColor(context))
         invalidate()
+        //每次加载使用独立实例, 避免imageTintList(尤其onResourceReady置空)修改共享的defaultDrawable导致颜色串扰
+        val defaultCoverDrawable = BookCover.defaultDrawable.constantState?.newDrawable()
+            ?: BookCover.defaultDrawable
         if (AppConfig.useDefaultCover) {
-            ImageLoader.load(context, BookCover.defaultDrawable)
+            ImageLoader.load(context, defaultCoverDrawable)
                 .centerCrop()
                 .into(this)
         } else {
@@ -230,8 +233,8 @@ if (!BookCover.drawBookName) return
                 ImageLoader.load(context, path)//Glide自动识别http://,content://和file://
             }
             builder = builder.apply(options)
-                .placeholder(BookCover.defaultDrawable)
-                .error(BookCover.defaultDrawable)
+                .placeholder(defaultCoverDrawable)
+                .error(defaultCoverDrawable)
                 .listener(glideListener)
             if (onLoadFinish != null) {
                 builder = builder.addListener(object : RequestListener<Drawable> {
