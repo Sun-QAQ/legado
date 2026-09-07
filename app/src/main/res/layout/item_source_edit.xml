@@ -11,6 +11,10 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:inputType="textMultiLine"
+        android:paddingStart="14dp"
+        android:paddingEnd="14dp"
+        android:paddingTop="10dp"
+        android:paddingBottom="10dp"
         tools:ignore="SpeakableTextPresentCheck,TouchTargetSizeCheck" />
 
 </io.legado.app.ui.widget.text.TextInputLayout>
