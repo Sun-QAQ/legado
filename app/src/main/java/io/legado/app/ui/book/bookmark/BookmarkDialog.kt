@@ -9,7 +9,7 @@ import io.legado.app.base.BaseDialogFragment
 import io.legado.app.data.appDb
 import io.legado.app.data.entities.Bookmark
 import io.legado.app.databinding.DialogBookmarkBinding
-import io.legado.app.lib.theme.primaryColor
+import io.legado.app.lib.theme.backgroundColor
 import io.legado.app.utils.setLayout
 import io.legado.app.utils.viewbindingdelegate.viewBinding
 import io.legado.app.utils.visible
@@ -34,7 +34,7 @@ class BookmarkDialog() : BaseDialogFragment(R.layout.dialog_bookmark, true) {
     }
 
     override fun onFragmentCreated(view: View, savedInstanceState: Bundle?) {
-        binding.toolBar.setBackgroundColor(primaryColor)
+        binding.toolBar.setBackgroundColor(backgroundColor)
         val arguments = arguments ?: let {
             dismiss()
             return

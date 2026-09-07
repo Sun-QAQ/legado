@@ -8,7 +8,7 @@ import androidx.lifecycle.lifecycleScope
 import io.legado.app.R
 import io.legado.app.base.BaseDialogFragment
 import io.legado.app.databinding.DialogCoverRuleConfigBinding
-import io.legado.app.lib.theme.primaryColor
+import io.legado.app.lib.theme.backgroundColor
 import io.legado.app.model.BookCover
 import io.legado.app.utils.GSON
 import io.legado.app.utils.setLayout
@@ -29,7 +29,7 @@ class CoverRuleConfigDialog : BaseDialogFragment(R.layout.dialog_cover_rule_conf
     }
 
     override fun onFragmentCreated(view: View, savedInstanceState: Bundle?) {
-        binding.toolBar.setBackgroundColor(primaryColor)
+        binding.toolBar.setBackgroundColor(backgroundColor)
         initData()
         binding.tvCancel.onClick {
             dismissAllowingStateLoss()

@@ -13,7 +13,7 @@ import io.legado.app.base.BaseDialogFragment
 import io.legado.app.constant.AppLog
 import io.legado.app.databinding.DialogOpenUrlConfirmBinding
 import io.legado.app.lib.dialogs.alert
-import io.legado.app.lib.theme.primaryColor
+import io.legado.app.lib.theme.backgroundColor
 import io.legado.app.utils.applyTint
 import io.legado.app.utils.setLayout
 import io.legado.app.utils.toastOnUi
@@ -55,7 +55,7 @@ class OpenUrlConfirmDialog() : BaseDialogFragment(R.layout.dialog_open_url_confi
             dismiss()
             return
         }
-        binding.toolBar.setBackgroundColor(primaryColor)
+        binding.toolBar.setBackgroundColor(backgroundColor)
         binding.toolBar.subtitle = viewModel.sourceName
         initView()
     }

@@ -7,7 +7,7 @@ import io.legado.app.R
 import io.legado.app.base.BaseDialogFragment
 import io.legado.app.databinding.DialogUpdateBinding
 import io.legado.app.help.update.AppUpdate
-import io.legado.app.lib.theme.primaryColor
+import io.legado.app.lib.theme.backgroundColor
 import io.legado.app.model.Download
 import io.legado.app.utils.setLayout
 import io.legado.app.utils.toastOnUi
@@ -36,7 +36,7 @@ class UpdateDialog() : BaseDialogFragment(R.layout.dialog_update) {
     }
 
     override fun onFragmentCreated(view: View, savedInstanceState: Bundle?) {
-        binding.toolBar.setBackgroundColor(primaryColor)
+        binding.toolBar.setBackgroundColor(backgroundColor)
         binding.toolBar.title = arguments?.getString("newVersion")
         val updateBody = arguments?.getString("updateBody")
         if (updateBody == null) {

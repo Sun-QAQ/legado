@@ -18,7 +18,7 @@ import io.legado.app.base.adapter.ItemViewHolder
 import io.legado.app.base.adapter.RecyclerAdapter
 import io.legado.app.databinding.DialogRecyclerViewBinding
 import io.legado.app.databinding.ItemIconPreferenceBinding
-import io.legado.app.lib.theme.primaryColor
+import io.legado.app.lib.theme.backgroundColor
 import io.legado.app.utils.getCompatDrawable
 import io.legado.app.utils.setLayout
 import io.legado.app.utils.viewbindingdelegate.viewBinding
@@ -134,7 +134,7 @@ class IconListPreference(context: Context, attrs: AttributeSet) : ListPreference
         }
 
         override fun onFragmentCreated(view: View, savedInstanceState: Bundle?) {
-            binding.toolBar.setBackgroundColor(primaryColor)
+            binding.toolBar.setBackgroundColor(backgroundColor)
             binding.toolBar.setTitle(R.string.change_icon)
             binding.recyclerView.layoutManager = LinearLayoutManager(requireContext())
             val adapter = Adapter(requireContext())

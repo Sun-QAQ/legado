@@ -18,7 +18,7 @@ import io.legado.app.lib.dialogs.SelectItem
 import io.legado.app.lib.dialogs.alert
 import io.legado.app.lib.permission.Permissions
 import io.legado.app.lib.permission.PermissionsCompat
-import io.legado.app.lib.theme.primaryColor
+import io.legado.app.lib.theme.backgroundColor
 import io.legado.app.ui.file.HandleFileContract
 import io.legado.app.utils.FileDoc
 import io.legado.app.utils.FileUtils
@@ -77,7 +77,7 @@ class FontSelectDialog : BaseDialogFragment(R.layout.dialog_font_select),
     }
 
     override fun onFragmentCreated(view: View, savedInstanceState: Bundle?) {
-        binding.toolBar.setBackgroundColor(primaryColor)
+        binding.toolBar.setBackgroundColor(backgroundColor)
         binding.toolBar.setTitle(R.string.select_font)
         binding.toolBar.inflateMenu(R.menu.font_select)
         binding.toolBar.menu.applyTint(requireContext())

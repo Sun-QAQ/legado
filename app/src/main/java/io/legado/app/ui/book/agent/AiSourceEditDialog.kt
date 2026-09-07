@@ -11,7 +11,7 @@ import io.legado.app.base.BaseDialogFragment
 import io.legado.app.data.entities.AiSource
 import io.legado.app.databinding.DialogAiSourceEditBinding
 import io.legado.app.lib.dialogs.selector
-import io.legado.app.lib.theme.primaryColor
+import io.legado.app.lib.theme.backgroundColor
 import io.legado.app.utils.GSON
 import io.legado.app.utils.applyTint
 import io.legado.app.utils.setLayout
@@ -48,7 +48,7 @@ class AiSourceEditDialog() : BaseDialogFragment(R.layout.dialog_ai_source_edit, 
     }
 
     override fun onFragmentCreated(view: View, savedInstanceState: Bundle?) {
-        binding.toolBar.setBackgroundColor(primaryColor)
+        binding.toolBar.setBackgroundColor(backgroundColor)
         binding.toolBar.inflateMenu(R.menu.ai_source_edit)
         binding.toolBar.menu.applyTint(requireContext())
         binding.toolBar.setOnMenuItemClickListener(this)
