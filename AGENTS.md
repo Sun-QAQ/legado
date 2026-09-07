@@ -32,7 +32,7 @@ $env:JAVA_HOME="G:\Software\Java\java17"; $env:GRADLE_USER_HOME="S:\Projects\And
 - 运行时主题设置色：`ThemeStore.primaryColor()`（主色）/ `accentColor()`（强调色）/ `bottomBackground()`（底栏背景色）。**XML/资源无法引用这些运行时值**，只能在代码里设（`backgroundTintList`/`setTextColor`/`setSelectedTabIndicatorColor` 等）。
 - **不要**为跟随主题色而子类化 `Resources` 拦截 `getColor`——实测启动闪退，已回退。主题属性 `colorPrimary/colorAccent/colorPrimaryDark` 静态，公共 API 无法在运行时覆盖。
 - `@color/primary`/`@color/accent`/`@color/primaryDark` 是直接色值（静态回退 + `ThemeStore` 默认值来源，未设置时 resolve 这些 attr）。`md_theme_*_primary` token 已删除，勿引用。
-- 默认封面：`CoverImageView.load()` 用 `imageTintList = ThemeStore.primaryColor()` 上色；书名/作者文字=强调色，与背景对比度不足时回退黑白（`contrastRatio` 阈值 3.0）。
+- 默认封面：`CoverImageView.load()` 用 `imageTintList = ThemeStore.primaryColor()` 上色；书名/作者文字=强调色（`context.accentColor`）。
 - 需"跟随主题设置"的 M3 控件须逐处运行时着色：TabLayout（`setTabTextColors` + `setSelectedTabIndicatorColor`，无 `setSelectedTabTextColor` API）、FAB（`backgroundTintList`）、Switch（`applyTint`）等。改动前 grep `ThemeStore.accentColor` / `primaryColor` 看既有模式。
 - 昼夜 token 在 `res/values/colors_tokens.xml` + `res/values-night/colors_tokens.xml`（`md_theme_light_*`/`md_theme_dark_*`）；布局用别名如 `@color/background_card`、`@color/color_surface_variant`。
 

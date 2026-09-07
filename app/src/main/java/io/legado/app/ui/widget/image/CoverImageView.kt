@@ -3,7 +3,6 @@ package io.legado.app.ui.widget.image
 import android.content.Context
 import android.content.res.ColorStateList
 import android.graphics.Canvas
-import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Path
 import android.graphics.Typeface
@@ -26,7 +25,6 @@ import io.legado.app.help.glide.OkHttpModelLoader
 import io.legado.app.lib.theme.ThemeStore
 import io.legado.app.lib.theme.accentColor
 import io.legado.app.model.BookCover
-import io.legado.app.utils.ColorUtils
 import io.legado.app.utils.dpToPx
 import io.legado.app.utils.textHeight
 import io.legado.app.utils.toStringArray
@@ -129,15 +127,9 @@ class CoverImageView @JvmOverloads constructor(
     }
 
     private fun drawNameAuthor(canvas: Canvas) {
-        if (!BookCover.drawBookName) return
-        // 文字=强调色；当强调色与背景主色对比度不足时回退为对比色，保证可读
-        val bgColor = ThemeStore.primaryColor(context)
-        val accent = context.accentColor
-        val textColor = if (contrastRatio(accent, bgColor) < 3.0) {
-            if (ColorUtils.isColorLight(bgColor)) Color.BLACK else Color.WHITE
-        } else {
-            accent
-        }
+if (!BookCover.drawBookName) return
+        // 书名/作者文字=主题强调色
+        val textColor = context.accentColor
         var startX = width * 0.2f
         var startY = viewHeight * 0.2f
         name?.toStringArray()?.let { name ->
@@ -271,20 +263,4 @@ class CoverImageView @JvmOverloads constructor(
         }
     }
 
-}
-
-/**
- * 两颜色的 WCAG 对比度比值（1..21），用于判断文字与背景是否撞色。
- */
-private fun contrastRatio(c1: Int, c2: Int): Double {
-    fun linear(v: Int): Double {
-        val s = v / 255.0
-        return if (s <= 0.03928) s / 12.92 else Math.pow((s + 0.055) / 1.055, 2.4)
-    }
-    fun luminance(c: Int): Double {
-        return 0.2126 * linear(Color.red(c)) + 0.7152 * linear(Color.green(c)) + 0.0722 * linear(Color.blue(c))
-    }
-    val lighter = maxOf(luminance(c1), luminance(c2))
-    val darker = minOf(luminance(c1), luminance(c2))
-    return (lighter + 0.05) / (darker + 0.05)
 }
