@@ -44,6 +44,7 @@ import io.legado.app.utils.gone
 import io.legado.app.utils.isTv
 import io.legado.app.utils.setLightStatusBar
 import io.legado.app.utils.setNavigationBarColorAuto
+import io.legado.app.utils.setAccentCursor
 import io.legado.app.utils.setOnApplyWindowInsetsListenerCompat
 import io.legado.app.utils.showDialogFragment
 import io.legado.app.utils.viewbindingdelegate.viewBinding
@@ -270,6 +271,8 @@ abstract class BaseReadBookActivity :
                 val alertBinding = DialogDownloadChoiceBinding.inflate(layoutInflater).apply {
                     editStart.setText((book.durChapterIndex + 1).toString())
                     editEnd.setText(book.totalChapterNum.toString())
+                    editStart.setAccentCursor()
+                    editEnd.setAccentCursor()
                 }
                 customView { alertBinding.root }
                 okButton {
@@ -297,6 +300,8 @@ abstract class BaseReadBookActivity :
             editStart.setText(book.getStartChapter().toString())
             editNum.setText(book.getDailyChapters().toString())
             startDate.setText(book.getStartDate()?.format(dateFormatter))
+            editStart.setAccentCursor()
+            editNum.setAccentCursor()
             startDate.isFocusable = false // 设置为false，不允许获得焦点
             startDate.isCursorVisible = false // 不显示光标
             startDate.setOnClickListener {

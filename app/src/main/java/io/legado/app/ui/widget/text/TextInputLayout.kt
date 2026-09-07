@@ -1,6 +1,7 @@
 package io.legado.app.ui.widget.text
 
 import android.content.Context
+import android.content.res.ColorStateList
 import android.util.AttributeSet
 import com.google.android.material.color.MaterialColors
 import com.google.android.material.textfield.TextInputLayout
@@ -24,6 +25,7 @@ class TextInputLayout(context: Context, attrs: AttributeSet?) : TextInputLayout(
                     .setFocusedColor(ThemeStore.accentColor(context))
                     .create()
             )
+            setCursorColor(ColorStateList.valueOf(ThemeStore.accentColor(context)))
         }
     }
 

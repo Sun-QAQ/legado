@@ -2,16 +2,10 @@ package io.legado.app.ui.widget.code
 
 import android.annotation.SuppressLint
 import android.content.Context
-import android.content.res.ColorStateList
 import android.graphics.Canvas
-import android.graphics.ColorFilter
 import android.graphics.Paint
 import android.graphics.Paint.FontMetricsInt
-import android.graphics.PorterDuff
 import android.graphics.Rect
-import android.graphics.drawable.Drawable
-import android.graphics.drawable.GradientDrawable
-import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.text.*
@@ -19,10 +13,9 @@ import android.text.style.BackgroundColorSpan
 import android.text.style.ForegroundColorSpan
 import android.text.style.ReplacementSpan
 import android.util.AttributeSet
-import android.widget.TextView
 import androidx.annotation.ColorInt
-import io.legado.app.lib.theme.ThemeStore
 import io.legado.app.ui.widget.text.ScrollMultiAutoCompleteTextView
+import io.legado.app.utils.setAccentCursor
 import java.util.*
 import java.util.regex.Matcher
 import java.util.regex.Pattern
@@ -109,50 +102,14 @@ class CodeView @JvmOverloads constructor(context: Context, attrs: AttributeSet? 
             }
         )
         addTextChangedListener(mEditorTextWatcher)
-        initCursorColor()
-    }
-
-    @SuppressLint("DiscouragedPrivateApi", "SoonBlockedPrivateApi")
-    private fun initCursorColor() {
-        val accent = ThemeStore.accentColor(context)
-        val widthPx = (1.5f * resources.displayMetrics.density).roundToInt().coerceAtLeast(1)
-        val cursor = UntintableCursorDrawable(accent, widthPx)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            setTextCursorDrawable(cursor)
-        } else {
-            try {
-                val fEditor = TextView::class.java.getDeclaredField("mEditor")
-                fEditor.isAccessible = true
-                val editor = fEditor.get(this)
-                val fCursorDrawable = editor.javaClass.getDeclaredField("mCursorDrawable")
-                fCursorDrawable.isAccessible = true
-                fCursorDrawable.set(editor, arrayOf<Drawable>(cursor, cursor))
-            } catch (ignored: Exception) {
-            }
-        }
+        setAccentCursor()
     }
 
     override fun onFocusChanged(focused: Boolean, direction: Int, previouslyFocusedRect: Rect?) {
         super.onFocusChanged(focused, direction, previouslyFocusedRect)
         if (focused) {
-            initCursorColor()
+            setAccentCursor()
         }
-    }
-
-    /**
-     * 抗着色的光标 Drawable：阻止 TextInputLayout/系统按默认强调色或文字色重新着色
-     */
-    private class UntintableCursorDrawable(color: Int, widthPx: Int) : GradientDrawable() {
-        init {
-            setColor(color)
-            setSize(widthPx, widthPx)
-        }
-
-        override fun setTint(tintColor: Int) = Unit
-        override fun setTintList(tint: ColorStateList?) = Unit
-        override fun setColorFilter(colorFilter: ColorFilter?) = Unit
-        @Deprecated("Deprecated in Java")
-        override fun setColorFilter(color: Int, mode: PorterDuff.Mode) = Unit
     }
 
     override fun showDropDown() {

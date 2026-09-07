@@ -13,10 +13,12 @@ import android.text.style.ImageSpan
 import android.util.AttributeSet
 import android.util.TypedValue
 import android.view.Gravity
+import android.widget.EditText
 import android.widget.TextView
 import androidx.appcompat.widget.SearchView
 import io.legado.app.R
 import io.legado.app.utils.printOnDebug
+import io.legado.app.utils.setAccentCursor
 
 
 class SearchView @JvmOverloads constructor(
@@ -46,6 +48,7 @@ class SearchView @JvmOverloads constructor(
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM) {
                 textView!!.isLocalePreferredLineHeightForMinimumUsed = false
             }
+            (textView as? EditText)?.setAccentCursor()
             updateQueryHint()
         } catch (e: Exception) {
             e.printOnDebug()

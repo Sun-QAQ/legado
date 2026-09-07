@@ -4,10 +4,15 @@ package io.legado.app.utils
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.content.res.ColorStateList
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
+import android.graphics.ColorFilter
 import android.graphics.Picture
+import android.graphics.PorterDuff
+import android.graphics.drawable.Drawable
+import android.graphics.drawable.GradientDrawable
 import android.os.Build
 import android.text.Html
 import android.view.MotionEvent
@@ -38,6 +43,7 @@ import androidx.core.view.updateLayoutParams
 import androidx.recyclerview.widget.RecyclerView
 import androidx.viewpager.widget.ViewPager
 import io.legado.app.help.config.AppConfig
+import io.legado.app.lib.theme.ThemeStore
 import io.legado.app.lib.theme.TintHelper
 import io.legado.app.utils.canvasrecorder.CanvasRecorder
 import io.legado.app.utils.canvasrecorder.record
@@ -45,6 +51,7 @@ import splitties.systemservices.inputMethodManager
 import splitties.views.bottomPadding
 import splitties.views.topPadding
 import java.lang.reflect.Field
+import kotlin.math.roundToInt
 
 
 private tailrec fun getCompatActivity(context: Context?): AppCompatActivity? {
@@ -100,6 +107,45 @@ fun View.applyBackgroundTint(
     } else {
         TintHelper.setTintAuto(this, color, true, isDark)
     }
+}
+
+/**
+ * 输入框闪烁光标统一使用主题强调色
+ */
+@SuppressLint("DiscouragedPrivateApi", "SoonBlockedPrivateApi")
+fun EditText.setAccentCursor() {
+    val accent = ThemeStore.accentColor(context)
+    val widthPx = (1.5f * resources.displayMetrics.density).roundToInt().coerceAtLeast(1)
+    val cursor = UntintableCursorDrawable(accent, widthPx)
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+        setTextCursorDrawable(cursor)
+    } else {
+        try {
+            val fEditor = TextView::class.java.getDeclaredField("mEditor")
+            fEditor.isAccessible = true
+            val editor = fEditor.get(this)
+            val fCursorDrawable = editor.javaClass.getDeclaredField("mCursorDrawable")
+            fCursorDrawable.isAccessible = true
+            fCursorDrawable.set(editor, arrayOf<Drawable>(cursor, cursor))
+        } catch (ignored: Exception) {
+        }
+    }
+}
+
+/**
+ * 抗着色的光标 Drawable：阻止 TextInputLayout/系统按默认强调色或文字色重新着色
+ */
+private class UntintableCursorDrawable(color: Int, widthPx: Int) : GradientDrawable() {
+    init {
+        setColor(color)
+        setSize(widthPx, widthPx)
+    }
+
+    override fun setTint(tintColor: Int) = Unit
+    override fun setTintList(tint: ColorStateList?) = Unit
+    override fun setColorFilter(colorFilter: ColorFilter?) = Unit
+    @Deprecated("Deprecated in Java")
+    override fun setColorFilter(color: Int, mode: PorterDuff.Mode) = Unit
 }
 
 fun RecyclerView.setEdgeEffectColor(@ColorInt color: Int) {
