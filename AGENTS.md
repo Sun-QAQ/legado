@@ -2,7 +2,6 @@
 
 ## 已有指令来源（先读）
 - 用户全局 `C:\Users\27497\.claude\CLAUDE.md`：编码前先描述方案等待批准；>3 文件任务分解为小单元；完成后列出潜在问题与测试用例；发现 bug 先写复现测试。
-- 本文件已合并原 `opencode.md`（提交规则、构建命令、AI Agent 说明）。
 
 ## 提交规则
 - 每次代码修改完成后必须执行 git add+commit 提交；提交信息用中文（仓库惯例）。
@@ -18,7 +17,6 @@ $env:JAVA_HOME="G:\Software\Java\java17"; $env:GRADLE_USER_HOME="S:\Projects\And
 - 任务名带 flavor：`processAppDebugResources` / `compileAppDebugKotlin` / `assembleAppDebug`；`compileDebugKotlin` 是模糊匹配会失败。
 - 输出重定向到日志文件再检索，勿直接管道给 `Select-String`（子进程被 kill）。
 - 本机依赖缓存完整，`--offline` 可用（已多次验证）；新增/更换依赖时不要加。
-- 仓库含 `.github/workflows/`（release/web/cronet/autoupdatefork 等，GitHub 端上游发布用，本地跑不了）；本地无单测套件，验证手段 = 编译通过 + 真机人工检查。
 
 ## adb 连接/安装（MuMu 12 模拟器）
 - 模拟器：MuMu 12 装在 `G:\Software\MuMuPlayer-12.0`，当前实例 `MuMuPlayer-12.0-0`（Redmi K70 Pro 机型，Android 12，屏幕 1272x2450）。
