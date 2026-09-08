@@ -26,7 +26,6 @@ import io.legado.app.help.config.AppConfig
 import io.legado.app.lib.theme.accentColor
 import io.legado.app.lib.theme.primaryColor
 import io.legado.app.ui.book.info.BookInfoActivity
-import io.legado.app.ui.book.search.SearchActivity
 import io.legado.app.ui.main.MainViewModel
 import io.legado.app.utils.cnCompare
 import io.legado.app.utils.flowWithLifecycleAndDatabaseChangeFirst
@@ -88,9 +87,6 @@ class BooksFragment() : BaseFragment(R.layout.fragment_books),
             bookSort = it.getInt("bookSort", 0)
             enableRefresh = it.getBoolean("enableRefresh", true)
             binding.refreshLayout.isEnabled = enableRefresh
-        }
-        binding.searchPill.setOnClickListener {
-            SearchActivity.start(requireContext(), null)
         }
         initRecyclerView()
         upRecyclerData()
