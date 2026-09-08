@@ -37,6 +37,9 @@
                 <io.legado.app.ui.widget.text.TextInputLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:layout_marginStart="12dp"
+                    android:layout_marginEnd="12dp"
+                    android:paddingTop="3dp"
                     android:hint="@string/ai_source_supplier">
 
                     <io.legado.app.lib.theme.view.ThemeEditText
@@ -47,6 +50,10 @@
                         android:cursorVisible="false"
                         android:focusable="false"
                         android:inputType="none"
+                        android:paddingStart="14dp"
+                        android:paddingEnd="14dp"
+                        android:paddingTop="10dp"
+                        android:paddingBottom="10dp"
                         tools:ignore="SpeakableTextPresentCheck,TouchTargetSizeCheck" />
 
                 </io.legado.app.ui.widget.text.TextInputLayout>
@@ -54,12 +61,19 @@
                 <io.legado.app.ui.widget.text.TextInputLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:layout_marginStart="12dp"
+                    android:layout_marginEnd="12dp"
+                    android:paddingTop="3dp"
                     android:hint="@string/ai_source_name">
 
                     <io.legado.app.lib.theme.view.ThemeEditText
                         android:id="@+id/tv_name"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
+                        android:paddingStart="14dp"
+                        android:paddingEnd="14dp"
+                        android:paddingTop="10dp"
+                        android:paddingBottom="10dp"
                         tools:ignore="SpeakableTextPresentCheck,TouchTargetSizeCheck" />
 
                 </io.legado.app.ui.widget.text.TextInputLayout>
@@ -67,6 +81,9 @@
                 <io.legado.app.ui.widget.text.TextInputLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:layout_marginStart="12dp"
+                    android:layout_marginEnd="12dp"
+                    android:paddingTop="3dp"
                     android:hint="@string/ai_source_base_url">
 
                     <io.legado.app.lib.theme.view.ThemeEditText
@@ -74,6 +91,10 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:inputType="textUri"
+                        android:paddingStart="14dp"
+                        android:paddingEnd="14dp"
+                        android:paddingTop="10dp"
+                        android:paddingBottom="10dp"
                         tools:ignore="SpeakableTextPresentCheck,TouchTargetSizeCheck" />
 
                 </io.legado.app.ui.widget.text.TextInputLayout>
@@ -81,6 +102,9 @@
                 <io.legado.app.ui.widget.text.TextInputLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:layout_marginStart="12dp"
+                    android:layout_marginEnd="12dp"
+                    android:paddingTop="3dp"
                     android:hint="@string/ai_source_api_key">
 
                     <io.legado.app.lib.theme.view.ThemeEditText
@@ -88,6 +112,10 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:inputType="textPassword"
+                        android:paddingStart="14dp"
+                        android:paddingEnd="14dp"
+                        android:paddingTop="10dp"
+                        android:paddingBottom="10dp"
                         tools:ignore="SpeakableTextPresentCheck,TouchTargetSizeCheck" />
 
                 </io.legado.app.ui.widget.text.TextInputLayout>
@@ -95,12 +123,19 @@
                 <io.legado.app.ui.widget.text.TextInputLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:layout_marginStart="12dp"
+                    android:layout_marginEnd="12dp"
+                    android:paddingTop="3dp"
                     android:hint="@string/ai_source_model">
 
                     <io.legado.app.lib.theme.view.ThemeEditText
                         android:id="@+id/tv_model"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
+                        android:paddingStart="14dp"
+                        android:paddingEnd="14dp"
+                        android:paddingTop="10dp"
+                        android:paddingBottom="10dp"
                         tools:ignore="SpeakableTextPresentCheck,TouchTargetSizeCheck" />
 
                 </io.legado.app.ui.widget.text.TextInputLayout>
@@ -108,6 +143,9 @@
                 <io.legado.app.ui.widget.text.TextInputLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:layout_marginStart="12dp"
+                    android:layout_marginEnd="12dp"
+                    android:paddingTop="3dp"
                     android:hint="@string/ai_source_headers">
 
                     <io.legado.app.lib.theme.view.ThemeEditText
@@ -116,6 +154,10 @@
                         android:layout_height="wrap_content"
                         android:gravity="top"
                         android:minLines="2"
+                        android:paddingStart="14dp"
+                        android:paddingEnd="14dp"
+                        android:paddingTop="10dp"
+                        android:paddingBottom="10dp"
                         tools:ignore="SpeakableTextPresentCheck,TouchTargetSizeCheck" />
 
                 </io.legado.app.ui.widget.text.TextInputLayout>
