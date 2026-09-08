@@ -190,6 +190,9 @@ class MyFragment() : BaseFragment(R.layout.fragment_my_config), MainFragmentInte
                 editView.hint = getString(R.string.my_nickname_hint)
                 editView.setText(context.getPrefString(PreferKey.userNickname) ?: "")
                 editView.setAccentCursor()
+                // 清除 AutoCompleteTextView 自带的强调色背景着色, 让输入框背景与弹窗一致
+                editView.supportBackgroundTintList = null
+                editView.backgroundTintList = null
             }
             customView {
                 editTextBinding.root

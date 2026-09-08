@@ -5,6 +5,7 @@ package io.legado.app.utils
 import android.annotation.SuppressLint
 import android.content.Context
 import android.content.res.ColorStateList
+import androidx.core.graphics.drawable.DrawableCompat
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
@@ -155,7 +156,7 @@ private fun EditText.tintCursorHandles(@ColorInt accent: Int) {
 }
 
 private fun tintDrawableRecursively(drawable: Drawable, @ColorInt accent: Int) {
-    drawable.mutate().setTint(accent)
+    DrawableCompat.setTintList(drawable.mutate(), ColorStateList.valueOf(accent))
     when (drawable) {
         is StateListDrawable -> {
             for (i in 0 until drawable.stateCount) {
