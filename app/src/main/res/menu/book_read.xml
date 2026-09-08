@@ -55,6 +55,11 @@
         app:showAsAction="never" />
 
     <item
+        android:id="@+id/menu_reading_assistant"
+        android:title="@string/agent"
+        app:showAsAction="never" />
+
+    <item
         android:id="@+id/menu_page_anim"
         android:title="@string/book_page_anim"
         app:showAsAction="never" />
