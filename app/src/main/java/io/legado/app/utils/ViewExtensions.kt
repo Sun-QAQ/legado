@@ -12,6 +12,7 @@ import android.graphics.Color
 import android.graphics.ColorFilter
 import android.graphics.Picture
 import android.graphics.PorterDuff
+import android.graphics.Rect
 import android.graphics.drawable.Drawable
 import android.graphics.drawable.GradientDrawable
 import android.graphics.drawable.LayerDrawable
@@ -157,8 +158,10 @@ private fun EditText.tintCursorHandles(@ColorInt accent: Int) {
         for (name in names) {
             val f = editor.javaClass.getDeclaredField(name)
             f.isAccessible = true
-            val d = f.get(editor) as? Drawable ?: continue
-            tintDrawableRecursively(d, accent)
+            val current = f.get(editor) as? Drawable ?: continue
+            val inner = (current as? UntintableDrawableWrapper)?.inner ?: current
+            tintDrawableRecursively(inner, accent)
+            f.set(editor, UntintableDrawableWrapper(inner))
         }
     } catch (ignored: Exception) {
     }
@@ -195,6 +198,36 @@ private class UntintableCursorDrawable(color: Int, widthPx: Int) : GradientDrawa
     override fun setColorFilter(colorFilter: ColorFilter?) = Unit
     @Deprecated("Deprecated in Java")
     override fun setColorFilter(color: Int, mode: PorterDuff.Mode) = Unit
+}
+
+/**
+ * 抗着色的 Drawable 包装：阻止系统在聚焦/激活时用 colorControlActivated 重新着色手柄,
+ * 内部保持已设置的强调色。委托绘制/状态, 对着色相关方法空实现。
+ */
+private class UntintableDrawableWrapper(val inner: Drawable) : Drawable() {
+    override fun draw(canvas: Canvas) = inner.draw(canvas)
+    override fun setAlpha(alpha: Int) { inner.alpha = alpha }
+    override fun setColorFilter(colorFilter: ColorFilter?) { }
+    @Deprecated("Deprecated in Java")
+    override fun setColorFilter(color: Int, mode: PorterDuff.Mode) { }
+    override fun getOpacity(): Int = inner.opacity
+    override fun setBounds(l: Int, t: Int, r: Int, b: Int) { inner.setBounds(l, t, r, b) }
+    override fun setBounds(bounds: Rect) { inner.bounds = bounds }
+    override fun setState(stateSet: IntArray): Boolean = inner.setState(stateSet)
+    override fun getState(): IntArray = inner.state
+    override fun isStateful(): Boolean = inner.isStateful
+    override fun getIntrinsicWidth(): Int = inner.intrinsicWidth
+    override fun getIntrinsicHeight(): Int = inner.intrinsicHeight
+    override fun getConstantState(): Drawable.ConstantState? = inner.constantState
+    override fun setTint(tintColor: Int) { }
+    override fun setTintList(tint: ColorStateList?) { }
+    override fun setHotspot(x: Float, y: Float) { inner.setHotspot(x, y) }
+    override fun setHotspotBounds(l: Int, t: Int, r: Int, b: Int) { inner.setHotspotBounds(l, t, r, b) }
+    override fun jumpToCurrentState() { inner.jumpToCurrentState() }
+    override fun setVisible(visible: Boolean, restart: Boolean): Boolean = inner.setVisible(visible, restart)
+    override fun getChangingConfigurations(): Int = inner.changingConfigurations
+    override fun getPadding(padding: Rect): Boolean = inner.getPadding(padding)
+    override fun mutate(): Drawable = this
 }
 
 fun RecyclerView.setEdgeEffectColor(@ColorInt color: Int) {
