@@ -29,8 +29,10 @@ $env:JAVA_HOME="G:\Software\Java\java17"; $env:GRADLE_USER_HOME="S:\Projects\And
 - 安装（构建成功后）：
   ```powershell
   $adb="G:\Software\AndroidStudioSDK\platform-tools\adb.exe"
-  & $adb -s 192.168.5.45:5555 install -r app\build\outputs\apk\appDebug\app-debug.apk
+  $apk=(Get-ChildItem "S:\Projects\Android\legado\app\build\outputs\apk\app\debug\legado_app_*.apk" | Sort-Object LastWriteTime -Descending | Select-Object -First 1).FullName
+  & $adb -s 192.168.5.45:5555 install -r $apk
   ```
+  （apk 输出路径是 `app\build\outputs\apk\app\debug\legado_app_*.apk`，文件名带版本号；不是 `appDebug\app-debug.apk`。）
 - 若 MuMu 实例换成 local_connect 模式或换实例，端口会变：查 `G:\Software\MuMuPlayer-12.0\vms\<实例名>\configs\vm_config.json` 里 `port_forward.adb.host_port`。
 
 ## 结构
