@@ -13,6 +13,8 @@ import android.graphics.Picture
 import android.graphics.PorterDuff
 import android.graphics.drawable.Drawable
 import android.graphics.drawable.GradientDrawable
+import android.graphics.drawable.LayerDrawable
+import android.graphics.drawable.StateListDrawable
 import android.os.Build
 import android.text.Html
 import android.view.MotionEvent
@@ -146,9 +148,26 @@ private fun EditText.tintCursorHandles(@ColorInt accent: Int) {
             val f = editor.javaClass.getDeclaredField(name)
             f.isAccessible = true
             val d = f.get(editor) as? Drawable ?: continue
-            f.set(editor, d.mutate().apply { setTint(accent) })
+            tintDrawableRecursively(d, accent)
         }
     } catch (ignored: Exception) {
+    }
+}
+
+private fun tintDrawableRecursively(drawable: Drawable, @ColorInt accent: Int) {
+    drawable.mutate().setTint(accent)
+    when (drawable) {
+        is StateListDrawable -> {
+            for (i in 0 until drawable.stateCount) {
+                drawable.getStateDrawable(i)?.let { tintDrawableRecursively(it, accent) }
+            }
+        }
+
+        is LayerDrawable -> {
+            for (i in 0 until drawable.numberOfLayers) {
+                drawable.getDrawable(i)?.let { tintDrawableRecursively(it, accent) }
+            }
+        }
     }
 }
 
