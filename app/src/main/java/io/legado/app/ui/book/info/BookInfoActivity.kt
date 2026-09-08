@@ -37,7 +37,6 @@ import io.legado.app.help.config.LocalConfig
 import io.legado.app.lib.dialogs.alert
 import io.legado.app.lib.dialogs.selector
 import io.legado.app.lib.theme.accentColor
-import io.legado.app.lib.theme.backgroundColor
 import io.legado.app.lib.theme.bottomBackground
 import io.legado.app.lib.theme.getPrimaryTextColor
 import io.legado.app.model.BookCover
@@ -158,7 +157,6 @@ class BookInfoActivity :
     override fun onActivityCreated(savedInstanceState: Bundle?) {
         binding.titleBar.setBackgroundResource(R.color.transparent)
         binding.refreshLayout?.setColorSchemeColors(accentColor)
-        binding.llInfo.setBackgroundColor(backgroundColor)
         binding.tvToc.text = getString(R.string.toc_s, getString(R.string.loading))
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N_MR1) {
             binding.tvIntro.revealOnFocusHint = false
