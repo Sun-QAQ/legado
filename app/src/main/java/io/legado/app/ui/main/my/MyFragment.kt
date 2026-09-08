@@ -54,6 +54,7 @@ import io.legado.app.utils.openUrl
 import io.legado.app.utils.putPrefBoolean
 import io.legado.app.utils.putPrefString
 import io.legado.app.utils.sendToClip
+import io.legado.app.utils.setAccentCursor
 import io.legado.app.utils.setEdgeEffectColor
 import io.legado.app.utils.showHelp
 import io.legado.app.utils.startActivity
@@ -188,6 +189,7 @@ class MyFragment() : BaseFragment(R.layout.fragment_my_config), MainFragmentInte
             val editTextBinding = DialogEditTextBinding.inflate(layoutInflater).apply {
                 editView.hint = getString(R.string.my_nickname_hint)
                 editView.setText(context.getPrefString(PreferKey.userNickname) ?: "")
+                editView.setAccentCursor()
             }
             customView {
                 editTextBinding.root

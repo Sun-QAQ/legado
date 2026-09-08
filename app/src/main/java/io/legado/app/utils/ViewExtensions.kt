@@ -130,6 +130,26 @@ fun EditText.setAccentCursor() {
         } catch (ignored: Exception) {
         }
     }
+    tintCursorHandles(accent)
+}
+
+/**
+ * 光标拖动/选择手柄统一使用主题强调色
+ */
+private fun EditText.tintCursorHandles(@ColorInt accent: Int) {
+    try {
+        val fEditor = TextView::class.java.getDeclaredField("mEditor")
+        fEditor.isAccessible = true
+        val editor = fEditor.get(this)
+        val names = arrayOf("mTextSelectHandleLeft", "mTextSelectHandleRight", "mTextSelectHandle")
+        for (name in names) {
+            val f = editor.javaClass.getDeclaredField(name)
+            f.isAccessible = true
+            val d = f.get(editor) as? Drawable ?: continue
+            f.set(editor, d.mutate().apply { setTint(accent) })
+        }
+    } catch (ignored: Exception) {
+    }
 }
 
 /**
