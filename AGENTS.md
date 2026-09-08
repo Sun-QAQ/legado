@@ -6,6 +6,7 @@
 
 ## 提交规则
 - 每次代码修改完成后必须执行 git add+commit 提交；提交信息用中文（仓库惯例）。
+- **每次改动完成后的标准流程：提交 → 构建 → 安装到模拟器**（构建通过后再 `adb install` 部署到 MuMu 模拟器，见下文 adb 连接/安装）。
 
 ## 构建（Windows PowerShell）
 ```powershell
@@ -18,6 +19,21 @@ $env:JAVA_HOME="G:\Software\Java\java17"; $env:GRADLE_USER_HOME="S:\Projects\And
 - 输出重定向到日志文件再检索，勿直接管道给 `Select-String`（子进程被 kill）。
 - 本机依赖缓存完整，`--offline` 可用（已多次验证）；新增/更换依赖时不要加。
 - 仓库含 `.github/workflows/`（release/web/cronet/autoupdatefork 等，GitHub 端上游发布用，本地跑不了）；本地无单测套件，验证手段 = 编译通过 + 真机人工检查。
+
+## adb 连接/安装（MuMu 12 模拟器）
+- 模拟器：MuMu 12 装在 `G:\Software\MuMuPlayer-12.0`，当前实例 `MuMuPlayer-12.0-0`（Redmi K70 Pro 机型，Android 12，屏幕 1272x2450）。
+- **该实例 adb 调试模式是 `remote_connect`**，不走常见的 `127.0.0.1:16384`；连接地址为 **`192.168.5.45:5555`**（guest IP）。
+- 标准 adb 路径：`G:\Software\AndroidStudioSDK\platform-tools\adb.exe`（不在 PATH）。
+- 连接步骤：
+  1. 先确认模拟器已启动（任务管理器有 `MuMuNxDevice/MuMuNxMain` 进程，或 VBox 日志 `bootup finished`）。
+  2. 用 MuMu 自带 adb `G:\Software\MuMuPlayer-12.0\nx_device\12.0\shell\adb.exe` 跑 `adb devices`（其会注册 guest IP 端点），或直接：
+  3. `& "G:\Software\AndroidStudioSDK\platform-tools\adb.exe" connect 192.168.5.45:5555` → 应显示 `device`（非 offline）。
+- 安装（构建成功后）：
+  ```powershell
+  $adb="G:\Software\AndroidStudioSDK\platform-tools\adb.exe"
+  & $adb -s 192.168.5.45:5555 install -r app\build\outputs\apk\appDebug\app-debug.apk
+  ```
+- 若 MuMu 实例换成 local_connect 模式或换实例，端口会变：查 `G:\Software\MuMuPlayer-12.0\vms\<实例名>\configs\vm_config.json` 里 `port_forward.adb.host_port`。
 
 ## 结构
 - 模块：`:app`（Android App，namespace `io.legado.app`）、`:modules:book`、`:modules:rhino`。minSdk 21 / targetSdk 36 / Java 17。
