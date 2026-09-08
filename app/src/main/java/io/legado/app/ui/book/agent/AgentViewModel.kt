@@ -2059,10 +2059,27 @@ val choices = chunk.get("choices")
         supplier: io.legado.app.data.entities.AiSource,
         body: JsonObject
     ) {
+        val logBody = body.deepCopy().apply {
+            getAsJsonArray("messages")?.forEach { message ->
+                message.takeIf { it.isJsonObject }
+                    ?.asJsonObject
+                    ?.get("content")
+                    ?.takeIf { !it.isJsonNull && it.asString.contains("已读正文（仅限以下章节）") }
+                    ?.let { content ->
+                        content.asString.substringBefore("已读正文（仅限以下章节）")
+                            .let { prefix ->
+                                message.asJsonObject.addProperty(
+                                    "content",
+                                    prefix + "已读正文（内容已从日志省略）"
+                                )
+                            }
+                    }
+            }
+        }
         AppLog.put(
             "Agent 请求 ${supplier.name} model=${supplier.model}\n" +
                 "url=${supplier.baseUrl.trimEnd('/')}/chat/completions\n" +
-                "body=${GSON.toJson(body)}"
+                "body=${GSON.toJson(logBody)}"
         )
     }
 
