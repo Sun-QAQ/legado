@@ -1779,12 +1779,16 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
                 "Bearer ${supplier.apiKey}"
             }
         }
+        val startedAt = System.nanoTime()
+        var httpCode: Int? = null
+        try {
         val response = client.newCallStrResponse {
             addHeaders(headers)
             url(supplier.baseUrl.trimEnd('/') + "/chat/completions")
             post(body.toString().toRequestBody("application/json; charset=UTF-8".toMediaType()))
         }
-        logChatRequest(supplier, body)
+        httpCode = response.code()
+        logChatMetadata(supplier.model, body, startedAt, httpCode)
         val bodyText = response.body
         val json = bodyText?.takeIf { it.isNotBlank() }?.let {
             runCatching { JsonParser.parseString(it) }
@@ -1793,28 +1797,22 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
                 ?.asJsonObject
         }
         if (json == null) {
-            throw invalidResponseException(bodyText, response.code())
+            throw invalidResponseException(response.code())
         }
-        json.get("error")?.takeIf { !it.isJsonNull }?.let { error ->
-            val message = error.takeIf { it.isJsonObject }
-                ?.asJsonObject
-                ?.get("message")
-                ?.takeIf { !it.isJsonNull }
-                ?.asString
-            throw Exception(message ?: getString(R.string.agent_api_error, error.toString()))
+        json.get("error")?.takeIf { !it.isJsonNull }?.let {
+            throw AiApiException("HTTP ${response.code()}")
         }
         if (!response.isSuccessful()) {
-            AppLog.put("Agent 接口返回 HTTP ${response.code()}\n${bodyText.orEmpty()}")
-            throw AiApiException(parseApiError(bodyText, response.code()))
+            throw AiApiException(parseApiError(response.code()))
         }
         val choices = json.get("choices")
             ?.takeIf { it.isJsonArray }
             ?.asJsonArray
         if (choices == null || choices.size() == 0) {
-            throw invalidResponseException(bodyText, response.code())
+            throw invalidResponseException(response.code())
         }
         val choice = choices[0].takeIf { it.isJsonObject }?.asJsonObject
-            ?: throw invalidResponseException(bodyText, response.code())
+            ?: throw invalidResponseException(response.code())
         choice.get("message")?.takeIf { it.isJsonObject }?.asJsonObject?.let {
             return it
         }
@@ -1824,7 +1822,13 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
                 addProperty("content", text)
             }
         }
-        throw invalidResponseException(bodyText, response.code())
+        throw invalidResponseException(response.code())
+        } catch (e: Exception) {
+            if (httpCode == null) {
+                logChatMetadata(supplier.model, body, startedAt, null)
+            }
+            throw e
+        }
     }
 
     /**
@@ -1840,13 +1844,11 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
         return try {
             doChatCompletionStream(supplier, streamingBody, onDelta)
         } catch (e: AiApiException) {
-            AppLog.put("Agent 流式请求失败，降级为非流式: ${e.message}")
             try {
                 chatCompletion(supplier, body.deepCopy().apply { remove("stream") })
             } catch (e2: AiApiException) {
                 if (isModelError(e2.message ?: "")) {
                     // 部分网关拒绝携带 tools 的请求并返回误导性的模型错误，尝试去掉 tools 后重试
-                    AppLog.put("Agent 请求仍失败，尝试移除 tools 重试: ${e2.message}")
                     chatCompletion(
                         supplier,
                         body.deepCopy().apply {
@@ -1892,14 +1894,15 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
             }
             .build()
         val call = client.newCall(httpRequest)
-        logChatRequest(supplier, body)
+        val startedAt = System.nanoTime()
+        var httpCode: Int? = null
         currentCall = call
         try {
             val response = call.execute()
+            httpCode = response.code
             if (!response.isSuccessful) {
                 val bodyText = response.body?.string()
-                AppLog.put("Agent 流式接口返回 HTTP ${response.code}\n${bodyText.orEmpty()}")
-                throw AiApiException(parseApiError(bodyText, response.code))
+                throw AiApiException(parseApiError(response.code))
             }
             val contentBuilder = StringBuilder()
             val toolCallMap = LinkedHashMap<Int, JsonObject>()
@@ -2020,66 +2023,37 @@ val choices = chunk.get("choices")
             if (currentCall === call) {
                 currentCall = null
             }
+            logChatMetadata(supplier.model, body, startedAt, httpCode)
         }
     }
 
-    private fun invalidResponseException(bodyText: String?, code: Int? = null): Exception {
-        AppLog.put("Agent 接口返回内容格式不正确 HTTP $code\n${bodyText.orEmpty()}")
+    private fun invalidResponseException(code: Int? = null): Exception {
         val prefix = code?.let { "HTTP $it\n" }.orEmpty()
-        val detail = bodyText?.take(1000)?.let { "\n$it" }.orEmpty()
-        return Exception(prefix + getString(R.string.agent_invalid_response) + detail)
+        return Exception(prefix + getString(R.string.agent_invalid_response))
     }
 
     /**
-     * 解析 OpenAI 兼容错误响应体中的 error.message，无法解析时返回原始信息
+     * 错误信息只保留 HTTP 状态码，避免服务端响应正文进入日志。
      */
-    private fun parseApiError(bodyText: String?, code: Int): String {
-        val message = runCatching { JsonParser.parseString(bodyText).asJsonObject }
-            .getOrNull()
-            ?.get("error")
-            ?.takeIf { it.isJsonObject }
-            ?.asJsonObject
-            ?.get("message")
-            ?.takeIf { !it.isJsonNull }
-            ?.asString
-            ?.takeIf { it.isNotBlank() }
-        return if (message == null) {
-            "HTTP $code" + bodyText?.take(500)?.let { "\n$it" }.orEmpty()
-        } else {
-            "$message (HTTP $code)"
-        }
+    private fun parseApiError(code: Int): String {
+        return "HTTP $code"
     }
 
     private class AiApiException(message: String) : Exception(message)
 
-    /**
-     * 打印完整请求，便于排查网关/模型兼容问题
-     */
-    private fun logChatRequest(
-        supplier: io.legado.app.data.entities.AiSource,
-        body: JsonObject
+    private fun logChatMetadata(
+        model: String,
+        body: JsonObject,
+        startedAt: Long,
+        httpCode: Int?
     ) {
-        val logBody = body.deepCopy().apply {
-            getAsJsonArray("messages")?.forEach { message ->
-                message.takeIf { it.isJsonObject }
-                    ?.asJsonObject
-                    ?.get("content")
-                    ?.takeIf { !it.isJsonNull && it.asString.contains("已读正文（仅限以下章节）") }
-                    ?.let { content ->
-                        content.asString.substringBefore("已读正文（仅限以下章节）")
-                            .let { prefix ->
-                                message.asJsonObject.addProperty(
-                                    "content",
-                                    prefix + "已读正文（内容已从日志省略）"
-                                )
-                            }
-                    }
-            }
-        }
         AppLog.put(
-            "Agent 请求 ${supplier.name} model=${supplier.model}\n" +
-                "url=${supplier.baseUrl.trimEnd('/')}/chat/completions\n" +
-                "body=${GSON.toJson(logBody)}"
+            AgentLogMetadata.format(
+                model,
+                body,
+                TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startedAt),
+                httpCode
+            )
         )
     }
 
