@@ -22,7 +22,7 @@ $env:JAVA_HOME="G:\Software\Java\java17"; $env:GRADLE_USER_HOME="S:\Projects\And
 
 ## adb 连接/安装（MuMu 12 模拟器）
 - 模拟器：MuMu 12 装在 `G:\Software\MuMuPlayer-12.0`，当前实例 `MuMuPlayer-12.0-0`（Redmi K70 Pro 机型，Android 12，屏幕 1272x2450）。
-- **该实例 adb 调试模式是 `remote_connect`**，不走常见的 `127.0.0.1:16384`；连接地址为 **`192.168.5.45:5555`**（guest IP）。
+- **连接地址始终为 `192.168.5.45:5555`（guest IP）**。实测 adb 调试模式无论 `remote_connect` 还是 `local_connect`，`127.0.0.1:16384`/`127.0.0.1:5555` 的本地转发均未建立（连不上），只有 guest IP 端点有效。
 - 标准 adb 路径：`G:\Software\AndroidStudioSDK\platform-tools\adb.exe`（不在 PATH）。
 - 连接步骤：
   1. 先确认模拟器已启动（任务管理器有 `MuMuNxDevice/MuMuNxMain` 进程，或 VBox 日志 `bootup finished`）。
