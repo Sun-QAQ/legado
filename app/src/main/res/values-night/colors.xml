@@ -4,6 +4,7 @@
     <color name="primary">#B9ACFF</color>
     <color name="primaryDark">#9C8DF5</color>
     <color name="accent">#B9ACFF</color>
+    <color name="accent_activated">#C4B4AE</color>
 
     <color name="disabled">@color/md_dark_disabled</color>
 
