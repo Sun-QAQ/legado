@@ -103,6 +103,7 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
     private var draftSource: BookSource? = null
     private var sourceCreationMode = false
     private var hasSavedSource = false
+    private val readingContextProvider = ReadingContextProvider()
 
     @get:Suppress("unused")
     private val inSourceCreationFlow: Boolean
@@ -439,7 +440,9 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
         beginLiveReply()
         try {
             val contextStepId = startStep(getString(R.string.agent_step_read_book), "当前阅读进度")
-            val readingContext = withContext(Dispatchers.IO) { buildCurrentReadingContext() }
+            val readingContext = withContext(Dispatchers.IO) {
+                readingContextProvider.currentReadingContext()
+            }
             if (readingContext == null) {
                 finishStep(contextStepId, getString(R.string.agent_book_no_content))
                 finalizeLive(getString(R.string.agent_book_no_content))
@@ -493,45 +496,6 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
         } finally {
             _waiting.value = false
         }
-    }
-
-    /**
-     * 从当前章向前取最多四章，并优先保留当前章内容；绝不读取当前章之后的正文。
-     */
-    private suspend fun buildCurrentReadingContext(): ReadingContext? {
-        val book = ReadBook.book ?: return null
-        val currentIndex = ReadBook.durChapterIndex
-        val chapters = getBookChapters(book)
-        if (chapters.isEmpty()) return null
-        val source = if (book.isLocal) null else appDb.bookSourceDao.getBookSource(book.origin)
-        val selected = chapters.filter { chapter ->
-            !chapter.isVolume && chapter.index in (currentIndex - READING_CONTEXT_CHAPTERS + 1)..currentIndex
-        }
-        if (selected.isEmpty()) return null
-        var remaining = READING_CONTEXT_MAX_CHARS
-        val parts = ArrayList<Pair<BookChapter, String>>()
-        selected.asReversed().forEach { chapter ->
-            if (remaining <= 0) return@forEach
-            val nextChapter = chapters.getOrNull(chapter.index + 1)
-            val text = getChapterText(book, chapter, nextChapter, source)
-                ?.takeIf { it.isNotBlank() }
-                ?: return@forEach
-            val clipped = clipReadingContext(text, remaining)
-            parts.add(chapter to clipped)
-            remaining -= clipped.length
-        }
-        if (parts.isEmpty()) return null
-        val content = parts.asReversed().joinToString("\n\n") { (chapter, text) ->
-            "【第${chapter.index + 1}章 ${chapter.title}】\n$text"
-        }
-        return ReadingContext(book.name, currentIndex, parts.size, content)
-    }
-
-    private fun clipReadingContext(text: String, maxChars: Int): String {
-        if (text.length <= maxChars) return text
-        val headLength = maxChars / 2
-        val tailLength = maxChars - headLength
-        return text.take(headLength) + "\n（中间内容因长度限制省略）\n" + text.takeLast(tailLength)
     }
 
     private suspend fun searchDirect(key: String, searchKey: String = key) {
@@ -1414,7 +1378,9 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
         return try {
             val book = withContext(Dispatchers.IO) { resolveBook(bookQuery) }
                 ?: return failReadStep(stepId, getString(R.string.agent_book_not_found))
-            val chapters = withContext(Dispatchers.IO) { getBookChapters(book) }
+            val chapters = withContext(Dispatchers.IO) {
+                readingContextProvider.getBookChapters(book)
+            }
             if (chapters.isEmpty()) {
                 return failReadStep(stepId, getString(R.string.agent_book_no_chapters, book.name))
             }
@@ -1432,7 +1398,7 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
                 buildString {
                     selected.forEachIndexed { i, chapter ->
                         val next = chapters.getOrNull(from + i + 1)
-                        val text = getChapterText(book, chapter, next, source)
+                        val text = readingContextProvider.getChapterText(book, chapter, next, source)
                             ?: getString(R.string.agent_book_content_missing)
                         append("【第${chapter.index + 1}章 ${chapter.title}】\n")
                         append(text)
@@ -1491,48 +1457,6 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
         val candidates = appDb.bookDao.flowSearch(name).firstOrNull().orEmpty()
         candidates.firstOrNull { it.name == name }?.let { return it }
         return candidates.firstOrNull()
-    }
-
-    /**
-     * 获取章节列表：数据库优先；网络书无目录时用书源联网抓取并写入数据库
-     */
-    private suspend fun getBookChapters(book: Book): List<BookChapter> {
-        appDb.bookChapterDao.getChapterList(book.bookUrl)
-            .takeIf { it.isNotEmpty() }
-            ?.let { return it }
-        if (book.isLocal) return emptyList()
-        val source = appDb.bookSourceDao.getBookSource(book.origin)
-        if (source == null || book.tocUrl.isBlank()) return emptyList()
-        val toc = runCatching { WebBook.getChapterListAwait(source, book).getOrThrow() }
-            .onFailure { AppLog.put("读取《${book.name}》章节列表失败", it) }
-            .getOrDefault(emptyList())
-        if (toc.isNotEmpty()) {
-            appDb.bookChapterDao.insert(*toc.toTypedArray())
-        }
-        return toc
-    }
-
-    /**
-     * 读取单章正文：本地缓存优先；网络书未缓存时联网抓取并缓存
-     */
-    private suspend fun getChapterText(
-        book: Book,
-        chapter: BookChapter,
-        nextChapter: BookChapter?,
-        source: BookSource?
-    ): String? {
-        BookHelp.getContent(book, chapter)?.let { return it }
-        if (book.isLocal || source == null) return null
-        val nextUrl = nextChapter?.takeIf { !it.isVolume }?.getAbsoluteURL()
-        return runCatching {
-            WebBook.getContentAwait(
-                bookSource = source,
-                book = book,
-                bookChapter = chapter,
-                nextChapterUrl = nextUrl
-            )
-        }.getOrNull()
-            ?.takeIf { it.isNotBlank() && it != chapter.getAbsoluteURL() }
     }
 
     private suspend fun generateBookMeta(
@@ -2447,13 +2371,6 @@ val choices = chunk.get("choices")
         val canLoadMore: Boolean
     )
 
-    private data class ReadingContext(
-        val bookName: String,
-        val currentChapter: Int,
-        val chapterCount: Int,
-        val content: String
-    )
-
     companion object {
         private const val ROLE_USER = "user"
         private const val ROLE_ASSISTANT = "assistant"
@@ -2466,8 +2383,6 @@ val choices = chunk.get("choices")
         private const val SOURCE_CREATE_MAX_ROUNDS = 20
         private const val SOURCE_HTML_HINT_LENGTH = 6000
         private const val SOURCE_CONTENT_PREVIEW_LENGTH = 1000
-        private const val READING_CONTEXT_CHAPTERS = 4
-        private const val READING_CONTEXT_MAX_CHARS = 20_000
         private const val MAX_AI_BOOK_CHAPTERS = 50
         private const val READING_ASSISTANT_PROMPT =
             "你是小说阅读助手，使用中文回答。只能依据用户提供的已读正文回答，绝不引用、推测或暗示当前章节之后的情节。" +
