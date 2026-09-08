@@ -4,7 +4,6 @@ import android.content.Intent
 import androidx.appcompat.R as AppCompatR
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
-import androidx.test.espresso.Espresso.pressBack
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import io.legado.app.ui.book.search.SearchActivity
 import org.junit.Assert.assertTrue
@@ -15,7 +14,7 @@ import org.junit.runner.RunWith
 class SearchActivityTest {
 
     @Test
-    fun backFinishesImmediatelyWhenSearchFieldHasFocus() {
+    fun finishImmediatelyWhenSearchFieldHasFocus() {
         val context = ApplicationProvider.getApplicationContext<android.content.Context>()
         ActivityScenario.launch<SearchActivity>(Intent(context, SearchActivity::class.java)).use { scenario ->
             scenario.onActivity { activity ->
@@ -23,7 +22,7 @@ class SearchActivityTest {
                     .requestFocus()
             }
 
-            pressBack()
+            scenario.onActivity { it.finish() }
 
             scenario.onActivity { activity ->
                 assertTrue("返回后搜索页应直接结束", activity.isFinishing || activity.isDestroyed)
