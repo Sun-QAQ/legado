@@ -134,6 +134,15 @@ fun EditText.setAccentCursor() {
         }
     }
     tintCursorHandles(accent)
+    // 手柄在聚焦时会被框架用 colorControlActivated 重新着色, 在获得焦点时重刷
+    val existing = onFocusChangeListener
+    setOnFocusChangeListener { v, hasFocus ->
+        existing?.onFocusChange(v, hasFocus)
+        if (hasFocus) {
+            tintCursorHandles(accent)
+            v.post { tintCursorHandles(accent) }
+        }
+    }
 }
 
 /**
