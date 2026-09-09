@@ -99,10 +99,15 @@ class SwipeDeleteLayout @JvmOverloads constructor(
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
         if (offsetX == 0f) return
-        val left = width - revealWidth.toFloat()
+        val left = width + offsetX
         canvas.drawRect(left, 0f, width.toFloat(), height.toFloat(), deletePaint)
         val baseline = height / 2f - (textPaint.ascent() + textPaint.descent()) / 2f
-        canvas.drawText(context.getString(R.string.delete), left + revealWidth / 2f, baseline, textPaint)
+        canvas.drawText(
+            context.getString(R.string.delete),
+            width - revealWidth / 2f,
+            baseline,
+            textPaint
+        )
     }
 
     override fun dispatchDraw(canvas: Canvas) {
