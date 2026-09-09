@@ -120,6 +120,11 @@ class MainActivity : VMBaseActivity<ActivityMainBinding, MainViewModel>(),
         }
     }
 
+    override fun onResume() {
+        super.onResume()
+        applyBottomNavigationTheme()
+    }
+
     override fun onPostCreate(savedInstanceState: Bundle?) {
         super.onPostCreate(savedInstanceState)
         lifecycleScope.launch {
@@ -190,21 +195,27 @@ class MainActivity : VMBaseActivity<ActivityMainBinding, MainViewModel>(),
         viewPagerMain.offscreenPageLimit = 3
         viewPagerMain.adapter = adapter
         viewPagerMain.addOnPageChangeListener(PageChangeCallback())
-        bottomNavigationContainer.backgroundTintList =
-            ColorStateList.valueOf(bottomBackground)
         bottomNavigationContainer.elevation = elevation
         bottomNavigationView.setOnNavigationItemSelectedListener(this@MainActivity)
         bottomNavigationView.setOnNavigationItemReselectedListener(this@MainActivity)
-        if (AppConfig.isEInkMode) {
-            bottomNavigationContainer.backgroundTintList = null
-            bottomNavigationContainer.setBackgroundResource(R.drawable.bg_eink_border_top)
-        }
+        applyBottomNavigationTheme()
         bottomNavigationContainer.setOnApplyWindowInsetsListenerCompat { view, windowInsets ->
             val height = windowInsets.navigationBarHeight
             view.updateLayoutParams<ViewGroup.MarginLayoutParams> {
                 bottomMargin = height + 26.dpToPx()
             }
             windowInsets.inset(0, 0, 0, height)
+        }
+    }
+
+    private fun applyBottomNavigationTheme() = binding.run {
+        if (AppConfig.isEInkMode) {
+            bottomNavigationContainer.backgroundTintList = null
+            bottomNavigationContainer.setBackgroundResource(R.drawable.bg_eink_border_top)
+        } else {
+            bottomNavigationContainer.setBackgroundResource(R.drawable.bg_nav_bar)
+            bottomNavigationContainer.backgroundTintList =
+                ColorStateList.valueOf(bottomBackground)
         }
     }
 
