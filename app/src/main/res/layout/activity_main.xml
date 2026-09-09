@@ -11,19 +11,29 @@
         android:layout_height="match_parent"
         tools:ignore="SpeakableTextPresentCheck" />
 
-    <io.legado.app.lib.theme.view.ThemeBottomNavigationVIew
-        android:id="@+id/bottom_navigation_view"
+    <FrameLayout
+        android:id="@+id/bottom_navigation_container"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom"
         android:layout_marginStart="14dp"
         android:layout_marginEnd="14dp"
         android:layout_marginBottom="20dp"
+        android:background="@drawable/bg_nav_bar"
         android:minHeight="52dp"
-        android:outlineProvider="background"
-        app:itemActiveIndicatorStyle="@style/Widget.Legado.BottomNav.ActiveIndicator"
-        app:itemMinHeight="52dp"
-        app:labelVisibilityMode="unlabeled"
-        app:menu="@menu/main_bnv" />
+        android:outlineProvider="background">
+
+        <io.legado.app.lib.theme.view.ThemeBottomNavigationVIew
+            android:id="@+id/bottom_navigation_view"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@android:color/transparent"
+            android:minHeight="52dp"
+            app:itemActiveIndicatorStyle="@style/Widget.Legado.BottomNav.ActiveIndicator"
+            app:itemMinHeight="52dp"
+            app:labelVisibilityMode="unlabeled"
+            app:menu="@menu/main_bnv" />
+
+    </FrameLayout>
 
 </FrameLayout>

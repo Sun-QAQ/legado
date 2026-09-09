@@ -4,7 +4,6 @@ import android.content.Context
 import android.content.res.ColorStateList
 import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
-import android.graphics.drawable.GradientDrawable
 import android.util.AttributeSet
 import android.view.LayoutInflater
 import android.view.ViewGroup
@@ -18,15 +17,13 @@ import io.legado.app.lib.theme.bottomBackground
 import io.legado.app.lib.theme.getSecondaryTextColor
 import io.legado.app.ui.widget.text.BadgeView
 import io.legado.app.utils.ColorUtils
-import io.legado.app.utils.dpToPx
 
 class ThemeBottomNavigationVIew(context: Context, attrs: AttributeSet) :
     BottomNavigationView(context, attrs) {
 
     init {
-        applyBottomBackground()
-        // Material 控件完成属性解析后会再次设置背景；延后一轮确保主题色不被默认 surface 覆盖。
-        post { applyBottomBackground() }
+        makeBackgroundTransparent()
+        post { makeBackgroundTransparent() }
         // 选中胶囊指示器：由强调色派生的容器色调，选中图标仍用强调色保持对比
         val accent = ThemeStore.accentColor(context)
         val isLight = ColorUtils.isColorLight(context.bottomBackground)
@@ -52,12 +49,9 @@ class ThemeBottomNavigationVIew(context: Context, attrs: AttributeSet) :
         ViewCompat.setOnApplyWindowInsetsListener(this, null)
     }
 
-    private fun applyBottomBackground() {
+    private fun makeBackgroundTransparent() {
         backgroundTintList = null
-        background = GradientDrawable().apply {
-            cornerRadius = 24f.dpToPx()
-            setColor(context.bottomBackground)
-        }
+        background = ColorDrawable(Color.TRANSPARENT)
     }
 
     fun addBadgeView(index: Int): BadgeView {
