@@ -98,6 +98,13 @@ class BookSourceAdapter(
     ) {
         binding.run {
             if (payloads.isEmpty()) {
+                root.close()
+                root.onDeleteClick = {
+                    getItem(holder.bindingAdapterPosition)?.let {
+                        callBack.del(it)
+                        selected.remove(it)
+                    }
+                }
                 root.setBackgroundColor(ColorUtils.withAlpha(context.backgroundColor, 0.5f))
                 cbBookSource.text = item.getDisPlayNameGroup()
                 swtEnabled.isChecked = item.enabled

@@ -74,6 +74,13 @@ class RssSourceAdapter(context: Context, val callBack: CallBack) :
     ) {
         binding.run {
             if (payloads.isEmpty()) {
+                root.close()
+                root.onDeleteClick = {
+                    getItem(holder.bindingAdapterPosition)?.let {
+                        callBack.del(it)
+                        selected.remove(it)
+                    }
+                }
                 root.setBackgroundColor(ColorUtils.withAlpha(context.backgroundColor, 0.5f))
                 cbSource.text = item.getDisplayNameGroup()
                 swtEnabled.isChecked = item.enabled
