@@ -63,20 +63,8 @@
         android:src="@drawable/icon_read_book"
         android:scaleType="fitCenter"
         android:contentDescription="@string/welcome"
-        app:layout_constraintBottom_toTopOf="@+id/tv_gzh"
-        app:layout_constraintLeft_toLeftOf="parent"
-        app:layout_constraintRight_toRightOf="parent" />
-
-    <io.legado.app.ui.widget.text.AccentTextView
-        android:id="@+id/tv_gzh"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="关注公众号[开源阅读]\n看文章点广告支持作者"
-        android:layout_marginBottom="32dp"
-        android:gravity="center_horizontal"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintLeft_toLeftOf="parent"
-        app:layout_constraintRight_toRightOf="parent"
-        tools:ignore="HardcodedText" />
+        app:layout_constraintRight_toRightOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
