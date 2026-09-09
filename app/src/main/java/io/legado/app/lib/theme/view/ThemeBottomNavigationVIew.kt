@@ -24,11 +24,9 @@ class ThemeBottomNavigationVIew(context: Context, attrs: AttributeSet) :
     BottomNavigationView(context, attrs) {
 
     init {
-        // 直接设置圆角背景，避免 XML 静态 drawable 的颜色覆盖主题设置。
-        background = GradientDrawable().apply {
-            cornerRadius = 24f.dpToPx()
-            setColor(context.bottomBackground)
-        }
+        applyBottomBackground()
+        // Material 控件完成属性解析后会再次设置背景；延后一轮确保主题色不被默认 surface 覆盖。
+        post { applyBottomBackground() }
         // 选中胶囊指示器：由强调色派生的容器色调，选中图标仍用强调色保持对比
         val accent = ThemeStore.accentColor(context)
         val isLight = ColorUtils.isColorLight(context.bottomBackground)
@@ -52,6 +50,14 @@ class ThemeBottomNavigationVIew(context: Context, attrs: AttributeSet) :
         }
 
         ViewCompat.setOnApplyWindowInsetsListener(this, null)
+    }
+
+    private fun applyBottomBackground() {
+        backgroundTintList = null
+        background = GradientDrawable().apply {
+            cornerRadius = 24f.dpToPx()
+            setColor(context.bottomBackground)
+        }
     }
 
     fun addBadgeView(index: Int): BadgeView {
