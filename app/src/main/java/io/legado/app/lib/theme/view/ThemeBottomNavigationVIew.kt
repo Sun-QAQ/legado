@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.res.ColorStateList
 import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
+import android.graphics.drawable.GradientDrawable
 import android.util.AttributeSet
 import android.view.LayoutInflater
 import android.view.ViewGroup
@@ -17,13 +18,17 @@ import io.legado.app.lib.theme.bottomBackground
 import io.legado.app.lib.theme.getSecondaryTextColor
 import io.legado.app.ui.widget.text.BadgeView
 import io.legado.app.utils.ColorUtils
+import io.legado.app.utils.dpToPx
 
 class ThemeBottomNavigationVIew(context: Context, attrs: AttributeSet) :
     BottomNavigationView(context, attrs) {
 
     init {
-        // 悬浮胶囊背景跟随主题设置的底栏背景色
-        backgroundTintList = ColorStateList.valueOf(context.bottomBackground)
+        // 直接设置圆角背景，避免 XML 静态 drawable 的颜色覆盖主题设置。
+        background = GradientDrawable().apply {
+            cornerRadius = 24f.dpToPx()
+            setColor(context.bottomBackground)
+        }
         // 选中胶囊指示器：由强调色派生的容器色调，选中图标仍用强调色保持对比
         val accent = ThemeStore.accentColor(context)
         val isLight = ColorUtils.isColorLight(context.bottomBackground)
