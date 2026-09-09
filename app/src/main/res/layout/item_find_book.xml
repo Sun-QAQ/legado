@@ -67,10 +67,10 @@
             android:layout_height="wrap_content"
             android:clipToPadding="false"
             android:overScrollMode="never"
-            android:padding="3dp"
-            android:layout_marginTop="8dp"
+            android:padding="2dp"
+            android:layout_marginTop="4dp"
             android:visibility="gone"
-            app:dividerDrawable="@drawable/shape_space_divider"
+            app:dividerDrawable="@drawable/shape_explore_space_divider"
             app:flexDirection="row"
             app:flexWrap="wrap"
             app:showDivider="middle" />
