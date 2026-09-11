@@ -1,0 +1,923 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Legado 发现页重构原型</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --primary: #6c5ce7;
+      --primary-soft: #eeeaff;
+      --primary-strong: #5141c7;
+      --accent: #ef6c9d;
+      --background: #f7f6fb;
+      --surface: #ffffff;
+      --surface-2: #f1eff6;
+      --surface-3: #e8e5ef;
+      --text: #201f24;
+      --text-2: #65616d;
+      --text-3: #8c8794;
+      --outline: #ddd8e5;
+      --danger: #ba1a1a;
+      --shadow: 0 24px 70px rgba(39, 31, 75, .18);
+    }
+
+    [data-theme="dark"] {
+      color-scheme: dark;
+      --primary: #b9acff;
+      --primary-soft: #373052;
+      --primary-strong: #d3cbff;
+      --accent: #ffafd0;
+      --background: #121116;
+      --surface: #1d1b20;
+      --surface-2: #29262f;
+      --surface-3: #35313d;
+      --text: #e8e1ea;
+      --text-2: #c9c2cc;
+      --text-3: #99929f;
+      --outline: #494550;
+      --danger: #ffb4ab;
+      --shadow: 0 24px 70px rgba(0, 0, 0, .44);
+    }
+
+    * { box-sizing: border-box; }
+    button, input { font: inherit; }
+    button { color: inherit; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at 16% 12%, rgba(108, 92, 231, .15), transparent 28%),
+        radial-gradient(circle at 82% 80%, rgba(239, 108, 157, .10), transparent 30%),
+        var(--background);
+      color: var(--text);
+      font-family: "HarmonyOS Sans SC", "Microsoft YaHei", system-ui, sans-serif;
+      transition: background-color .25s, color .25s;
+    }
+
+    .prototype {
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: minmax(280px, 380px) 393px;
+      justify-content: center;
+      align-items: center;
+      gap: 72px;
+      padding: 42px 24px;
+    }
+
+    .brief { max-width: 380px; }
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--primary-strong);
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: .12em;
+    }
+    .eyebrow::before {
+      content: "";
+      width: 26px;
+      height: 3px;
+      border-radius: 999px;
+      background: var(--primary);
+    }
+    .brief h1 {
+      margin: 18px 0 14px;
+      font-size: clamp(34px, 4vw, 52px);
+      line-height: 1.08;
+      letter-spacing: -.04em;
+    }
+    .brief > p {
+      margin: 0;
+      color: var(--text-2);
+      font-size: 16px;
+      line-height: 1.8;
+    }
+    .flow {
+      margin-top: 30px;
+      display: grid;
+      gap: 10px;
+    }
+    .flow-item {
+      display: grid;
+      grid-template-columns: 30px 1fr;
+      align-items: start;
+      gap: 12px;
+      padding: 13px 0;
+      border-bottom: 1px solid var(--outline);
+    }
+    .flow-item span {
+      display: grid;
+      place-items: center;
+      width: 30px;
+      height: 30px;
+      border-radius: 10px;
+      color: var(--primary-strong);
+      background: var(--primary-soft);
+      font-size: 13px;
+      font-weight: 800;
+    }
+    .flow-item b { display: block; margin: 1px 0 4px; font-size: 14px; }
+    .flow-item small { color: var(--text-2); line-height: 1.55; }
+
+    .phone {
+      position: relative;
+      width: 393px;
+      height: 852px;
+      overflow: hidden;
+      border: 8px solid #242128;
+      border-radius: 42px;
+      background: var(--background);
+      box-shadow: var(--shadow);
+      isolation: isolate;
+    }
+    .phone::before {
+      content: "";
+      position: absolute;
+      z-index: 20;
+      top: 10px;
+      left: 50%;
+      width: 98px;
+      height: 26px;
+      border-radius: 999px;
+      background: #242128;
+      transform: translateX(-50%);
+      pointer-events: none;
+    }
+    .screen {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      background: var(--background);
+    }
+
+    .statusbar {
+      height: 38px;
+      flex: 0 0 38px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 4px 20px 0;
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .status-icons { letter-spacing: 2px; }
+
+    .page {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      animation: page-in .22s ease-out;
+    }
+    .page[hidden] { display: none; }
+    @keyframes page-in {
+      from { opacity: .35; transform: translateX(12px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      min-height: 58px;
+      padding: 4px 18px 6px;
+    }
+    .topbar h2 {
+      margin: 0;
+      font-size: 28px;
+      line-height: 1;
+      letter-spacing: -.03em;
+    }
+    .topbar-title {
+      flex: 1;
+      min-width: 0;
+      margin: 0 10px;
+    }
+    .topbar-title strong,
+    .topbar-title small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .topbar-title strong { font-size: 17px; }
+    .topbar-title small { margin-top: 3px; color: var(--text-2); font-size: 11px; }
+
+    .icon-button {
+      display: grid;
+      place-items: center;
+      width: 42px;
+      height: 42px;
+      padding: 0;
+      border: 0;
+      border-radius: 50%;
+      background: transparent;
+      cursor: pointer;
+    }
+    .icon-button:hover { background: var(--surface-2); }
+    .icon-button:active { transform: scale(.95); }
+    .icon-button svg { width: 21px; height: 21px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+    .search-wrap { padding: 5px 18px 10px; }
+    .search {
+      height: 50px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 0 15px;
+      border-radius: 18px;
+      background: var(--surface-2);
+      transition: box-shadow .2s, background .2s;
+    }
+    .search:focus-within {
+      background: var(--surface);
+      box-shadow: inset 0 0 0 2px var(--primary);
+    }
+    .search svg { width: 20px; height: 20px; stroke: var(--text-2); fill: none; stroke-width: 2; }
+    .search input {
+      width: 100%;
+      min-width: 0;
+      border: 0;
+      outline: 0;
+      background: transparent;
+      color: var(--text);
+      font-size: 14px;
+    }
+    .search input::placeholder { color: var(--text-3); }
+    .clear-search {
+      display: none;
+      border: 0;
+      padding: 4px;
+      background: transparent;
+      color: var(--text-2);
+      cursor: pointer;
+    }
+
+    .group-tabs {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding: 0 18px 12px;
+      scrollbar-width: none;
+    }
+    .group-tabs::-webkit-scrollbar { display: none; }
+    .group-chip {
+      flex: 0 0 auto;
+      height: 34px;
+      padding: 0 15px;
+      border: 0;
+      border-radius: 12px;
+      background: transparent;
+      color: var(--text-2);
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+    }
+    .group-chip.active {
+      color: var(--primary-strong);
+      background: var(--primary-soft);
+    }
+
+    .content-scroll {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+      padding: 0 14px 92px;
+      scrollbar-width: none;
+    }
+    .content-scroll::-webkit-scrollbar { display: none; }
+    .section-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 3px 5px 11px;
+      color: var(--text-2);
+      font-size: 12px;
+    }
+    .section-meta button {
+      border: 0;
+      background: transparent;
+      color: var(--primary-strong);
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .source-list { display: grid; gap: 10px; }
+    .source-card {
+      overflow: hidden;
+      border-radius: 22px;
+      background: var(--surface);
+      box-shadow: 0 1px 2px rgba(35, 30, 48, .04);
+    }
+    .source-summary {
+      width: 100%;
+      min-height: 68px;
+      display: grid;
+      grid-template-columns: 42px 1fr auto;
+      align-items: center;
+      gap: 11px;
+      padding: 11px 10px 11px 13px;
+      border: 0;
+      background: transparent;
+      text-align: left;
+      cursor: pointer;
+    }
+    .source-summary:active { background: var(--surface-2); }
+    .source-avatar {
+      display: grid;
+      place-items: center;
+      width: 42px;
+      height: 42px;
+      border-radius: 14px;
+      background: var(--avatar, var(--primary-soft));
+      color: var(--avatar-text, var(--primary-strong));
+      font-size: 15px;
+      font-weight: 800;
+    }
+    .source-copy { min-width: 0; }
+    .source-name {
+      display: block;
+      overflow: hidden;
+      color: var(--text);
+      font-size: 15px;
+      font-weight: 700;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .source-detail {
+      display: block;
+      margin-top: 4px;
+      color: var(--text-2);
+      font-size: 11px;
+    }
+    .source-actions { display: flex; align-items: center; }
+    .more-button { width: 38px; height: 38px; }
+    .chevron {
+      width: 19px;
+      height: 19px;
+      transition: transform .22s;
+    }
+    .source-card.expanded .chevron { transform: rotate(180deg); }
+
+    .categories {
+      display: none;
+      padding: 0 14px 15px;
+    }
+    .source-card.expanded .categories { display: block; }
+    .category-divider { height: 1px; margin: 0 0 12px; background: var(--outline); opacity: .72; }
+    .category-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .category-button {
+      min-width: 0;
+      min-height: 40px;
+      overflow: hidden;
+      padding: 8px 7px;
+      border: 0;
+      border-radius: 12px;
+      background: var(--surface-2);
+      color: var(--text);
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 600;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .category-button:hover { color: var(--primary-strong); background: var(--primary-soft); }
+    .category-button:active { transform: scale(.97); }
+
+    .load-state {
+      display: none;
+      align-items: center;
+      gap: 10px;
+      padding: 2px 2px 3px;
+      color: var(--text-2);
+      font-size: 12px;
+    }
+    .source-card.loading .category-grid { display: none; }
+    .source-card.loading .load-state { display: flex; }
+    .spinner {
+      width: 18px;
+      height: 18px;
+      border: 2px solid var(--surface-3);
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      animation: spin .8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .empty-state {
+      display: none;
+      place-items: center;
+      padding: 64px 28px;
+      text-align: center;
+    }
+    .empty-state.show { display: grid; }
+    .empty-visual {
+      display: grid;
+      place-items: center;
+      width: 72px;
+      height: 72px;
+      margin-bottom: 16px;
+      border-radius: 24px;
+      background: var(--primary-soft);
+      color: var(--primary-strong);
+      font-size: 30px;
+    }
+    .empty-state b { margin-bottom: 6px; font-size: 15px; }
+    .empty-state p { margin: 0; color: var(--text-2); font-size: 12px; line-height: 1.6; }
+
+    .bottom-nav {
+      position: absolute;
+      z-index: 5;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 76px;
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      padding: 7px 7px 12px;
+      background: color-mix(in srgb, var(--surface) 92%, transparent);
+      border-top: 1px solid color-mix(in srgb, var(--outline) 68%, transparent);
+      backdrop-filter: blur(18px);
+    }
+    .nav-item {
+      display: grid;
+      place-items: center;
+      align-content: center;
+      gap: 3px;
+      border: 0;
+      border-radius: 18px;
+      background: transparent;
+      color: var(--text-2);
+      font-size: 10px;
+    }
+    .nav-item .nav-icon {
+      display: grid;
+      place-items: center;
+      width: 38px;
+      height: 28px;
+      border-radius: 999px;
+      font-size: 17px;
+    }
+    .nav-item.active { color: var(--primary-strong); font-weight: 700; }
+    .nav-item.active .nav-icon { background: var(--primary-soft); }
+
+    .result-scroll {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+      padding: 4px 14px 26px;
+      scrollbar-width: none;
+    }
+    .result-scroll::-webkit-scrollbar { display: none; }
+    .result-meta {
+      display: flex;
+      justify-content: space-between;
+      padding: 2px 5px 12px;
+      color: var(--text-2);
+      font-size: 12px;
+    }
+    .book-list { display: grid; gap: 10px; }
+    .book-item {
+      display: grid;
+      grid-template-columns: 72px 1fr;
+      gap: 12px;
+      min-height: 112px;
+      padding: 10px;
+      border: 0;
+      border-radius: 20px;
+      background: var(--surface);
+      color: inherit;
+      text-align: left;
+      cursor: pointer;
+    }
+    .book-cover {
+      position: relative;
+      width: 72px;
+      height: 100px;
+      overflow: hidden;
+      display: grid;
+      align-content: end;
+      padding: 9px 7px;
+      border-radius: 12px;
+      background: linear-gradient(145deg, var(--cover-a), var(--cover-b));
+      color: white;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.16);
+    }
+    .book-cover::before {
+      content: "";
+      position: absolute;
+      width: 64px;
+      height: 64px;
+      top: -19px;
+      right: -20px;
+      border: 1px solid rgba(255,255,255,.35);
+      border-radius: 50%;
+    }
+    .book-cover span { position: relative; font-size: 13px; font-weight: 800; letter-spacing: .08em; }
+    .book-copy { min-width: 0; padding: 2px 1px 0; }
+    .book-name-row { display: flex; align-items: center; gap: 7px; }
+    .book-name {
+      min-width: 0;
+      overflow: hidden;
+      font-size: 15px;
+      font-weight: 800;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .shelf-dot {
+      flex: 0 0 auto;
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #3ba272;
+    }
+    .book-author { margin-top: 5px; color: var(--text-2); font-size: 11px; }
+    .book-tags { display: flex; gap: 5px; margin-top: 8px; overflow: hidden; }
+    .book-tag {
+      flex: 0 0 auto;
+      padding: 3px 7px;
+      border-radius: 7px;
+      color: var(--primary-strong);
+      background: var(--primary-soft);
+      font-size: 10px;
+    }
+    .book-latest {
+      margin-top: 8px;
+      overflow: hidden;
+      color: var(--text-2);
+      font-size: 11px;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .scrim {
+      position: absolute;
+      z-index: 30;
+      inset: 0;
+      visibility: hidden;
+      background: rgba(0, 0, 0, .42);
+      opacity: 0;
+      transition: opacity .2s, visibility .2s;
+    }
+    .scrim.show { visibility: visible; opacity: 1; }
+    .sheet {
+      position: absolute;
+      z-index: 31;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      padding: 10px 14px 26px;
+      border-radius: 28px 28px 0 0;
+      background: var(--surface);
+      transform: translateY(105%);
+      transition: transform .24s cubic-bezier(.2,.8,.2,1);
+    }
+    .sheet.show { transform: translateY(0); }
+    .sheet-handle { width: 34px; height: 4px; margin: 0 auto 14px; border-radius: 99px; background: var(--surface-3); }
+    .sheet-heading { padding: 0 8px 12px; }
+    .sheet-heading b { display: block; font-size: 17px; }
+    .sheet-heading small { display: block; margin-top: 4px; color: var(--text-2); }
+    .menu-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; }
+    .menu-action {
+      min-height: 70px;
+      display: grid;
+      place-items: center;
+      align-content: center;
+      gap: 6px;
+      border: 0;
+      border-radius: 16px;
+      background: var(--surface-2);
+      cursor: pointer;
+      font-size: 11px;
+    }
+    .menu-action span { font-size: 20px; }
+    .menu-action.danger { color: var(--danger); }
+
+    .toast {
+      position: absolute;
+      z-index: 50;
+      left: 50%;
+      bottom: 92px;
+      width: max-content;
+      max-width: calc(100% - 32px);
+      padding: 10px 14px;
+      border-radius: 12px;
+      background: var(--text);
+      color: var(--background);
+      font-size: 12px;
+      opacity: 0;
+      pointer-events: none;
+      transform: translate(-50%, 8px);
+      transition: opacity .18s, transform .18s;
+    }
+    .toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+    @media (max-width: 850px) {
+      .prototype { grid-template-columns: 1fr; gap: 28px; }
+      .brief { margin: 0 auto; text-align: center; }
+      .eyebrow { justify-content: center; }
+      .flow { display: none; }
+      .phone { margin: 0 auto; }
+    }
+    @media (max-width: 430px) {
+      .prototype { min-height: 100vh; padding: 0; display: block; }
+      .brief { display: none; }
+      .phone { width: 100%; height: 100vh; border: 0; border-radius: 0; box-shadow: none; }
+      .phone::before { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <main class="prototype">
+    <section class="brief" aria-labelledby="prototype-title">
+      <div class="eyebrow">LEGADO · DISCOVERY</div>
+      <h1 id="prototype-title">从“书源目录”出发的发现体验</h1>
+      <p>不虚构平台推荐数据，把现有书源、发现分类和搜索结果重新组织成更清晰、更易操作的浏览路径。</p>
+      <div class="flow" aria-label="核心体验流程">
+        <div class="flow-item"><span>01</span><div><b>快速定位书源</b><small>搜索与分组常驻，替代隐藏在工具栏菜单中的筛选。</small></div></div>
+        <div class="flow-item"><span>02</span><div><b>按需加载分类</b><small>保留项目当前懒加载逻辑，展开时才解析发现规则。</small></div></div>
+        <div class="flow-item"><span>03</span><div><b>无缝进入书籍列表</b><small>结果页完整呈现封面、作者、标签和最新章节。</small></div></div>
+      </div>
+    </section>
+
+    <section class="phone" id="phone" aria-label="Legado 发现页交互原型">
+      <div class="screen">
+        <div class="statusbar"><span>09:41</span><span class="status-icons">▮▮▮ ◉</span></div>
+
+        <section class="page" id="discoveryPage">
+          <header class="topbar">
+            <h2>发现</h2>
+            <button class="icon-button" id="themeButton" type="button" aria-label="切换深色主题">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8Z"/></svg>
+            </button>
+          </header>
+
+          <div class="search-wrap">
+            <label class="search">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+              <input id="sourceSearch" type="search" placeholder="搜索书源或分组" autocomplete="off">
+              <button class="clear-search" id="clearSearch" type="button" aria-label="清空搜索">✕</button>
+            </label>
+          </div>
+
+          <div class="group-tabs" id="groupTabs" aria-label="书源分组筛选"></div>
+
+          <div class="content-scroll">
+            <div class="section-meta"><span id="sourceCount">5 个发现源</span><button id="collapseAll" type="button">全部收起</button></div>
+            <div class="source-list" id="sourceList"></div>
+            <div class="empty-state" id="emptyState">
+              <div class="empty-visual">⌕</div>
+              <b>没有匹配的发现源</b>
+              <p>换一个名称或分组试试，也可以前往书源管理添加发现规则。</p>
+            </div>
+          </div>
+
+          <nav class="bottom-nav" aria-label="主导航">
+            <button class="nav-item" type="button"><span class="nav-icon">▥</span><span>书架</span></button>
+            <button class="nav-item active" type="button"><span class="nav-icon">◇</span><span>发现</span></button>
+            <button class="nav-item" type="button"><span class="nav-icon">◌</span><span>订阅</span></button>
+            <button class="nav-item" type="button"><span class="nav-icon">✦</span><span>AI</span></button>
+            <button class="nav-item" type="button"><span class="nav-icon">○</span><span>我的</span></button>
+          </nav>
+        </section>
+
+        <section class="page" id="resultsPage" hidden>
+          <header class="topbar">
+            <button class="icon-button" id="backButton" type="button" aria-label="返回发现页">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>
+            </button>
+            <div class="topbar-title"><strong id="resultTitle">热门排行</strong><small id="resultSource">起点中文网 · 发现</small></div>
+            <button class="icon-button" id="resultSearch" type="button" aria-label="在当前书源搜索">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+            </button>
+          </header>
+          <div class="result-scroll">
+            <div class="result-meta"><span>发现 24 本书</span><span>下拉继续加载</span></div>
+            <div class="book-list" id="bookList"></div>
+          </div>
+        </section>
+
+        <div class="scrim" id="scrim"></div>
+        <aside class="sheet" id="sourceSheet" aria-label="书源操作菜单">
+          <div class="sheet-handle"></div>
+          <div class="sheet-heading"><b id="sheetSourceName">起点中文网</b><small>书源操作</small></div>
+          <div class="menu-grid">
+            <button class="menu-action" data-action="搜索" type="button"><span>⌕</span>搜索书籍</button>
+            <button class="menu-action" data-action="登录" type="button"><span>♙</span>登录书源</button>
+            <button class="menu-action" data-action="刷新" type="button"><span>↻</span>刷新发现</button>
+            <button class="menu-action" data-action="置顶" type="button"><span>↑</span>置顶书源</button>
+            <button class="menu-action" data-action="编辑" type="button"><span>✎</span>编辑书源</button>
+            <button class="menu-action danger" data-action="删除" type="button"><span>⌫</span>删除书源</button>
+          </div>
+        </aside>
+        <div class="toast" id="toast" role="status" aria-live="polite"></div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const sources = [
+      { id: 1, name: "起点中文网", group: "正版", meta: "12 个分类 · 支持登录", avatar: "起", colors: ["#e8e3ff", "#5546c9"], categories: ["热门排行", "新书精选", "完本精品", "玄幻奇幻", "都市现实", "科幻诸天", "历史军事", "轻小说"] },
+      { id: 2, name: "晋江文学城", group: "正版", meta: "9 个分类 · 支持登录", avatar: "晋", colors: ["#ffe2ed", "#a94870"], categories: ["金榜推荐", "完结好文", "现代言情", "古代言情", "幻想未来", "纯爱频道"] },
+      { id: 3, name: "阅读精选源", group: "综合", meta: "15 个分类", avatar: "阅", colors: ["#d9f3e8", "#22755a"], categories: ["今日热门", "全网榜单", "男生频道", "女生频道", "出版读物", "短篇精选", "经典文学"] },
+      { id: 4, name: "科幻与奇幻", group: "专题", meta: "6 个分类", avatar: "幻", colors: ["#dcecff", "#32699f"], categories: ["硬核科幻", "太空歌剧", "赛博朋克", "西方奇幻", "克苏鲁", "奇幻史诗"] },
+      { id: 5, name: "本地书仓", group: "本地", meta: "4 个分类", avatar: "本", colors: ["#f4e5ce", "#8a5c22"], categories: ["最近导入", "尚未阅读", "正在阅读", "已经读完"] }
+    ];
+
+    const books = [
+      { name: "三体", author: "刘慈欣", tags: ["科幻", "完结"], latest: "最新：死神永生", shelf: true, cover: ["#243b55", "#141e30"] },
+      { name: "诡秘之主", author: "爱潜水的乌贼", tags: ["奇幻", "克苏鲁"], latest: "最新：番外五 梦魇", shelf: false, cover: ["#684b82", "#332a46"] },
+      { name: "道诡异仙", author: "狐尾的笔", tags: ["玄幻", "完结"], latest: "最新：第九百九十二章 未来", shelf: false, cover: ["#8a3b46", "#321f2a"] },
+      { name: "深海余烬", author: "远瞳", tags: ["科幻", "悬疑"], latest: "最新：第八百五十章 新世界", shelf: true, cover: ["#176b87", "#153448"] },
+      { name: "宿命之环", author: "爱潜水的乌贼", tags: ["奇幻", "连载"], latest: "最新：第六部 光明", shelf: false, cover: ["#6d5a3b", "#2d271e"] }
+    ];
+
+    const state = { group: "全部", query: "", expanded: new Set([1]), selectedSource: sources[0] };
+    const sourceList = document.getElementById("sourceList");
+    const groupTabs = document.getElementById("groupTabs");
+    const emptyState = document.getElementById("emptyState");
+    const sourceCount = document.getElementById("sourceCount");
+    const searchInput = document.getElementById("sourceSearch");
+    const clearSearch = document.getElementById("clearSearch");
+    const scrim = document.getElementById("scrim");
+    const sourceSheet = document.getElementById("sourceSheet");
+    const toast = document.getElementById("toast");
+    let toastTimer;
+
+    function escapeHtml(value) {
+      return value.replace(/[&<>'"]/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" })[char]);
+    }
+
+    function renderGroups() {
+      const groups = ["全部", ...new Set(sources.map(source => source.group))];
+      groupTabs.innerHTML = groups.map(group => `<button class="group-chip ${state.group === group ? "active" : ""}" type="button" data-group="${escapeHtml(group)}">${escapeHtml(group)}</button>`).join("");
+    }
+
+    function filteredSources() {
+      const keyword = state.query.trim().toLowerCase();
+      return sources.filter(source => {
+        const groupMatched = state.group === "全部" || source.group === state.group;
+        const queryMatched = !keyword || `${source.name} ${source.group}`.toLowerCase().includes(keyword);
+        return groupMatched && queryMatched;
+      });
+    }
+
+    function renderSources() {
+      const filtered = filteredSources();
+      sourceCount.textContent = `${filtered.length} 个发现源`;
+      emptyState.classList.toggle("show", filtered.length === 0);
+      sourceList.style.display = filtered.length ? "grid" : "none";
+      sourceList.innerHTML = filtered.map(source => {
+        const expanded = state.expanded.has(source.id);
+        const categories = source.categories.map(category => `<button class="category-button" type="button" data-category="${escapeHtml(category)}" data-source-id="${source.id}">${escapeHtml(category)}</button>`).join("");
+        return `
+          <article class="source-card ${expanded ? "expanded" : ""}" data-source-id="${source.id}">
+            <div class="source-summary" role="button" tabindex="0" aria-expanded="${expanded}" data-expand="${source.id}">
+              <span class="source-avatar" style="--avatar:${source.colors[0]};--avatar-text:${source.colors[1]}">${source.avatar}</span>
+              <span class="source-copy"><span class="source-name">${escapeHtml(source.name)}</span><span class="source-detail">${escapeHtml(source.group)} · ${escapeHtml(source.meta)}</span></span>
+              <span class="source-actions">
+                <button class="icon-button more-button" type="button" data-menu="${source.id}" aria-label="${escapeHtml(source.name)}更多操作">•••</button>
+                <svg class="chevron" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+              </span>
+            </div>
+            <div class="categories">
+              <div class="category-divider"></div>
+              <div class="load-state"><span class="spinner"></span><span>正在解析发现规则…</span></div>
+              <div class="category-grid">${categories}</div>
+            </div>
+          </article>`;
+      }).join("");
+    }
+
+    function toggleSource(id) {
+      const card = sourceList.querySelector(`[data-source-id="${id}"]`);
+      if (state.expanded.has(id)) {
+        state.expanded.delete(id);
+        renderSources();
+        return;
+      }
+      state.expanded.add(id);
+      renderSources();
+      const nextCard = sourceList.querySelector(`[data-source-id="${id}"]`);
+      nextCard.classList.add("loading");
+      window.setTimeout(() => nextCard.classList.remove("loading"), 620);
+    }
+
+    function showMenu(source) {
+      state.selectedSource = source;
+      document.getElementById("sheetSourceName").textContent = source.name;
+      scrim.classList.add("show");
+      sourceSheet.classList.add("show");
+    }
+
+    function closeMenu() {
+      scrim.classList.remove("show");
+      sourceSheet.classList.remove("show");
+    }
+
+    function showToast(message) {
+      toast.textContent = message;
+      toast.classList.add("show");
+      window.clearTimeout(toastTimer);
+      toastTimer = window.setTimeout(() => toast.classList.remove("show"), 1700);
+    }
+
+    function openResults(source, category) {
+      document.getElementById("resultTitle").textContent = category;
+      document.getElementById("resultSource").textContent = `${source.name} · 发现`;
+      document.getElementById("discoveryPage").hidden = true;
+      document.getElementById("resultsPage").hidden = false;
+      renderBooks();
+    }
+
+    function renderBooks() {
+      document.getElementById("bookList").innerHTML = books.map(book => `
+        <button class="book-item" type="button" data-book="${escapeHtml(book.name)}">
+          <span class="book-cover" style="--cover-a:${book.cover[0]};--cover-b:${book.cover[1]}"><span>${escapeHtml(book.name)}</span></span>
+          <span class="book-copy">
+            <span class="book-name-row"><span class="book-name">${escapeHtml(book.name)}</span>${book.shelf ? '<span class="shelf-dot" aria-label="已在书架"></span>' : ""}</span>
+            <span class="book-author">作者：${escapeHtml(book.author)}</span>
+            <span class="book-tags">${book.tags.map(tag => `<span class="book-tag">${escapeHtml(tag)}</span>`).join("")}</span>
+            <span class="book-latest">${escapeHtml(book.latest)}</span>
+          </span>
+        </button>`).join("");
+    }
+
+    groupTabs.addEventListener("click", event => {
+      const button = event.target.closest("[data-group]");
+      if (!button) return;
+      state.group = button.dataset.group;
+      renderGroups();
+      renderSources();
+    });
+
+    sourceList.addEventListener("click", event => {
+      const menuButton = event.target.closest("[data-menu]");
+      if (menuButton) {
+        event.stopPropagation();
+        showMenu(sources.find(source => source.id === Number(menuButton.dataset.menu)));
+        return;
+      }
+      const categoryButton = event.target.closest("[data-category]");
+      if (categoryButton) {
+        const source = sources.find(item => item.id === Number(categoryButton.dataset.sourceId));
+        openResults(source, categoryButton.dataset.category);
+        return;
+      }
+      const summary = event.target.closest("[data-expand]");
+      if (summary) toggleSource(Number(summary.dataset.expand));
+    });
+
+    sourceList.addEventListener("keydown", event => {
+      if ((event.key === "Enter" || event.key === " ") && event.target.matches("[data-expand]")) {
+        event.preventDefault();
+        toggleSource(Number(event.target.dataset.expand));
+      }
+    });
+
+    searchInput.addEventListener("input", () => {
+      state.query = searchInput.value;
+      clearSearch.style.display = state.query ? "block" : "none";
+      renderSources();
+    });
+    clearSearch.addEventListener("click", () => {
+      searchInput.value = "";
+      state.query = "";
+      clearSearch.style.display = "none";
+      searchInput.focus();
+      renderSources();
+    });
+    document.getElementById("collapseAll").addEventListener("click", () => {
+      state.expanded.clear();
+      renderSources();
+    });
+    document.getElementById("backButton").addEventListener("click", () => {
+      document.getElementById("resultsPage").hidden = true;
+      document.getElementById("discoveryPage").hidden = false;
+    });
+    document.getElementById("themeButton").addEventListener("click", () => {
+      const dark = document.documentElement.dataset.theme === "dark";
+      document.documentElement.dataset.theme = dark ? "" : "dark";
+    });
+    document.getElementById("resultSearch").addEventListener("click", () => showToast("进入当前书源搜索"));
+    document.getElementById("bookList").addEventListener("click", event => {
+      const book = event.target.closest("[data-book]");
+      if (book) showToast(`打开《${book.dataset.book}》详情`);
+    });
+    scrim.addEventListener("click", closeMenu);
+    sourceSheet.addEventListener("click", event => {
+      const action = event.target.closest("[data-action]");
+      if (!action) return;
+      const label = `${action.dataset.action}：${state.selectedSource.name}`;
+      closeMenu();
+      showToast(label);
+    });
+
+    renderGroups();
+    renderSources();
+    renderBooks();
+  </script>
+</body>
+</html>
