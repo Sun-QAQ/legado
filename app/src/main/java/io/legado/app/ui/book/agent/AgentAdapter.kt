@@ -18,6 +18,10 @@ import io.legado.app.databinding.ItemAgentStepBinding
 import io.legado.app.help.config.AppConfig
 import io.legado.app.lib.theme.accentColor
 import io.legado.app.utils.visible
+import io.noties.markwon.Markwon
+import io.noties.markwon.ext.tables.TablePlugin
+import io.noties.markwon.html.HtmlPlugin
+import io.noties.markwon.image.glide.GlideImagesPlugin
 import java.util.Locale
 
 class AgentAdapter(
@@ -27,6 +31,11 @@ class AgentAdapter(
 
     private val items = arrayListOf<AgentMessage>()
     private val expandedSteps = HashSet<Int>()
+    private val markwon = Markwon.builder(context)
+        .usePlugin(GlideImagesPlugin.create(context))
+        .usePlugin(HtmlPlugin.create())
+        .usePlugin(TablePlugin.create(context))
+        .build()
 
     fun setItems(newItems: List<AgentMessage>) {
         items.clear()
@@ -85,7 +94,7 @@ class AgentAdapter(
             viewBinding.tvMessage.backgroundTintList = ColorStateList.valueOf(context.accentColor)
         } else {
             val viewBinding = ItemAgentReplyBinding.bind(binding)
-            viewBinding.tvMessage.text = item.text
+            markwon.setMarkdown(viewBinding.tvMessage, item.text)
             viewBinding.tvMessage.visibility =
                 if (item.text.isBlank()) View.GONE else View.VISIBLE
             viewBinding.btnLoadMore.visibility =
