@@ -1860,7 +1860,7 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
                 throw AiApiException(parseApiError(response.code))
             }
             val contentBuilder = StringBuilder()
-            val toolCallMap = LinkedHashMap<Int, JsonObject>()
+            val toolCallAccumulator = StreamingToolCallAccumulator()
             try {
                 response.body?.let { respBody ->
                     val source = respBody.source()
@@ -1876,90 +1876,31 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
                             ?.takeIf { it.isJsonObject }
                             ?.asJsonObject
                             ?: continue
-val choices = chunk.get("choices")
-                        ?.takeIf { it.isJsonArray }
-                        ?.asJsonArray
-                        ?: continue
-                    if (choices.size() == 0) continue
-                    val choice = choices[0]
-                        ?.takeIf { it.isJsonObject }
-                        ?.asJsonObject
-                        ?: continue
-                    val delta = choice.get("delta")
-                        ?.takeIf { it.isJsonObject }
-                        ?.asJsonObject
-                        ?: continue
-                    val content = delta.get("content")
-                        ?.takeIf { !it.isJsonNull }
-                        ?.asString
-                    if (!content.isNullOrBlank()) {
-                        contentBuilder.append(content)
-                        onDelta(content)
-                    }
-                    val toolCalls = delta.get("tool_calls")
-                        ?.takeIf { it.isJsonArray }
-                        ?.asJsonArray
+                        val choices = chunk.get("choices")
+                            ?.takeIf { it.isJsonArray }
+                            ?.asJsonArray
+                            ?: continue
+                        if (choices.size() == 0) continue
+                        val choice = choices[0]
+                            ?.takeIf { it.isJsonObject }
+                            ?.asJsonObject
+                            ?: continue
+                        val delta = choice.get("delta")
+                            ?.takeIf { it.isJsonObject }
+                            ?.asJsonObject
+                            ?: continue
+                        val content = delta.get("content")
+                            ?.takeIf { !it.isJsonNull }
+                            ?.asString
+                        if (!content.isNullOrBlank()) {
+                            contentBuilder.append(content)
+                            onDelta(content)
+                        }
+                        val toolCalls = delta.get("tool_calls")
+                            ?.takeIf { it.isJsonArray }
+                            ?.asJsonArray
                         if (toolCalls != null) {
-                            for (i in 0 until toolCalls.size()) {
-                                val tc = toolCalls[i]
-                                    ?.takeIf { it.isJsonObject }
-                                    ?.asJsonObject
-                                    ?: continue
-                                val index = tc.get("index")
-                                    ?.takeIf { !it.isJsonNull }
-                                    ?.asInt
-                                    ?: 0
-                                val existing = toolCallMap[index]
-                                if (existing == null) {
-                                    val newCall = JsonObject()
-                                    tc.get("id")
-                                        ?.takeIf { !it.isJsonNull }
-                                        ?.asString
-                                        ?.let { newCall.addProperty("id", it) }
-                                    val func = JsonObject()
-                                    tc.get("function")
-                                        ?.takeIf { it.isJsonObject }
-                                        ?.asJsonObject
-                                        ?.let { funcObj ->
-                                            funcObj.get("name")
-                                                ?.takeIf { !it.isJsonNull }
-                                                ?.asString
-                                                ?.let { func.addProperty("name", it) }
-                                            funcObj.get("arguments")
-                                                ?.takeIf { !it.isJsonNull }
-                                                ?.asString
-                                                ?.let { func.addProperty("arguments", it) }
-                                        }
-                                    newCall.add("function", func)
-                                    toolCallMap[index] = newCall
-                                } else {
-                                    tc.get("id")
-                                        ?.takeIf { !it.isJsonNull }
-                                        ?.asString
-                                        ?.takeIf { it.isNotBlank() }
-                                        ?.let { existing.addProperty("id", it) }
-                                    tc.get("function")
-                                        ?.takeIf { it.isJsonObject }
-                                        ?.asJsonObject
-                                        ?.let { funcObj ->
-                                            val func = existing.getAsJsonObject("function")
-                                            funcObj.get("name")
-                                                ?.takeIf { !it.isJsonNull }
-                                                ?.asString
-                                                ?.takeIf { it.isNotBlank() }
-                                                ?.let { func.addProperty("name", it) }
-                                            funcObj.get("arguments")
-                                                ?.takeIf { !it.isJsonNull }
-                                                ?.asString
-                                                ?.let { argDelta ->
-                                                    val prev = func.get("arguments")
-                                                        ?.takeIf { !it.isJsonNull }
-                                                        ?.asString.orEmpty()
-                                                    func.addProperty("arguments", prev + argDelta)
-                                                }
-                                        }
-                                }
-                            }
+                            toolCallAccumulator.append(toolCalls)
                         }
                     }
                 }
@@ -1968,10 +1909,8 @@ val choices = chunk.get("choices")
             }
             return JsonObject().apply {
                 addProperty("content", contentBuilder.toString())
-                if (toolCallMap.isNotEmpty()) {
-                    val array = JsonArray()
-                    toolCallMap.keys.sorted().forEach { array.add(toolCallMap[it]) }
-                    add("tool_calls", array)
+                if (toolCallAccumulator.isNotEmpty()) {
+                    add("tool_calls", toolCallAccumulator.toJsonArray())
                 }
             }
         } finally {
