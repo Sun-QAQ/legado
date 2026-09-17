@@ -40,8 +40,20 @@ object ThemeConfig {
     val configFilePath = FileUtils.getPath(appCtx.filesDir, configFileName)
 
     val configList: ArrayList<Config> by lazy {
-        val cList = getConfigs() ?: DefaultData.themeConfigs
-        ArrayList(cList)
+        val savedConfigs = getConfigs()
+        val configs = ArrayList(savedConfigs ?: DefaultData.themeConfigs)
+        if (LocalConfig.getInt(DEFAULT_THEME_VERSION_KEY, 0) < DEFAULT_THEME_VERSION) {
+            val merged = mergeDefaultThemeConfigs(configs, DefaultData.themeConfigs)
+            configs.clear()
+            configs.addAll(merged)
+            if (savedConfigs != null) {
+                save(configs)
+            }
+            LocalConfig.edit()
+                .putInt(DEFAULT_THEME_VERSION_KEY, DEFAULT_THEME_VERSION)
+                .apply()
+        }
+        configs
     }
 
     fun getTheme() = when {
@@ -106,7 +118,11 @@ object ThemeConfig {
     }
 
     fun save() {
-        val json = GSON.toJson(configList)
+        save(configList)
+    }
+
+    private fun save(configs: List<Config>) {
+        val json = GSON.toJson(configs)
         FileUtils.delete(configFilePath)
         FileUtils.createFileIfNotExist(configFilePath).writeText(json)
     }
@@ -338,4 +354,20 @@ object ThemeConfig {
 
     }
 
+    private const val DEFAULT_THEME_VERSION_KEY = "defaultThemeVersion"
+    private const val DEFAULT_THEME_VERSION = 1
+
+}
+
+internal fun mergeDefaultThemeConfigs(
+    savedConfigs: List<ThemeConfig.Config>,
+    defaultConfigs: List<ThemeConfig.Config>
+): List<ThemeConfig.Config> = buildList {
+    addAll(savedConfigs)
+    val names = savedConfigs.mapTo(HashSet()) { it.themeName }
+    defaultConfigs.forEach { config ->
+        if (names.add(config.themeName)) {
+            add(config)
+        }
+    }
 }

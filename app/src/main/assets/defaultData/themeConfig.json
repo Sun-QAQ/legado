@@ -30,5 +30,69 @@
     "accentColor": "#FFFFFF",
     "backgroundColor": "#000000",
     "bottomBackground": "#000000"
+  },
+  {
+    "themeName": "撞色·赤陶青绿",
+    "isNightTheme": false,
+    "primaryColor": "#D95D4F",
+    "accentColor": "#00897B",
+    "backgroundColor": "#FFF8ED",
+    "bottomBackground": "#F3E5D0"
+  },
+  {
+    "themeName": "撞色·钴蓝暖橙",
+    "isNightTheme": false,
+    "primaryColor": "#3156D3",
+    "accentColor": "#FF7A00",
+    "backgroundColor": "#F6F8FF",
+    "bottomBackground": "#E7ECFF"
+  },
+  {
+    "themeName": "撞色·紫金夜宴",
+    "isNightTheme": true,
+    "primaryColor": "#7454C6",
+    "accentColor": "#FFC857",
+    "backgroundColor": "#171225",
+    "bottomBackground": "#261D3A"
+  },
+  {
+    "themeName": "糖果·草莓奶糖",
+    "isNightTheme": false,
+    "primaryColor": "#FF6B9A",
+    "accentColor": "#7C5CFC",
+    "backgroundColor": "#FFF5FA",
+    "bottomBackground": "#FFE3EE"
+  },
+  {
+    "themeName": "糖果·薄荷蜜桃",
+    "isNightTheme": false,
+    "primaryColor": "#22B8A7",
+    "accentColor": "#FF8FAB",
+    "backgroundColor": "#F2FFFC",
+    "bottomBackground": "#DDF8F1"
+  },
+  {
+    "themeName": "糖果·蓝莓棉花",
+    "isNightTheme": false,
+    "primaryColor": "#6C63FF",
+    "accentColor": "#FF8CC6",
+    "backgroundColor": "#F8F6FF",
+    "bottomBackground": "#ECE8FF"
+  },
+  {
+    "themeName": "多巴胺·晴空玫红",
+    "isNightTheme": false,
+    "primaryColor": "#176BFF",
+    "accentColor": "#FF3D81",
+    "backgroundColor": "#FFF9E8",
+    "bottomBackground": "#DDF3FF"
+  },
+  {
+    "themeName": "多巴胺·霓虹青柠",
+    "isNightTheme": true,
+    "primaryColor": "#00BFA6",
+    "accentColor": "#D7FF3F",
+    "backgroundColor": "#10151B",
+    "bottomBackground": "#19252C"
   }
 ]
