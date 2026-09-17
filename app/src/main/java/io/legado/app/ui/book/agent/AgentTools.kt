@@ -53,6 +53,40 @@ object AgentTools {
         }
     )
 
+    private val searchSourceRepositoryTool = AgentTool(
+        name = "search_source_repository",
+        description = "在阅读书源仓库中按网站域名、网址或名称搜索可导入的 Legado 3.X 书源。" +
+            "当用户询问某网站有没有现成书源、要求查找或导入书源时，应先调用本工具；" +
+            "返回的结果会在界面显示导入按钮，导入必须由用户点击确认",
+        parameters = objectParameters(
+            properties = JsonObject().apply {
+                add(
+                    "query",
+                    JsonObject().apply {
+                        addProperty("type", "string")
+                        addProperty("description", "网站域名、网址或书源名称，例如 www.example.com")
+                    }
+                )
+                add(
+                    "limit",
+                    JsonObject().apply {
+                        addProperty("type", "integer")
+                        addProperty("description", "可选，返回数量，默认10，最大20")
+                    }
+                )
+            },
+            required = arrayOf("query")
+        ),
+        execute = { arguments ->
+            val query = arguments.getStringValue("query")
+            if (query.isBlank()) {
+                GSON.toJson(emptyList<Any>())
+            } else {
+                searchSourceRepository(query, arguments.getIntValue("limit", 10))
+            }
+        }
+    )
+
     private val addBookToShelfTool = AgentTool(
         name = "add_book_to_shelf",
         description = "将书籍加入书架，需先通过 search_books 搜索到该书并将结果的 bookUrl 传入",
@@ -446,6 +480,7 @@ object AgentTools {
 
     private val allTools = listOf(
         searchBooksTool,
+        searchSourceRepositoryTool,
         addBookToShelfTool,
         createBookSourceTool,
         fetchPageTool,

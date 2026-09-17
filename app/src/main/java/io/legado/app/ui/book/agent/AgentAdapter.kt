@@ -13,6 +13,7 @@ import io.legado.app.base.adapter.ItemViewHolder
 import io.legado.app.data.entities.SearchBook
 import io.legado.app.databinding.ItemAgentMessageBinding
 import io.legado.app.databinding.ItemAgentReplyBinding
+import io.legado.app.databinding.ItemAgentSourceRepositoryBinding
 import io.legado.app.databinding.ItemSearchBinding
 import io.legado.app.databinding.ItemAgentStepBinding
 import io.legado.app.help.config.AppConfig
@@ -119,6 +120,20 @@ class AgentAdapter(
                 bookAdapter.setItems(item.books)
                 viewBinding.rvBooks.layoutManager = WrapContentLinearLayoutManager(context)
                 viewBinding.rvBooks.adapter = bookAdapter
+            }
+            if (item.repositorySources.isEmpty()) {
+                viewBinding.llSourceRepositoryResult.visibility = View.GONE
+            } else {
+                viewBinding.llSourceRepositoryResult.visible()
+                viewBinding.tvSourceRepositoryCount.text = context.getString(
+                    R.string.agent_source_repository_count,
+                    item.repositorySources.size
+                )
+                val sourceAdapter = SourceListAdapter(context, callBack)
+                sourceAdapter.setItems(item.repositorySources)
+                viewBinding.rvSourceRepository.layoutManager =
+                    WrapContentLinearLayoutManager(context)
+                viewBinding.rvSourceRepository.adapter = sourceAdapter
             }
         }
     }
@@ -244,9 +259,59 @@ class AgentAdapter(
 
     }
 
+    class SourceListAdapter(
+        private val context: Context,
+        private val callBack: CallBack
+    ) : RecyclerView.Adapter<ItemViewHolder>() {
+
+        private val items = arrayListOf<SourceRepositoryItem>()
+
+        fun setItems(newItems: List<SourceRepositoryItem>) {
+            items.clear()
+            items.addAll(newItems)
+            notifyDataSetChanged()
+        }
+
+        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ItemViewHolder {
+            return ItemViewHolder(
+                ItemAgentSourceRepositoryBinding.inflate(
+                    LayoutInflater.from(parent.context),
+                    parent,
+                    false
+                )
+            )
+        }
+
+        override fun getItemCount(): Int = items.size
+
+        override fun onBindViewHolder(holder: ItemViewHolder, position: Int) {
+            val item = items[position]
+            val binding = ItemAgentSourceRepositoryBinding.bind(holder.itemView)
+            binding.tvName.text = item.name
+            binding.tvSourceUrl.text = item.sourceUrl.ifBlank {
+                context.getString(R.string.agent_source_repository_no_url)
+            }
+            binding.tvMeta.text = buildList {
+                item.version.takeIf { it.isNotBlank() }?.let(::add)
+                item.capabilities.takeIf { it.isNotEmpty() }?.joinToString("/")?.let(::add)
+                add(context.getString(R.string.agent_source_downloads, item.downloads))
+            }.joinToString(" · ")
+            val authorText = listOf(item.author, item.updatedAt)
+                .filter { it.isNotBlank() }
+                .joinToString(" · ")
+            binding.tvAuthor.text = authorText
+            binding.tvAuthor.visibility = if (authorText.isBlank()) View.GONE else View.VISIBLE
+            binding.btnImport.backgroundTintList = ColorStateList.valueOf(context.accentColor)
+            binding.btnImport.setOnClickListener {
+                items.getOrNull(holder.bindingAdapterPosition)?.let(callBack::importBookSource)
+            }
+        }
+    }
+
     interface CallBack {
         fun openBook(book: SearchBook)
         fun onLoadMore()
+        fun importBookSource(source: SourceRepositoryItem)
     }
 
     /**

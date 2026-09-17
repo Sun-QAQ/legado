@@ -85,6 +85,7 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
     private val history = arrayListOf<ChatTurn>()
     private var selectedSupplierId: Long = 0L
     private var lastBooks: List<SearchBook> = emptyList()
+    private var lastRepositorySources: List<SourceRepositoryItem> = emptyList()
     private var lastSearchKey = ""
     private var lastSearchGroup = ""
     private var searchedSourceCount = 0
@@ -141,6 +142,7 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
         accumulatedSearchBooks = emptyList()
         canLoadMoreSearch = false
         hasBooks = false
+        lastRepositorySources = emptyList()
         lastDisplayLimit = SEARCH_PAGE_SIZE
         draftSource = null
         sourceCreationMode = false
@@ -406,7 +408,8 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
                 text = text,
                 books = books,
                 canLoadMore = canLoadMore,
-                streaming = false
+                streaming = false,
+                repositorySources = lastRepositorySources
             )
         _streamingText.value = null
         liveReply = null
@@ -557,6 +560,7 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
             currentSupplier = supplier
             var finalText = ""
             lastBooks = emptyList()
+            lastRepositorySources = emptyList()
             hasBooks = false
             var finished = false
             beginLiveReply()
@@ -753,6 +757,29 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
             )
         )
         return GSON.toJson(result.books.map { it.toToolResult() })
+    }
+
+    override suspend fun searchSourceRepository(query: String, limit: Int): String {
+        val safeLimit = limit.coerceIn(1, 20)
+        val stepId = startStep(
+            getString(R.string.agent_step_searching_source_repository),
+            getString(R.string.agent_step_detail_search, query)
+        )
+        return try {
+            val result = withContext(Dispatchers.IO) {
+                SourceRepository.search(query, safeLimit)
+            }
+            lastRepositorySources = result
+            finishStep(
+                stepId,
+                summary = getString(R.string.agent_step_source_repository_done, result.size)
+            )
+            GSON.toJson(result.map { it.toToolResult() })
+        } catch (e: Exception) {
+            lastRepositorySources = emptyList()
+            failStep(stepId, e)
+            throw e
+        }
     }
 
     override suspend fun addBookToShelf(bookUrl: String): String {
@@ -1150,7 +1177,7 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
 
     private fun summarizeToolArguments(name: String, args: JsonObject): String? {
         return when (name) {
-            "search_books" -> buildString {
+            "search_books", "search_source_repository" -> buildString {
                 args.get("query")?.takeIf { !it.isJsonNull }?.asString?.let {
                     append("query=$it")
                 }
@@ -1211,10 +1238,14 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
 
     private fun summarizeToolResult(name: String, result: String): String? {
         return when (name) {
-            "search_books" -> {
+            "search_books", "search_source_repository" -> {
                 val parsed = runCatching { JsonParser.parseString(result) }.getOrNull()
                 if (parsed is JsonArray) {
-                    getString(R.string.agent_step_search_tool_done, parsed.size())
+                    if (name == "search_source_repository") {
+                        getString(R.string.agent_step_source_repository_done, parsed.size())
+                    } else {
+                        getString(R.string.agent_step_search_tool_done, parsed.size())
+                    }
                 } else {
                     result.lineSequence().firstOrNull()?.take(60)
                         ?: getString(R.string.agent_step_unknown_result)

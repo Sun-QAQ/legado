@@ -668,6 +668,13 @@
     <string name="agent">AI</string>
     <string name="agent_hint">Ask the AI agent something…</string>
     <string name="agent_search_book">Search books</string>
+    <string name="agent_source_repository_results">Source repository</string>
+    <string name="agent_source_repository_count">%1$d result(s)</string>
+    <string name="agent_source_repository_no_url">Website not provided</string>
+    <string name="agent_source_downloads">%1$d downloads</string>
+    <string name="agent_import_source">Import</string>
+    <string name="agent_step_searching_source_repository">Searching source repository</string>
+    <string name="agent_step_source_repository_done">Found %1$d source(s)</string>
     <string name="agent_clear_chat">Clear chat</string>
     <string name="agent_select_supplier">Select AI supplier</string>
     <string name="agent_select_persona">Switch persona</string>

@@ -8,6 +8,8 @@ import com.google.gson.JsonObject
 interface AgentToolContext {
     suspend fun searchBooks(key: String, group: String, limit: Int): String
 
+    suspend fun searchSourceRepository(query: String, limit: Int): String
+
     suspend fun addBookToShelf(bookUrl: String): String
 
     suspend fun createBookSource(url: String): String

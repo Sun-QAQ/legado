@@ -15,7 +15,9 @@ import io.legado.app.data.entities.SearchBook
 import io.legado.app.databinding.FragmentAgentBinding
 import io.legado.app.lib.theme.accentColor
 import io.legado.app.model.ReadBook
+import io.legado.app.ui.association.ImportBookSourceDialog
 import io.legado.app.utils.setLayout
+import io.legado.app.utils.showDialogFragment
 import io.legado.app.utils.viewbindingdelegate.viewBinding
 import kotlinx.coroutines.launch
 
@@ -31,6 +33,10 @@ class ReadingAssistantDialog : BaseDialogFragment(R.layout.fragment_agent, true)
             override fun openBook(book: SearchBook) = Unit
 
             override fun onLoadMore() = Unit
+
+            override fun importBookSource(source: SourceRepositoryItem) {
+                showDialogFragment(ImportBookSourceDialog(source.jsonUrl))
+            }
         })
     }
 

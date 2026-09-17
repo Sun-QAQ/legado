@@ -123,4 +123,47 @@
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/ll_source_repository_result"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:background="@drawable/bg_chat_bubble_agent"
+        android:padding="4dp"
+        android:visibility="gone"
+        tools:visibility="visible">
+
+        <TextView
+            android:id="@+id/tv_source_repository_title"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_margin="8dp"
+            android:text="@string/agent_source_repository_results"
+            android:textColor="@color/primaryText"
+            android:textSize="15sp"
+            android:textStyle="bold"
+            app:layout_constraintLeft_toLeftOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <TextView
+            android:id="@+id/tv_source_repository_count"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_margin="8dp"
+            android:textColor="@color/secondaryText"
+            android:textSize="12sp"
+            app:layout_constraintBottom_toBottomOf="@id/tv_source_repository_title"
+            app:layout_constraintRight_toRightOf="parent"
+            tools:text="3 results" />
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rv_source_repository"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:nestedScrollingEnabled="false"
+            app:layout_constraintTop_toBottomOf="@id/tv_source_repository_title"
+            tools:listitem="@layout/item_agent_source_repository" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
 </LinearLayout>

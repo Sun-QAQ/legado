@@ -12,5 +12,6 @@ data class AgentMessage(
     val steps: List<AgentStep> = emptyList(),
     val placeholder: Boolean = false,
     val canLoadMore: Boolean = false,
-    val streaming: Boolean = false
+    val streaming: Boolean = false,
+    val repositorySources: List<SourceRepositoryItem> = emptyList()
 )

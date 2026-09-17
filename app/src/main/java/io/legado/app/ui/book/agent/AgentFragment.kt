@@ -21,6 +21,7 @@ import io.legado.app.databinding.FragmentAgentBinding
 import io.legado.app.lib.dialogs.selector
 import io.legado.app.lib.theme.accentColor
 import io.legado.app.ui.about.AppLogDialog
+import io.legado.app.ui.association.ImportBookSourceDialog
 import io.legado.app.ui.book.info.BookInfoActivity
 import io.legado.app.ui.main.MainFragmentInterface
 import io.legado.app.ui.widget.recycler.VerticalDivider
@@ -58,6 +59,9 @@ class AgentFragment() : BaseFragment(R.layout.fragment_agent), MainFragmentInter
         }
         override fun onLoadMore() {
             viewModel.continueSearch()
+        }
+        override fun importBookSource(source: SourceRepositoryItem) {
+            showDialogFragment(ImportBookSourceDialog(source.jsonUrl))
         }
     }) }
 
