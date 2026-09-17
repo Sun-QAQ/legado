@@ -209,6 +209,8 @@ class MainActivity : VMBaseActivity<ActivityMainBinding, MainViewModel>(),
     }
 
     private fun applyBottomNavigationTheme() = binding.run {
+        upNavigationBarColor()
+        bottomNavigationView.applyThemeColors()
         if (AppConfig.isEInkMode) {
             bottomNavigationContainer.backgroundTintList = null
             bottomNavigationContainer.setBackgroundResource(R.drawable.bg_eink_border_top)

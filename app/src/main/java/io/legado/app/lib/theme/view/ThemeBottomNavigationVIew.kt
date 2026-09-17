@@ -2,7 +2,6 @@ package io.legado.app.lib.theme.view
 
 import android.content.Context
 import android.content.res.ColorStateList
-import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
 import android.util.AttributeSet
 import android.view.LayoutInflater
@@ -22,28 +21,12 @@ class ThemeBottomNavigationVIew(context: Context, attrs: AttributeSet) :
     BottomNavigationView(context, attrs) {
 
     init {
-        makeBackgroundTransparent()
-        post { makeBackgroundTransparent() }
-        // 选中胶囊指示器：由强调色派生的容器色调，选中图标仍用强调色保持对比
-        val accent = ThemeStore.accentColor(context)
-        val isLight = ColorUtils.isColorLight(context.bottomBackground)
-        val accentContainer = if (isLight) {
-            ColorUtils.blendColors(accent, Color.WHITE, 0.8f)
-        } else {
-            ColorUtils.blendColors(accent, Color.BLACK, 0.65f)
-        }
-        setItemActiveIndicatorColor(ColorStateList.valueOf(accentContainer))
-
-        val textColor = context.getSecondaryTextColor(ColorUtils.isColorLight(context.bottomBackground))
-        val colorStateList = Selector.colorBuild()
-            .setDefaultColor(textColor)
-            .setSelectedColor(ThemeStore.accentColor(context)).create()
-        itemIconTintList = colorStateList
-        itemTextColor = colorStateList
+        applyThemeColors()
+        post { applyThemeColors() }
 
         if (AppConfig.isEInkMode) {
             isItemHorizontalTranslationEnabled = false
-            itemBackground = ColorDrawable(Color.TRANSPARENT)
+            itemBackground = ColorDrawable(TRANSPARENT)
         }
 
         ViewCompat.setOnApplyWindowInsetsListener(this, null)
@@ -51,7 +34,25 @@ class ThemeBottomNavigationVIew(context: Context, attrs: AttributeSet) :
 
     private fun makeBackgroundTransparent() {
         backgroundTintList = null
-        background = ColorDrawable(Color.TRANSPARENT)
+        background = ColorDrawable(TRANSPARENT)
+    }
+
+    fun applyThemeColors() {
+        makeBackgroundTransparent()
+        val bottomBackground = context.bottomBackground
+        val isLightBackground = ColorUtils.isColorLight(bottomBackground)
+        val colors = resolveBottomNavigationThemeColors(
+            accent = ThemeStore.accentColor(context),
+            isLightBackground = isLightBackground,
+            defaultItemColor = context.getSecondaryTextColor(isLightBackground)
+        )
+        setItemActiveIndicatorColor(ColorStateList.valueOf(colors.activeIndicatorColor))
+        val itemColors = Selector.colorBuild()
+            .setDefaultColor(colors.defaultItemColor)
+            .setSelectedColor(colors.selectedItemColor)
+            .create()
+        itemIconTintList = itemColors
+        itemTextColor = itemColors
     }
 
     fun addBadgeView(index: Int): BadgeView {
@@ -65,3 +66,40 @@ class ThemeBottomNavigationVIew(context: Context, attrs: AttributeSet) :
     }
 
 }
+
+internal data class BottomNavigationThemeColors(
+    val activeIndicatorColor: Int,
+    val defaultItemColor: Int,
+    val selectedItemColor: Int
+)
+
+internal fun resolveBottomNavigationThemeColors(
+    accent: Int,
+    isLightBackground: Boolean,
+    defaultItemColor: Int
+): BottomNavigationThemeColors {
+    val targetColor = if (isLightBackground) OPAQUE_WHITE else OPAQUE_BLACK
+    val ratio = if (isLightBackground) 0.8f else 0.65f
+    return BottomNavigationThemeColors(
+        activeIndicatorColor = blendArgb(accent, targetColor, ratio),
+        defaultItemColor = defaultItemColor,
+        selectedItemColor = accent
+    )
+}
+
+private fun blendArgb(color1: Int, color2: Int, ratio: Float): Int {
+    val inverseRatio = 1f - ratio
+    fun component(color: Int, shift: Int) = color ushr shift and 0xFF
+    fun blend(shift: Int): Int {
+        return (component(color1, shift) * inverseRatio +
+            component(color2, shift) * ratio).toInt()
+    }
+    return blend(24) shl 24 or
+        (blend(16) shl 16) or
+        (blend(8) shl 8) or
+        blend(0)
+}
+
+private const val TRANSPARENT = 0x00000000
+private const val OPAQUE_WHITE = -0x1
+private const val OPAQUE_BLACK = -0x1000000
