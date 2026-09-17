@@ -160,6 +160,7 @@ class AgentFragment() : BaseFragment(R.layout.fragment_agent), MainFragmentInter
     override fun onCompatOptionsItemSelected(item: MenuItem) {
         when (item.itemId) {
             R.id.menu_select_supplier -> selectSupplier()
+            R.id.menu_manage_supplier -> startActivity<AiSourceManageActivity>()
             R.id.menu_select_persona -> selectPersona()
             R.id.menu_manage_persona -> startActivity<AiPersonaManageActivity>()
             R.id.menu_clear_chat -> {
