@@ -3,14 +3,22 @@ package io.legado.app.ui.book.read.page
 import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Paint
+import android.graphics.drawable.ColorDrawable
+import android.graphics.drawable.GradientDrawable
 import android.os.SystemClock
+import android.text.method.ScrollingMovementMethod
 import android.util.AttributeSet
+import android.view.Gravity
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewConfiguration
+import android.widget.PopupWindow
+import android.widget.TextView
 import io.legado.app.R
 import io.legado.app.data.entities.Bookmark
 import io.legado.app.help.config.AppConfig
+import io.legado.app.help.config.ReadBookConfig
+import io.legado.app.lib.theme.ThemeStore
 import io.legado.app.model.ReadBook
 import io.legado.app.ui.book.read.page.delegate.PageDelegate
 import io.legado.app.ui.book.read.page.entities.TextLine
@@ -34,6 +42,7 @@ import kotlin.math.abs
 import kotlin.math.hypot
 import kotlin.math.max
 import kotlin.math.min
+import kotlin.math.roundToInt
 
 /**
  * 阅读内容视图
@@ -286,9 +295,57 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
                     activity?.showDialogFragment(PhotoDialog(column.src))
                     handled = true
                 }
+
+                is TextColumn -> column.noteContent?.let {
+                    showNoteBubble(x, y, it)
+                    handled = true
+                }
             }
         }
         return handled
+    }
+
+    private fun showNoteBubble(x: Float, y: Float, content: String) {
+        val margin = 16.dpToPx()
+        val horizontalPadding = 18.dpToPx()
+        val verticalPadding = 14.dpToPx()
+        val displayMetrics = resources.displayMetrics
+        val maxWidth = min(320.dpToPx(), displayMetrics.widthPixels - margin * 2)
+        val textView = TextView(context).apply {
+            text = content
+            setTextColor(ReadBookConfig.textColor)
+            textSize = 16f
+            maxLines = 12
+            isVerticalScrollBarEnabled = true
+            movementMethod = ScrollingMovementMethod.getInstance()
+            setPadding(horizontalPadding, verticalPadding, horizontalPadding, verticalPadding)
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = 12.dpToPx().toFloat()
+                setColor(ReadBookConfig.bgMeanColor)
+                setStroke(1.dpToPx(), ThemeStore.accentColor)
+            }
+        }
+        textView.measure(
+            MeasureSpec.makeMeasureSpec(maxWidth, MeasureSpec.AT_MOST),
+            MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED)
+        )
+        val popupWidth = textView.measuredWidth.coerceAtLeast(120.dpToPx())
+        val popupHeight = textView.measuredHeight
+        val popup = PopupWindow(textView, popupWidth, popupHeight, true).apply {
+            setBackgroundDrawable(ColorDrawable(android.graphics.Color.TRANSPARENT))
+            isOutsideTouchable = true
+            elevation = 8.dpToPx().toFloat()
+        }
+        val location = IntArray(2)
+        getLocationOnScreen(location)
+        val anchorX = location[0] + x.roundToInt()
+        val anchorY = location[1] + y.roundToInt()
+        val popupX = (anchorX - popupWidth / 2)
+            .coerceIn(margin, displayMetrics.widthPixels - popupWidth - margin)
+        val aboveY = anchorY - popupHeight - margin
+        val popupY = if (aboveY >= margin) aboveY else anchorY + margin
+        popup.showAtLocation(this, Gravity.TOP or Gravity.START, popupX, popupY)
     }
 
     /**

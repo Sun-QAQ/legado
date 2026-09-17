@@ -19,6 +19,7 @@ import io.legado.app.help.config.AppConfig
 import io.legado.app.help.config.ReadBookConfig
 import io.legado.app.model.ImageProvider
 import io.legado.app.model.ReadBook
+import io.legado.app.model.localBook.EpubNote
 import io.legado.app.ui.book.read.page.entities.TextChapter
 import io.legado.app.ui.book.read.page.entities.TextLine
 import io.legado.app.ui.book.read.page.entities.TextPage
@@ -197,9 +198,11 @@ object ChapterProvider {
             durY += titleBottomSpacing
         }
         contents.forEach { content ->
+            val noteList = LinkedList<String>()
+            val contentWithNotes = EpubNote.extract(content, noteList)
             if (book.getImageStyle().equals(Book.imgStyleText, true)) {
                 //图片样式为文字嵌入类型
-                var text = content.replace(srcReplaceChar, "▣")
+                var text = contentWithNotes.replace(srcReplaceChar, "▣")
                 val srcList = LinkedList<String>()
                 val sb = StringBuffer()
                 val matcher = AppPattern.imgPattern.matcher(text)
@@ -221,16 +224,17 @@ object ChapterProvider {
                     contentPaint,
                     contentPaintTextHeight,
                     contentPaintFontMetrics,
-                    srcList = srcList
+                    srcList = srcList,
+                    noteList = noteList
                 ).let {
                     absStartX = it.first
                     durY = it.second
                 }
             } else {
-                val matcher = AppPattern.imgPattern.matcher(content)
+                val matcher = AppPattern.imgPattern.matcher(contentWithNotes)
                 var start = 0
                 while (matcher.find()) {
-                    val text = content.substring(start, matcher.start())
+                    val text = contentWithNotes.substring(start, matcher.start())
                     if (text.isNotBlank()) {
                         setTypeText(
                             book,
@@ -241,7 +245,8 @@ object ChapterProvider {
                             stringBuilder,
                             contentPaint,
                             contentPaintTextHeight,
-                            contentPaintFontMetrics
+                            contentPaintFontMetrics,
+                            noteList = noteList
                         ).let {
                             absStartX = it.first
                             durY = it.second
@@ -262,8 +267,8 @@ object ChapterProvider {
                     }
                     start = matcher.end()
                 }
-                if (start < content.length) {
-                    val text = content.substring(start, content.length)
+                if (start < contentWithNotes.length) {
+                    val text = contentWithNotes.substring(start, contentWithNotes.length)
                     if (text.isNotBlank()) {
                         setTypeText(
                             book, absStartX, durY,
@@ -272,7 +277,8 @@ object ChapterProvider {
                             stringBuilder,
                             contentPaint,
                             contentPaintTextHeight,
-                            contentPaintFontMetrics
+                            contentPaintFontMetrics,
+                            noteList = noteList
                         ).let {
                             absStartX = it.first
                             durY = it.second
@@ -478,7 +484,8 @@ object ChapterProvider {
         isTitle: Boolean = false,
         emptyContent: Boolean = false,
         isVolumeTitle: Boolean = false,
-        srcList: LinkedList<String>? = null
+        srcList: LinkedList<String>? = null,
+        noteList: LinkedList<String>? = null
     ): Pair<Int, Float> {
         var absStartX = x
         val layout = if (ReadBookConfig.useZhLayout) {
@@ -551,7 +558,7 @@ object ChapterProvider {
                     textLine.text = lineText
                     addCharsToLineFirst(
                         book, absStartX, textLine, words,
-                        desiredWidth, widths, srcList
+                        desiredWidth, widths, srcList, noteList
                     )
                 }
 
@@ -569,7 +576,7 @@ object ChapterProvider {
                     }
                     addCharsToLineNatural(
                         book, absStartX, textLine, words,
-                        startX, !isTitle && lineIndex == 0, widths, srcList
+                        startX, !isTitle && lineIndex == 0, widths, srcList, noteList
                     )
                 }
 
@@ -582,14 +589,14 @@ object ChapterProvider {
                         val startX = (visibleWidth - desiredWidth) / 2
                         addCharsToLineNatural(
                             book, absStartX, textLine, words,
-                            startX, false, widths, srcList
+                            startX, false, widths, srcList, noteList
                         )
                     } else {
                         //中间行
                         textLine.text = lineText
                         addCharsToLineMiddle(
                             book, absStartX, textLine, words,
-                            desiredWidth, 0f, widths, srcList
+                            desiredWidth, 0f, widths, srcList, noteList
                         )
                     }
                 }
@@ -644,13 +651,14 @@ object ChapterProvider {
         /**自然排版长度**/
         desiredWidth: Float,
         textWidths: List<Float>,
-        srcList: LinkedList<String>?
+        srcList: LinkedList<String>?,
+        noteList: LinkedList<String>?
     ) {
         var x = 0f
         if (!ReadBookConfig.textFullJustify) {
             addCharsToLineNatural(
                 book, absStartX, textLine, words,
-                x, true, textWidths, srcList
+                x, true, textWidths, srcList, noteList
             )
             return
         }
@@ -672,7 +680,7 @@ object ChapterProvider {
             val textWidths1 = textWidths.subList(bodyIndent.length, textWidths.size)
             addCharsToLineMiddle(
                 book, absStartX, textLine, text1,
-                desiredWidth, x, textWidths1, srcList
+                desiredWidth, x, textWidths1, srcList, noteList
             )
         }
     }
@@ -690,12 +698,13 @@ object ChapterProvider {
         /**起始x坐标**/
         startX: Float,
         textWidths: List<Float>,
-        srcList: LinkedList<String>?
+        srcList: LinkedList<String>?,
+        noteList: LinkedList<String>?
     ) {
         if (!ReadBookConfig.textFullJustify) {
             addCharsToLineNatural(
                 book, absStartX, textLine, words,
-                startX, false, textWidths, srcList
+                startX, false, textWidths, srcList, noteList
             )
             return
         }
@@ -714,7 +723,7 @@ object ChapterProvider {
                 }
                 addCharToLine(
                     book, absStartX, textLine, char,
-                    x, x1, index + 1 == words.size, srcList
+                    x, x1, index + 1 == words.size, srcList, noteList
                 )
                 x = x1
             }
@@ -728,7 +737,7 @@ object ChapterProvider {
                 val x1 = if (index != words.lastIndex) (x + cw + d) else (x + cw)
                 addCharToLine(
                     book, absStartX, textLine, char,
-                    x, x1, index + 1 == words.size, srcList
+                    x, x1, index + 1 == words.size, srcList, noteList
                 )
                 x = x1
             }
@@ -747,7 +756,8 @@ object ChapterProvider {
         startX: Float,
         hasIndent: Boolean,
         textWidths: List<Float>,
-        srcList: LinkedList<String>?
+        srcList: LinkedList<String>?,
+        noteList: LinkedList<String>?
     ) {
         val indentLength = ReadBookConfig.paragraphIndent.length
         var x = startX
@@ -755,7 +765,10 @@ object ChapterProvider {
             val char = words[index]
             val cw = textWidths[index]
             val x1 = x + cw
-            addCharToLine(book, absStartX, textLine, char, x, x1, index + 1 == words.size, srcList)
+            addCharToLine(
+                book, absStartX, textLine, char, x, x1,
+                index + 1 == words.size, srcList, noteList
+            )
             x = x1
             if (hasIndent && index == indentLength - 1) {
                 textLine.indentWidth = x
@@ -775,7 +788,8 @@ object ChapterProvider {
         xStart: Float,
         xEnd: Float,
         isLineEnd: Boolean,
-        srcList: LinkedList<String>?
+        srcList: LinkedList<String>?,
+        noteList: LinkedList<String>?
     ) {
         val column = when {
             srcList != null && char == srcReplaceChar -> {
@@ -785,6 +799,15 @@ object ChapterProvider {
                     start = absStartX + xStart,
                     end = absStartX + xEnd,
                     src = src
+                )
+            }
+
+            noteList != null && char == EpubNote.displayChar && noteList.isNotEmpty() -> {
+                TextColumn(
+                    start = absStartX + xStart,
+                    end = absStartX + xEnd,
+                    charData = char,
+                    noteContent = noteList.removeFirst()
                 )
             }
 

@@ -18,6 +18,7 @@ data class TextColumn(
     override var start: Float,
     override var end: Float,
     val charData: String,
+    val noteContent: String? = null,
 ) : BaseColumn {
 
     override var textLine: TextLine = emptyTextLine
@@ -48,7 +49,7 @@ data class TextColumn(
         } else {
             ChapterProvider.contentPaint
         }
-        val textColor = if (textLine.isReadAloud || isSearchResult) {
+        val textColor = if (textLine.isReadAloud || isSearchResult || noteContent != null) {
             ThemeStore.accentColor
         } else {
             ReadBookConfig.textColor
@@ -57,12 +58,18 @@ data class TextColumn(
             textPaint.color = textColor
         }
         val y = textLine.lineBase - textLine.lineTop
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM) {
-            val letterSpacing = textPaint.letterSpacing * textPaint.textSize
-            val letterSpacingHalf = letterSpacing * 0.5f
-            canvas.drawText(charData, start + letterSpacingHalf, y, textPaint)
-        } else {
-            canvas.drawText(charData, start, y, textPaint)
+        val oldUnderline = textPaint.isUnderlineText
+        textPaint.isUnderlineText = noteContent != null
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM) {
+                val letterSpacing = textPaint.letterSpacing * textPaint.textSize
+                val letterSpacingHalf = letterSpacing * 0.5f
+                canvas.drawText(charData, start + letterSpacingHalf, y, textPaint)
+            } else {
+                canvas.drawText(charData, start, y, textPaint)
+            }
+        } finally {
+            textPaint.isUnderlineText = oldUnderline
         }
         if (selected) {
             canvas.drawRect(start, 0f, end, textLine.height, view.selectedPaint)

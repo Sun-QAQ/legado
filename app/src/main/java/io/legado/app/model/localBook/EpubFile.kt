@@ -20,6 +20,7 @@ import me.ag2s.epublib.epub.EpubReader
 import me.ag2s.epublib.util.zip.AndroidZipFile
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Element
+import org.jsoup.nodes.TextNode
 import org.jsoup.parser.Parser
 import org.jsoup.select.Elements
 import java.io.File
@@ -176,7 +177,7 @@ class EpubFile(var book: Book) {
             elements.select("rp, rt").remove()
         }
         val html = elements.outerHtml()
-        return HtmlFormatter.formatKeepImg(html)
+        return EpubNote.cacheMarker + HtmlFormatter.formatKeepImg(html)
     }
 
     private fun getBody(res: Resource, startFragmentId: String?, endFragmentId: String?): Element {
@@ -197,6 +198,7 @@ class EpubFile(var book: Book) {
             select("script").remove()
             select("style").remove()
         }
+        replaceNotes(bodyElement, res)
         // 获取body对应的文本
         var bodyString = bodyElement.outerHtml()
         val originBodyString = bodyString
@@ -248,6 +250,59 @@ class EpubFile(var book: Book) {
         }
         return bodyElement
     }
+
+    private fun replaceNotes(body: Element, resource: Resource) {
+        val targetsToRemove = linkedSetOf<Element>()
+        body.select("a[href]").forEach { reference ->
+            val resolved = resolveNoteTarget(body, resource, reference.attr("href"))
+            if (!EpubNote.isNoteReference(reference, resolved?.element)) return@forEach
+            val noteElement = resolved?.element ?: return@forEach
+            val noteCopy = noteElement.clone().apply {
+                select("[epub\\:type=backlink], [role=doc-backlink], a[href^=#]").remove()
+            }
+            val noteText = noteCopy.text().replace(Regex("\\s+"), " ").trim()
+            val encoded = EpubNote.encode(noteText)
+            if (encoded.isEmpty()) return@forEach
+            reference.replaceWith(TextNode(encoded))
+            if (resolved.sameResource) {
+                targetsToRemove.add(noteElement)
+            }
+        }
+        targetsToRemove.forEach(Element::remove)
+        body.getAllElements()
+            .filter(EpubNote::isNoteTarget)
+            .forEach(Element::remove)
+    }
+
+    private fun resolveNoteTarget(
+        body: Element,
+        resource: Resource,
+        rawHref: String
+    ): ResolvedNote? {
+        if ('#' !in rawHref) return null
+        return runCatching {
+            val resolvedHref = URI(resource.href.encodeURI())
+                .resolve(rawHref.trim().encodeURI())
+                .toString()
+            val resourceHref = URLDecoder.decode(resolvedHref.substringBefore('#'), "UTF-8")
+            val fragmentId = URLDecoder.decode(resolvedHref.substringAfter('#'), "UTF-8")
+            if (fragmentId.isBlank()) return null
+            val sameResource = resourceHref == resource.href
+            val target = if (sameResource) {
+                body.getElementById(fragmentId)
+            } else {
+                epubBook?.resources?.getByHref(resourceHref)?.let {
+                    Jsoup.parse(String(it.data, mCharset)).getElementById(fragmentId)
+                }
+            }
+            target?.let { ResolvedNote(it, sameResource) }
+        }.getOrNull()
+    }
+
+    private data class ResolvedNote(
+        val element: Element,
+        val sameResource: Boolean
+    )
 
     private fun getImage(href: String): InputStream? {
         if (href == "cover.jpeg") return epubBook?.coverImage?.inputStream

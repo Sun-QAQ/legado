@@ -17,6 +17,7 @@ import io.legado.app.help.config.ReadBookConfig
 import io.legado.app.help.coroutine.Coroutine
 import io.legado.app.model.ImageProvider
 import io.legado.app.model.ReadBook
+import io.legado.app.model.localBook.EpubNote
 import io.legado.app.ui.book.read.page.entities.TextChapter
 import io.legado.app.ui.book.read.page.entities.TextLine
 import io.legado.app.ui.book.read.page.entities.TextPage
@@ -232,9 +233,11 @@ class TextChapterLayout(
         var isSetTypedImage = false
         contents.forEach { content ->
             currentCoroutineContext().ensureActive()
+            val noteList = LinkedList<String>()
+            val contentWithNotes = EpubNote.extract(content, noteList)
             if (isTextImageStyle) {
                 //图片样式为文字嵌入类型
-                var text = content.replace(ChapterProvider.srcReplaceChar, "▣")
+                var text = contentWithNotes.replace(ChapterProvider.srcReplaceChar, "▣")
                 val srcList = LinkedList<String>()
                 sb.setLength(0)
                 val matcher = AppPattern.imgPattern.matcher(text)
@@ -253,7 +256,8 @@ class TextChapterLayout(
                     contentPaintTextHeight,
                     contentPaintFontMetrics,
                     imageStyle,
-                    srcList = srcList
+                    srcList = srcList,
+                    noteList = noteList
                 )
             } else {
                 if (isSingleImageStyle && isSetTypedImage) {
@@ -261,11 +265,11 @@ class TextChapterLayout(
                     prepareNextPageIfNeed()
                 }
                 var start = 0
-                if (content.contains("<img")) {
-                    val matcher = AppPattern.imgPattern.matcher(content)
+                if (contentWithNotes.contains("<img")) {
+                    val matcher = AppPattern.imgPattern.matcher(contentWithNotes)
                     while (matcher.find()) {
                         currentCoroutineContext().ensureActive()
-                        val text = content.substring(start, matcher.start())
+                        val text = contentWithNotes.substring(start, matcher.start())
                         if (text.isNotBlank()) {
                             setTypeText(
                                 book,
@@ -274,7 +278,8 @@ class TextChapterLayout(
                                 contentPaintTextHeight,
                                 contentPaintFontMetrics,
                                 imageStyle,
-                                isFirstLine = start == 0
+                                isFirstLine = start == 0,
+                                noteList = noteList
                             )
                         }
                         setTypeImage(
@@ -287,12 +292,12 @@ class TextChapterLayout(
                         start = matcher.end()
                     }
                 }
-                if (start < content.length) {
+                if (start < contentWithNotes.length) {
                     if (isSingleImageStyle && isSetTypedImage) {
                         isSetTypedImage = false
                         prepareNextPageIfNeed()
                     }
-                    val text = content.substring(start, content.length)
+                    val text = contentWithNotes.substring(start, contentWithNotes.length)
                     if (text.isNotBlank()) {
                         setTypeText(
                             book,
@@ -301,7 +306,8 @@ class TextChapterLayout(
                             contentPaintTextHeight,
                             contentPaintFontMetrics,
                             imageStyle,
-                            isFirstLine = start == 0
+                            isFirstLine = start == 0,
+                            noteList = noteList
                         )
                     }
                 }
@@ -416,7 +422,8 @@ class TextChapterLayout(
         isFirstLine: Boolean = true,
         emptyContent: Boolean = false,
         isVolumeTitle: Boolean = false,
-        srcList: LinkedList<String>? = null
+        srcList: LinkedList<String>? = null,
+        noteList: LinkedList<String>? = null
     ) {
         val widthsArray = allocateFloatArray(text.length)
         textPaint.getTextWidthsCompat(text, widthsArray)
@@ -476,7 +483,7 @@ class TextChapterLayout(
                     //多行的第一行 非标题
                     addCharsToLineFirst(
                         book, absStartX, textLine, words, textPaint,
-                        desiredWidth, widths, srcList
+                        desiredWidth, widths, srcList, noteList
                     )
                 }
 
@@ -494,7 +501,7 @@ class TextChapterLayout(
                     }
                     addCharsToLineNatural(
                         book, absStartX, textLine, words,
-                        startX, !isTitle && lineIndex == 0, widths, srcList
+                        startX, !isTitle && lineIndex == 0, widths, srcList, noteList
                     )
                 }
 
@@ -508,13 +515,13 @@ class TextChapterLayout(
                         val startX = (visibleWidth - desiredWidth) / 2
                         addCharsToLineNatural(
                             book, absStartX, textLine, words,
-                            startX, false, widths, srcList
+                            startX, false, widths, srcList, noteList
                         )
                     } else {
                         //中间行
                         addCharsToLineMiddle(
                             book, absStartX, textLine, words, textPaint,
-                            desiredWidth, 0f, widths, srcList
+                            desiredWidth, 0f, widths, srcList, noteList
                         )
                     }
                 }
@@ -567,13 +574,14 @@ class TextChapterLayout(
         /**自然排版长度**/
         desiredWidth: Float,
         textWidths: List<Float>,
-        srcList: LinkedList<String>?
+        srcList: LinkedList<String>?,
+        noteList: LinkedList<String>?
     ) {
         var x = 0f
         if (!textFullJustify) {
             addCharsToLineNatural(
                 book, absStartX, textLine, words,
-                x, true, textWidths, srcList
+                x, true, textWidths, srcList, noteList
             )
             return
         }
@@ -596,7 +604,7 @@ class TextChapterLayout(
             val textWidths1 = textWidths.subList(bodyIndent.length, textWidths.size)
             addCharsToLineMiddle(
                 book, absStartX, textLine, text1, textPaint,
-                desiredWidth, x, textWidths1, srcList
+                desiredWidth, x, textWidths1, srcList, noteList
             )
         }
     }
@@ -615,12 +623,13 @@ class TextChapterLayout(
         /**起始x坐标**/
         startX: Float,
         textWidths: List<Float>,
-        srcList: LinkedList<String>?
+        srcList: LinkedList<String>?,
+        noteList: LinkedList<String>?
     ) {
         if (!textFullJustify) {
             addCharsToLineNatural(
                 book, absStartX, textLine, words,
-                startX, false, textWidths, srcList
+                startX, false, textWidths, srcList, noteList
             )
             return
         }
@@ -641,7 +650,7 @@ class TextChapterLayout(
                 }
                 addCharToLine(
                     book, absStartX, textLine, char,
-                    x, x1, index + 1 == words.size, srcList
+                    x, x1, index + 1 == words.size, srcList, noteList
                 )
                 x = x1
             }
@@ -657,7 +666,7 @@ class TextChapterLayout(
                 val x1 = if (index != words.lastIndex) (x + cw + d) else (x + cw)
                 addCharToLine(
                     book, absStartX, textLine, char,
-                    x, x1, index + 1 == words.size, srcList
+                    x, x1, index + 1 == words.size, srcList, noteList
                 )
                 x = x1
             }
@@ -676,7 +685,8 @@ class TextChapterLayout(
         startX: Float,
         hasIndent: Boolean,
         textWidths: List<Float>,
-        srcList: LinkedList<String>?
+        srcList: LinkedList<String>?,
+        noteList: LinkedList<String>?
     ) {
         val indentLength = paragraphIndent.length
         var x = startX
@@ -685,7 +695,10 @@ class TextChapterLayout(
             val char = words[index]
             val cw = textWidths[index]
             val x1 = x + cw
-            addCharToLine(book, absStartX, textLine, char, x, x1, index + 1 == words.size, srcList)
+            addCharToLine(
+                book, absStartX, textLine, char, x, x1,
+                index + 1 == words.size, srcList, noteList
+            )
             x = x1
             if (hasIndent && index == indentLength - 1) {
                 textLine.indentWidth = x
@@ -705,7 +718,8 @@ class TextChapterLayout(
         xStart: Float,
         xEnd: Float,
         isLineEnd: Boolean,
-        srcList: LinkedList<String>?
+        srcList: LinkedList<String>?,
+        noteList: LinkedList<String>?
     ) {
         val column = when {
             srcList != null && char == ChapterProvider.srcReplaceChar -> {
@@ -715,6 +729,15 @@ class TextChapterLayout(
                     start = absStartX + xStart,
                     end = absStartX + xEnd,
                     src = src
+                )
+            }
+
+            noteList != null && char == EpubNote.displayChar && noteList.isNotEmpty() -> {
+                TextColumn(
+                    start = absStartX + xStart,
+                    end = absStartX + xEnd,
+                    charData = char,
+                    noteContent = noteList.removeFirst()
                 )
             }
 

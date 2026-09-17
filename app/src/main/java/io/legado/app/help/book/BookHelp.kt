@@ -14,6 +14,7 @@ import io.legado.app.data.entities.BookSource
 import io.legado.app.help.config.AppConfig
 import io.legado.app.model.analyzeRule.AnalyzeUrl
 import io.legado.app.model.localBook.LocalBook
+import io.legado.app.model.localBook.EpubNote
 import io.legado.app.utils.ArchiveUtils
 import io.legado.app.utils.FileUtils
 import io.legado.app.utils.ImageUtils
@@ -408,7 +409,9 @@ object BookHelp {
             if (string.isEmpty()) {
                 return null
             }
-            return string
+            if (!book.isEpub || EpubNote.isCurrentCache(string)) {
+                return string
+            }
         }
         if (book.isLocal) {
             val string = LocalBook.getContent(book, bookChapter)
