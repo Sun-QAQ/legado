@@ -27,6 +27,7 @@ import io.legado.app.ui.main.MainFragmentInterface
 import io.legado.app.ui.widget.recycler.VerticalDivider
 import io.legado.app.utils.applyTint
 import io.legado.app.utils.dpToPx
+import io.legado.app.utils.imeHeight
 import io.legado.app.utils.navigationBarHeight
 import io.legado.app.utils.setOnApplyWindowInsetsListenerCompat
 import io.legado.app.utils.showDialogFragment
@@ -68,14 +69,7 @@ class AgentFragment() : BaseFragment(R.layout.fragment_agent), MainFragmentInter
     override fun onFragmentCreated(view: View, savedInstanceState: Bundle?) {
         setSupportToolbar(binding.titleBar.toolbar)
         binding.btnSend.backgroundTintList = ColorStateList.valueOf(requireContext().accentColor)
-        // 输入栏上移，避免被悬浮导航胶囊遮挡
-        binding.llInput.setOnApplyWindowInsetsListenerCompat { view, windowInsets ->
-            val navBarHeight = windowInsets.navigationBarHeight
-            view.updateLayoutParams<ViewGroup.MarginLayoutParams> {
-                bottomMargin = navBarHeight + 88.dpToPx()
-            }
-            windowInsets
-        }
+        binding.llInput.applyAgentInputInsets()
         binding.recyclerView.layoutManager = LinearLayoutManager(requireContext())
         binding.recyclerView.addItemDecoration(VerticalDivider(requireContext()))
         binding.recyclerView.adapter = adapter
@@ -233,4 +227,33 @@ class AgentFragment() : BaseFragment(R.layout.fragment_agent), MainFragmentInter
         }
     }
 
+}
+
+internal fun View.applyAgentInputInsets() {
+    val bottomBarOffset = 88.dpToPx()
+    val keyboardGap = 10.dpToPx()
+    setOnApplyWindowInsetsListenerCompat { view, windowInsets ->
+        view.updateLayoutParams<ViewGroup.MarginLayoutParams> {
+            bottomMargin = resolveAgentInputBottomMargin(
+                imeHeight = windowInsets.imeHeight,
+                navigationBarHeight = windowInsets.navigationBarHeight,
+                bottomBarOffset = bottomBarOffset,
+                keyboardGap = keyboardGap
+            )
+        }
+        windowInsets
+    }
+}
+
+internal fun resolveAgentInputBottomMargin(
+    imeHeight: Int,
+    navigationBarHeight: Int,
+    bottomBarOffset: Int,
+    keyboardGap: Int
+): Int {
+    return if (imeHeight > 0) {
+        imeHeight + keyboardGap
+    } else {
+        navigationBarHeight + bottomBarOffset
+    }
 }

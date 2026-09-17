@@ -53,6 +53,7 @@ class ReadingAssistantDialog : BaseDialogFragment(R.layout.fragment_agent, true)
             }
         }
         binding.btnSend.backgroundTintList = ColorStateList.valueOf(requireContext().accentColor)
+        binding.llInput.applyAgentInputInsets()
         binding.recyclerView.layoutManager = LinearLayoutManager(requireContext())
         binding.recyclerView.adapter = adapter
         binding.btnSend.setOnClickListener { sendInput() }
