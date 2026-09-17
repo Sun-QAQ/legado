@@ -39,6 +39,7 @@ object PreferKey {
     const val showDiscovery = "showDiscovery"
     const val showAi = "showAi"
     const val aiSupplierId = "aiSupplierId"
+    const val aiPersonaId = "aiPersonaId"
     const val enableReview = "enableReview"
     const val showRss = "showRss"
     const val bookshelfLayout = "bookshelfLayout"

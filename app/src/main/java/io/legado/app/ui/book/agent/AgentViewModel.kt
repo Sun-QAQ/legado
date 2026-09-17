@@ -15,6 +15,7 @@ import io.legado.app.data.appDb
 import io.legado.app.data.entities.Book
 import io.legado.app.data.entities.BookChapter
 import io.legado.app.data.entities.BookSource
+import io.legado.app.data.entities.AiPersona
 import io.legado.app.data.entities.SearchBook
 import io.legado.app.exception.NoStackTraceException
 import io.legado.app.help.book.BookHelp
@@ -86,6 +87,13 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
     private val _currentSupplierId = MutableStateFlow(supplierSelection.currentId)
     val currentSupplierId: StateFlow<Long> = _currentSupplierId
 
+    private val personaSelection = AgentPersonaSelection(
+        load = { context.getPrefLong(PreferKey.aiPersonaId) },
+        save = { context.putPrefLong(PreferKey.aiPersonaId, it) }
+    )
+    private val _currentPersonaId = MutableStateFlow(personaSelection.currentId)
+    val currentPersonaId: StateFlow<Long> = _currentPersonaId
+
     private val _currentPersonaName = MutableStateFlow(getString(R.string.agent_persona_default))
     val currentPersonaName: StateFlow<String> = _currentPersonaName
     private var currentPersonaPrompt: String = SYSTEM_PROMPT
@@ -126,13 +134,34 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
     }
 
     fun selectDefaultPersona() {
+        personaSelection.select(0L)
+        _currentPersonaId.value = 0L
         currentPersonaPrompt = SYSTEM_PROMPT
         _currentPersonaName.value = getString(R.string.agent_persona_default)
     }
 
-    fun selectPersona(name: String, prompt: String) {
+    fun selectPersona(id: Long, name: String, prompt: String) {
+        personaSelection.select(id)
+        _currentPersonaId.value = id
         currentPersonaPrompt = prompt
         _currentPersonaName.value = name
+    }
+
+    fun restorePersona(personas: List<AiPersona>) {
+        val restoredId = personaSelection.resolve(personas.mapTo(HashSet()) { it.id })
+        val persona = personas.firstOrNull { it.id == restoredId }
+        if (persona == null) {
+            if (_currentPersonaId.value != 0L || currentPersonaPrompt != SYSTEM_PROMPT) {
+                selectDefaultPersona()
+            }
+            return
+        }
+        if (_currentPersonaId.value != persona.id ||
+            _currentPersonaName.value != persona.name ||
+            currentPersonaPrompt != persona.prompt
+        ) {
+            selectPersona(persona.id, persona.name, persona.prompt)
+        }
     }
 
     fun clearChat() {
@@ -2443,5 +2472,25 @@ internal class AgentSupplierSelection(
     fun select(id: Long) {
         currentId = id.coerceAtLeast(0L)
         save(currentId)
+    }
+}
+
+internal class AgentPersonaSelection(
+    load: () -> Long,
+    private val save: (Long) -> Unit
+) {
+    var currentId: Long = load().coerceAtLeast(0L)
+        private set
+
+    fun select(id: Long) {
+        currentId = id.coerceAtLeast(0L)
+        save(currentId)
+    }
+
+    fun resolve(availableIds: Set<Long>): Long {
+        if (currentId != 0L && currentId !in availableIds) {
+            select(0L)
+        }
+        return currentId
     }
 }

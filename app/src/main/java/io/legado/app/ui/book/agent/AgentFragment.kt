@@ -123,6 +123,7 @@ class AgentFragment() : BaseFragment(R.layout.fragment_agent), MainFragmentInter
             }
         }
         observeSuppliers()
+        observePersonas()
     }
 
     private fun observeSuppliers() {
@@ -138,6 +139,14 @@ class AgentFragment() : BaseFragment(R.layout.fragment_agent), MainFragmentInter
                     }
                 }
             }
+        }
+    }
+
+    private fun observePersonas() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            appDb.aiPersonaDao.observeAll().catch {
+                AppLog.put("获取AI人格列表失败", it)
+            }.flowOn(Dispatchers.IO).collect(viewModel::restorePersona)
         }
     }
 
@@ -196,11 +205,11 @@ class AgentFragment() : BaseFragment(R.layout.fragment_agent), MainFragmentInter
         viewLifecycleOwner.lifecycleScope.launch {
             val personas = appDb.aiPersonaDao.all
             val defaultName = getString(R.string.agent_persona_default)
-            val current = viewModel.currentPersonaName.value
+            val currentId = viewModel.currentPersonaId.value
             val names = buildList {
-                add(if (current == defaultName) "[${getString(R.string.ai_source_current)}]$defaultName" else defaultName)
+                add(if (currentId == 0L) "[${getString(R.string.ai_source_current)}]$defaultName" else defaultName)
                 personas.forEach {
-                    add(if (current == it.name) "[${getString(R.string.ai_source_current)}]${it.name}" else it.name)
+                    add(if (currentId == it.id) "[${getString(R.string.ai_source_current)}]${it.name}" else it.name)
                 }
             }
             context?.selector(getString(R.string.agent_select_persona), names) { _, index ->
@@ -208,7 +217,7 @@ class AgentFragment() : BaseFragment(R.layout.fragment_agent), MainFragmentInter
                     viewModel.selectDefaultPersona()
                 } else {
                     val persona = personas[index - 1]
-                    viewModel.selectPersona(persona.name, persona.prompt)
+                    viewModel.selectPersona(persona.id, persona.name, persona.prompt)
                 }
             }
         }
