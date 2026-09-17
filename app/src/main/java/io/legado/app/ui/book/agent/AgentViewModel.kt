@@ -9,6 +9,7 @@ import com.google.gson.JsonParser
 import io.legado.app.base.BaseViewModel
 import io.legado.app.constant.AppLog
 import io.legado.app.constant.BookType
+import io.legado.app.constant.PreferKey
 import io.legado.app.R
 import io.legado.app.data.appDb
 import io.legado.app.data.entities.Book
@@ -30,6 +31,8 @@ import io.legado.app.model.webBook.WebBook
 import io.legado.app.utils.GSON
 import io.legado.app.utils.fromJsonArray
 import io.legado.app.utils.fromJsonObject
+import io.legado.app.utils.getPrefLong
+import io.legado.app.utils.putPrefLong
 import io.legado.app.utils.toastOnUi
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.CancellationException
@@ -72,10 +75,15 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
     private val _streamingText = MutableStateFlow<String?>(null)
     val streamingText: StateFlow<String?> = _streamingText
 
+    private val supplierSelection = AgentSupplierSelection(
+        load = { context.getPrefLong(PreferKey.aiSupplierId) },
+        save = { context.putPrefLong(PreferKey.aiSupplierId, it) }
+    )
+
     private val _supplierName = MutableStateFlow("")
     val supplierName: StateFlow<String> = _supplierName
 
-    private val _currentSupplierId = MutableStateFlow(0L)
+    private val _currentSupplierId = MutableStateFlow(supplierSelection.currentId)
     val currentSupplierId: StateFlow<Long> = _currentSupplierId
 
     private val _currentPersonaName = MutableStateFlow(getString(R.string.agent_persona_default))
@@ -83,7 +91,7 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
     private var currentPersonaPrompt: String = SYSTEM_PROMPT
 
     private val history = arrayListOf<ChatTurn>()
-    private var selectedSupplierId: Long = 0L
+    private var selectedSupplierId: Long = supplierSelection.currentId
     private var lastBooks: List<SearchBook> = emptyList()
     private var lastRepositorySources: List<SourceRepositoryItem> = emptyList()
     private var lastSearchKey = ""
@@ -111,6 +119,7 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
         get() = sourceCreationMode || draftSource != null
 
     fun selectSupplier(id: Long, name: String) {
+        supplierSelection.select(id)
         selectedSupplierId = id
         _currentSupplierId.value = id
         _supplierName.value = name
@@ -2422,4 +2431,17 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
                     "某步失败就根据返回的HTML修正对应规则后立即重试。"
     }
 
+}
+
+internal class AgentSupplierSelection(
+    load: () -> Long,
+    private val save: (Long) -> Unit
+) {
+    var currentId: Long = load().coerceAtLeast(0L)
+        private set
+
+    fun select(id: Long) {
+        currentId = id.coerceAtLeast(0L)
+        save(currentId)
+    }
 }
