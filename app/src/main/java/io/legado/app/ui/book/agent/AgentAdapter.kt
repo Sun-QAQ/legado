@@ -2,12 +2,20 @@ package io.legado.app.ui.book.agent
 
 import android.content.Context
 import android.content.res.ColorStateList
+import android.graphics.drawable.Animatable
+import android.graphics.drawable.Drawable
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.core.content.ContextCompat
+import com.bumptech.glide.Glide
+import com.bumptech.glide.RequestBuilder
+import com.bumptech.glide.load.DataSource
+import com.bumptech.glide.load.engine.GlideException
+import com.bumptech.glide.request.RequestListener
+import com.bumptech.glide.request.target.Target
 import io.legado.app.R
 import io.legado.app.base.adapter.ItemViewHolder
 import io.legado.app.data.entities.SearchBook
@@ -22,6 +30,7 @@ import io.legado.app.utils.visible
 import io.noties.markwon.Markwon
 import io.noties.markwon.ext.tables.TablePlugin
 import io.noties.markwon.html.HtmlPlugin
+import io.noties.markwon.image.AsyncDrawable
 import io.noties.markwon.image.glide.GlideImagesPlugin
 import java.util.Locale
 
@@ -32,8 +41,40 @@ class AgentAdapter(
 
     private val items = arrayListOf<AgentMessage>()
     private val expandedSteps = HashSet<Int>()
+    private val imageRequestManager = Glide.with(context)
+    private val imageAnimationListener = object : RequestListener<Drawable> {
+        override fun onLoadFailed(
+            e: GlideException?,
+            model: Any,
+            target: Target<Drawable>,
+            isFirstResource: Boolean
+        ): Boolean = false
+
+        override fun onResourceReady(
+            resource: Drawable,
+            model: Any,
+            target: Target<Drawable>,
+            dataSource: DataSource,
+            isFirstResource: Boolean
+        ): Boolean {
+            startAgentImageAnimation(resource)
+            return false
+        }
+    }
     private val markwon = Markwon.builder(context)
-        .usePlugin(GlideImagesPlugin.create(context))
+        .usePlugin(
+            GlideImagesPlugin.create(object : GlideImagesPlugin.GlideStore {
+                override fun load(drawable: AsyncDrawable): RequestBuilder<Drawable> {
+                    return imageRequestManager
+                        .load(drawable.destination)
+                        .addListener(imageAnimationListener)
+                }
+
+                override fun cancel(target: Target<*>) {
+                    imageRequestManager.clear(target)
+                }
+            })
+        )
         .usePlugin(HtmlPlugin.create())
         .usePlugin(TablePlugin.create(context))
         .build()
@@ -364,4 +405,10 @@ class AgentAdapter(
         private const val TYPE_REPLY = 1
     }
 
+}
+
+internal fun startAgentImageAnimation(resource: Any): Boolean {
+    val animation = resource as? Animatable ?: return false
+    animation.start()
+    return true
 }
