@@ -681,6 +681,7 @@
     <string name="agent_manage_persona">Persona management</string>
     <string name="agent_persona">Persona</string>
     <string name="agent_persona_default">Reading assistant</string>
+    <string name="agent_persona_switched">Switched to “%1$s” persona</string>
     <string name="ai_persona_name">Persona name</string>
     <string name="ai_persona_prompt">System prompt</string>
     <string name="ai_source_current">Current</string>

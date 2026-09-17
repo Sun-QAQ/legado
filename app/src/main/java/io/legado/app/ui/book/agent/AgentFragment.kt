@@ -215,9 +215,11 @@ class AgentFragment() : BaseFragment(R.layout.fragment_agent), MainFragmentInter
             context?.selector(getString(R.string.agent_select_persona), names) { _, index ->
                 if (index == 0) {
                     viewModel.selectDefaultPersona()
+                    toastOnUi(getString(R.string.agent_persona_switched, defaultName))
                 } else {
                     val persona = personas[index - 1]
                     viewModel.selectPersona(persona.id, persona.name, persona.prompt)
+                    toastOnUi(getString(R.string.agent_persona_switched, persona.name))
                 }
             }
         }
