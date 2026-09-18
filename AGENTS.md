@@ -1,8 +1,5 @@
 # AGENTS.md
 
-## 已有指令来源（先读）
-- 用户全局 `C:\Users\27497\.claude\CLAUDE.md`：编码前先描述方案等待批准；>3 文件任务分解为小单元；完成后列出潜在问题与测试用例；发现 bug 先写复现测试。
-
 ## 提交规则
 - 每次代码修改完成后必须执行 git add+commit 提交；提交信息用中文（仓库惯例）。
 - **每次改动完成后的标准流程：提交 → 构建 → 安装到模拟器**（构建通过后再 `adb install` 部署到 MuMu 模拟器，见下文 adb 连接/安装）。
@@ -20,7 +17,6 @@ $env:JAVA_HOME="G:\Software\Java\java17"; $env:GRADLE_USER_HOME="S:\Projects\And
 
 ## adb 连接/安装（MuMu 12 模拟器）
 - 模拟器：MuMu 12 装在 `G:\Software\MuMuPlayer-12.0`，当前实例 `MuMuPlayer-12.0-0`（Redmi K70 Pro 机型，Android 12，屏幕 1272x2450）。
-- **连接地址始终为 `192.168.5.45:5555`（guest IP）**。实测 adb 调试模式无论 `remote_connect` 还是 `local_connect`，`127.0.0.1:16384`/`127.0.0.1:5555` 的本地转发均未建立（连不上），只有 guest IP 端点有效。
 - 标准 adb 路径：`G:\Software\AndroidStudioSDK\platform-tools\adb.exe`（不在 PATH）。
 - 连接步骤：
   1. 先确认模拟器已启动（任务管理器有 `MuMuNxDevice/MuMuNxMain` 进程，或 VBox 日志 `bootup finished`）。
@@ -44,7 +40,6 @@ $env:JAVA_HOME="G:\Software\Java\java17"; $env:GRADLE_USER_HOME="S:\Projects\And
 - Cronet：jar 已提交在 `app/cronetlib/`。升 Cronet 需改 `gradle.properties` 的 `CronetVersion` 后跑 `gradlew app:downloadCronet`（下载新 jar/so 并重写 `assets/cronet.json`）。
 
 ## 主题系统（易踩坑）
-- 主题 `Theme.Material3.DayNight.NoActionBar`，主色紫罗兰 `#6C5CE7`（亮）/`#B9ACFF`（暗）。
 - 运行时主题设置色：`ThemeStore.primaryColor()`（主色）/ `accentColor()`（强调色）/ `bottomBackground()`（底栏背景色）。**XML/资源无法引用这些运行时值**，只能在代码里设（`backgroundTintList`/`setTextColor`/`setSelectedTabIndicatorColor` 等）。
 - **不要**为跟随主题色而子类化 `Resources` 拦截 `getColor`——实测启动闪退，已回退。主题属性 `colorPrimary/colorAccent/colorPrimaryDark` 静态，公共 API 无法在运行时覆盖。
 - `@color/primary`/`@color/accent`/`@color/primaryDark` 是直接色值（静态回退 + `ThemeStore` 默认值来源，未设置时 resolve 这些 attr）。`md_theme_*_primary` token 已删除，勿引用。
