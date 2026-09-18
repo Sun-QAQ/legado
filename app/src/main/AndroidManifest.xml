@@ -219,6 +219,10 @@ android:icon="@mipmap/ic_launcher"
             android:name=".ui.book.agent.AiSourceManageActivity"
             android:launchMode="singleTop"
             android:screenOrientation="behind" />
+        <activity
+            android:name=".ui.book.agent.AiImageSourceManageActivity"
+            android:launchMode="singleTop"
+            android:screenOrientation="behind" />
         <!-- AI人格管理 -->
         <activity
             android:name=".ui.book.agent.AiPersonaManageActivity"

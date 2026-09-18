@@ -28,6 +28,12 @@
         app:showAsAction="never" />
 
     <item
+        android:id="@+id/menu_manage_image_source"
+        android:icon="@drawable/ic_image"
+        android:title="@string/ai_image_source_manage"
+        app:showAsAction="never" />
+
+    <item
         android:id="@+id/menu_select_persona"
         android:icon="@drawable/ic_personality"
         android:title="@string/agent_select_persona"

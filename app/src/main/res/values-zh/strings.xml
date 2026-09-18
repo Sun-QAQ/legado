@@ -758,6 +758,17 @@
     <string name="agent_week">本周</string>
     <string name="agent_month">本月</string>
     <string name="agent_send">发送</string>
+    <string name="ai_image_source">生图供应商</string>
+    <string name="ai_image_source_manage">图像生成配置</string>
+    <string name="ai_image_source_default">默认</string>
+    <string name="ai_image_source_set_default">设为默认</string>
+    <string name="ai_image_source_default_set">已更新默认生图供应商</string>
+    <string name="ai_image_size">图片尺寸（例如 1024x1024）</string>
+    <string name="ai_image_size_invalid">请输入类似 1024x1024 的尺寸</string>
+    <string name="ai_image_response_format">响应格式</string>
+    <string name="ai_image_response_auto">自动（推荐）</string>
+    <string name="ai_image_response_url">URL</string>
+    <string name="ai_image_response_base64">Base64</string>
     <string name="agent_step_read_book">正在读取书籍内容</string>
     <string name="agent_step_read_book_done">已读取%1$d章，共%2$d字</string>
     <string name="agent_book_no_chapters">书籍《%1$s》暂无章节目录</string>
