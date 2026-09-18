@@ -10,6 +10,12 @@ import io.legado.app.utils.GSON
  */
 object AgentTools {
 
+    data class Info(
+        val name: String,
+        val description: String,
+        val enabled: Boolean
+    )
+
     private const val DEFAULT_LIMIT = 5
 
     private val webSearchTool = AgentTool(
@@ -575,16 +581,22 @@ object AgentTools {
     )
     private val toolMap = allTools.associateBy { it.name }
 
-    fun find(name: String): AgentTool? = toolMap[name]
+    fun find(name: String, disabledNames: Set<String> = emptySet()): AgentTool? =
+        toolMap[name]?.takeIf { it.name !in disabledNames }
+
+    fun infos(disabledNames: Set<String> = emptySet()): List<Info> =
+        allTools.map { Info(it.name, it.description, it.name !in disabledNames) }
 
     /**
      * 生成工具清单摘要，用于注入系统提示词，与工具注册表保持单一事实来源
      */
-    fun overview(): String =
-        allTools.joinToString("；") { "${it.name}：${it.description}" }
+    fun overview(disabledNames: Set<String> = emptySet()): String =
+        allTools.asSequence()
+            .filterNot { it.name in disabledNames }
+            .joinToString("；") { "${it.name}：${it.description}" }
 
-    fun toJsonArray(): JsonArray = JsonArray().apply {
-        allTools.forEach {
+    fun toJsonArray(disabledNames: Set<String> = emptySet()): JsonArray = JsonArray().apply {
+        allTools.filterNot { it.name in disabledNames }.forEach {
             val toolJson = it.toJson()
             sanitizeToolSchema(toolJson)
             add(toolJson)

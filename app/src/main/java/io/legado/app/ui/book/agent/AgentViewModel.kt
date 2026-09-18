@@ -1463,7 +1463,7 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
     }
 
     private suspend fun executeTool(name: String, arguments: String): String {
-        val tool = AgentTools.find(name)
+        val tool = AgentTools.find(name, AgentToolPreferences.disabled(context))
         if (tool == null) {
             return "未知工具: $name"
         }
@@ -2031,11 +2031,12 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
     private fun buildChatRequest(supplier: io.legado.app.data.entities.AiSource): JsonObject {
         val root = JsonObject()
         root.addProperty("model", supplier.model)
+        val disabledTools = AgentToolPreferences.disabled(context)
         val messages = JsonArray()
         messages.add(
             JsonObject().apply {
                 addProperty("role", "system")
-                addProperty("content", currentPersonaPrompt + AgentTools.overview())
+                addProperty("content", currentPersonaPrompt + AgentTools.overview(disabledTools))
             }
         )
         history.forEach { turn ->
@@ -2053,7 +2054,9 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
             )
         }
         root.add("messages", messages)
-        root.add("tools", AgentTools.toJsonArray())
+        AgentTools.toJsonArray(disabledTools).takeIf { it.size() > 0 }?.let {
+            root.add("tools", it)
+        }
         return root
     }
 
