@@ -6,6 +6,8 @@ import com.google.gson.JsonObject
  * Agent 工具执行上下文，由 ViewModel 提供运行时能力和状态
  */
 interface AgentToolContext {
+    suspend fun webSearch(query: String, count: Int, freshness: String): String
+
     suspend fun searchBooks(key: String, group: String, limit: Int): String
 
     suspend fun searchSourceRepository(query: String, limit: Int): String

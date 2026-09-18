@@ -802,6 +802,10 @@
     <string name="ai_search_custom_body">自定义请求体（JSON，可选）</string>
     <string name="ai_search_json_invalid">自定义请求体必须是合法的 JSON 对象</string>
     <string name="ai_search_headers_invalid">自定义请求头必须是合法的 JSON 对象</string>
+    <string name="agent_search_not_configured">尚未配置已启用的网络搜索供应商，请先前往“网络搜索配置”。</string>
+    <string name="agent_step_web_searching">正在搜索网络</string>
+    <string name="agent_step_web_search_done">已找到 %1$d 条结果</string>
+    <string name="agent_web_search_failed">网络搜索失败：%1$s</string>
     <string name="agent_step_read_book">正在读取书籍内容</string>
     <string name="agent_step_read_book_done">已读取%1$d章，共%2$d字</string>
     <string name="agent_book_no_chapters">书籍《%1$s》暂无章节目录</string>

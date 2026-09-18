@@ -986,6 +986,37 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
         }
     }
 
+    override suspend fun webSearch(query: String, count: Int, freshness: String): String {
+        val selection = AgentSearchSourceSelection(
+            load = { context.getPrefLong(PreferKey.aiSearchSourceId) },
+            save = { context.putPrefLong(PreferKey.aiSearchSourceId, it) }
+        )
+        val enabled = appDb.aiSearchSourceDao.allEnabled
+        val sourceId = selection.resolve(enabled.map { it.id })
+        val source = enabled.firstOrNull { it.id == sourceId }
+            ?: return getString(R.string.agent_search_not_configured)
+        val actualCount = count.coerceIn(1, 20)
+        val stepId = startStep(
+            getString(R.string.agent_step_web_searching),
+            "${source.name} · ${query.take(80)}"
+        )
+        return try {
+            val result = AiWebSearchHelper.search(source, query, actualCount, freshness)
+            val resultCount = runCatching {
+                JsonParser.parseString(result).asJsonObject
+                    .getAsJsonArray("results")?.size() ?: 0
+            }.getOrDefault(0)
+            finishStep(stepId, getString(R.string.agent_step_web_search_done, resultCount))
+            result
+        } catch (e: Exception) {
+            failStep(stepId, e)
+            getString(
+                R.string.agent_web_search_failed,
+                e.localizedMessage ?: e.message ?: getString(R.string.unknown_error)
+            )
+        }
+    }
+
     override suspend fun generateImage(prompt: String, size: String): String {
         val selection = AgentImageSourceSelection(
             load = { context.getPrefLong(PreferKey.aiImageSourceId) },
@@ -1462,7 +1493,11 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
     }
 
     private fun isToolFailure(name: String, result: String): Boolean {
-        return (name == "create_book_source" && result.startsWith("书源创建失败")) ||
+        return (name == "web_search" && (
+            result.startsWith(getString(R.string.agent_search_not_configured)) ||
+                result.startsWith(getString(R.string.agent_web_search_failed, ""))
+            )) ||
+            (name == "create_book_source" && result.startsWith("书源创建失败")) ||
             (name == "save_book_source" && result.startsWith("书源保存失败")) ||
             (name == "create_ai_book" && result.startsWith("小说创作失败")) ||
             (name == "read_book_content" && (
@@ -1475,7 +1510,7 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
 
     private fun summarizeToolArguments(name: String, args: JsonObject): String? {
         return when (name) {
-            "search_books", "search_source_repository" -> buildString {
+            "web_search", "search_books", "search_source_repository" -> buildString {
                 args.get("query")?.takeIf { !it.isJsonNull }?.asString?.let {
                     append("query=$it")
                 }
@@ -1536,6 +1571,12 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
 
     private fun summarizeToolResult(name: String, result: String): String? {
         return when (name) {
+            "web_search" -> {
+                val parsed = runCatching { JsonParser.parseString(result).asJsonObject }.getOrNull()
+                val count = parsed?.getAsJsonArray("results")?.size()
+                count?.let { getString(R.string.agent_step_web_search_done, it) }
+                    ?: result.lineSequence().firstOrNull()?.take(60)
+            }
             "search_books", "search_source_repository" -> {
                 val parsed = runCatching { JsonParser.parseString(result) }.getOrNull()
                 if (parsed is JsonArray) {
