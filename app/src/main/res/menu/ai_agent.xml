@@ -4,6 +4,18 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <item
+        android:id="@+id/menu_new_chat"
+        android:icon="@drawable/ic_add"
+        android:title="@string/agent_new_chat"
+        app:showAsAction="always" />
+
+    <item
+        android:id="@+id/menu_chat_history"
+        android:icon="@drawable/ic_history"
+        android:title="@string/agent_chat_history"
+        app:showAsAction="never" />
+
+    <item
         android:id="@+id/menu_select_supplier"
         android:icon="@drawable/ic_cfg_source"
         android:title="@string/agent_select_supplier"

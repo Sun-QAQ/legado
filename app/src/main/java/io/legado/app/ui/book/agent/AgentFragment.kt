@@ -19,6 +19,7 @@ import io.legado.app.data.appDb
 import io.legado.app.data.entities.SearchBook
 import io.legado.app.databinding.FragmentAgentBinding
 import io.legado.app.lib.dialogs.selector
+import io.legado.app.lib.dialogs.alert
 import io.legado.app.lib.theme.accentColor
 import io.legado.app.ui.about.AppLogDialog
 import io.legado.app.ui.association.ImportBookSourceDialog
@@ -68,6 +69,7 @@ class AgentFragment() : BaseFragment(R.layout.fragment_agent), MainFragmentInter
 
     override fun onFragmentCreated(view: View, savedInstanceState: Bundle?) {
         setSupportToolbar(binding.titleBar.toolbar)
+        viewModel.startConversationHistory()
         binding.btnSend.backgroundTintList = ColorStateList.valueOf(requireContext().accentColor)
         binding.llInput.applyAgentInputInsets()
         binding.recyclerView.layoutManager = LinearLayoutManager(requireContext())
@@ -162,13 +164,21 @@ class AgentFragment() : BaseFragment(R.layout.fragment_agent), MainFragmentInter
 
     override fun onCompatOptionsItemSelected(item: MenuItem) {
         when (item.itemId) {
+            R.id.menu_new_chat -> viewModel.newConversation()
+            R.id.menu_chat_history -> showDialogFragment<AgentConversationHistoryDialog>()
             R.id.menu_select_supplier -> selectSupplier()
             R.id.menu_manage_supplier -> startActivity<AiSourceManageActivity>()
             R.id.menu_select_persona -> selectPersona()
             R.id.menu_manage_persona -> startActivity<AiPersonaManageActivity>()
             R.id.menu_clear_chat -> {
-                viewModel.clearChat()
-                toastOnUi(R.string.agent_clear_chat)
+                alert(R.string.agent_clear_chat) {
+                    setMessage(R.string.agent_clear_chat_confirm)
+                    noButton()
+                    yesButton {
+                        viewModel.clearChat()
+                        toastOnUi(R.string.agent_clear_chat)
+                    }
+                }
             }
             R.id.menu_log -> showDialogFragment<AppLogDialog>()
         }

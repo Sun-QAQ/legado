@@ -676,6 +676,12 @@
     <string name="agent_step_source_repository_done">找到 %1$d 个书源</string>
     <string name="agent_clear_chat">清空对话</string>
     <string name="agent_new_chat">新对话</string>
+    <string name="agent_chat_history">历史对话</string>
+    <string name="agent_chat_history_empty">暂无历史对话</string>
+    <string name="agent_chat_history_load_failed">历史对话加载失败</string>
+    <string name="agent_delete_chat_confirm">确定删除“%1$s”吗？</string>
+    <string name="agent_delete_all_chats_confirm">确定删除全部历史对话吗？</string>
+    <string name="agent_clear_chat_confirm">确定删除当前对话吗？</string>
     <string name="agent_select_supplier">选择AI供应商</string>
     <string name="agent_select_persona">切换人格</string>
     <string name="agent_manage_persona">人格管理</string>

@@ -677,6 +677,12 @@
     <string name="agent_step_source_repository_done">Found %1$d source(s)</string>
     <string name="agent_clear_chat">Clear chat</string>
     <string name="agent_new_chat">New chat</string>
+    <string name="agent_chat_history">Chat history</string>
+    <string name="agent_chat_history_empty">No chat history</string>
+    <string name="agent_chat_history_load_failed">Failed to load chat history</string>
+    <string name="agent_delete_chat_confirm">Delete “%1$s”?</string>
+    <string name="agent_delete_all_chats_confirm">Delete all chat history?</string>
+    <string name="agent_clear_chat_confirm">Delete the current chat?</string>
     <string name="agent_select_supplier">Select AI supplier</string>
     <string name="agent_select_persona">Switch persona</string>
     <string name="agent_manage_persona">Persona management</string>
