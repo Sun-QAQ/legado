@@ -42,7 +42,14 @@ class AiPersonaManageActivity :
             appDb.aiPersonaDao.observeAll().catch {
                 AppLog.put("AI人格管理界面获取数据失败\n${it.localizedMessage}", it)
             }.flowOn(kotlinx.coroutines.Dispatchers.IO).conflate().collect {
-                adapter.setItems(it, adapter.diffItemCallback)
+                adapter.currentId = viewModel.resolveCurrent(it)
+                val defaultPersona = AiPersona(
+                    id = AiPersonaAdapter.DEFAULT_PERSONA_ID,
+                    name = getString(R.string.agent_persona_default),
+                    prompt = getString(R.string.ai_persona_default_desc),
+                    lastUpdateTime = 0L
+                )
+                adapter.setItems(listOf(defaultPersona) + it, adapter.diffItemCallback)
             }
         }
     }
@@ -61,6 +68,12 @@ class AiPersonaManageActivity :
 
     override fun edit(aiPersona: AiPersona) {
         showDialogFragment(AiPersonaEditDialog(aiPersona.id))
+    }
+
+    override fun select(aiPersona: AiPersona) {
+        viewModel.select(aiPersona)
+        adapter.currentId = aiPersona.id
+        toastOnUi(getString(R.string.agent_persona_switched, aiPersona.name))
     }
 
     override fun delete(aiPersona: AiPersona) {

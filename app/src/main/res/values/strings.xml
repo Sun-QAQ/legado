@@ -694,6 +694,8 @@
     <string name="agent_persona_switched">Switched to “%1$s” persona</string>
     <string name="ai_persona_name">Persona name</string>
     <string name="ai_persona_prompt">System prompt</string>
+    <string name="ai_persona_select_use">Use this persona</string>
+    <string name="ai_persona_default_desc">Built-in default persona</string>
     <string name="ai_source_current">Current</string>
     <string name="agent_searching">Searching books…</string>
     <string name="agent_waiting">Waiting for reply…</string>

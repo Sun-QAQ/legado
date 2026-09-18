@@ -4,6 +4,7 @@ import android.content.Context
 import android.view.View
 import android.view.ViewGroup
 import android.widget.PopupMenu
+import androidx.core.view.isVisible
 import androidx.recyclerview.widget.DiffUtil
 import io.legado.app.R
 import io.legado.app.base.adapter.ItemViewHolder
@@ -15,6 +16,14 @@ class AiPersonaAdapter(
     context: Context,
     private val callBack: CallBack
 ) : RecyclerAdapter<AiPersona, ItemAiPersonaBinding>(context) {
+
+    var currentId: Long = 0L
+        set(value) {
+            if (field != value) {
+                field = value
+                notifyDataSetChanged()
+            }
+        }
 
     val diffItemCallback = object : DiffUtil.ItemCallback<AiPersona>() {
 
@@ -39,10 +48,16 @@ class AiPersonaAdapter(
         item: AiPersona,
         payloads: MutableList<Any>
     ) {
-        binding.tvName.text = item.name
+        val prefix = if (item.id == currentId) {
+            "[${context.getString(R.string.ai_source_current)}] "
+        } else {
+            ""
+        }
+        binding.tvName.text = prefix + item.name
         binding.tvPrompt.text = item.prompt.ifBlank {
             context.getString(R.string.ai_persona_prompt)
         }
+        binding.ivEdit.isVisible = item.id != DEFAULT_PERSONA_ID
     }
 
     override fun registerListener(holder: ItemViewHolder, binding: ItemAiPersonaBinding) {
@@ -60,8 +75,10 @@ class AiPersonaAdapter(
         val persona = getItem(position) ?: return
         val popupMenu = PopupMenu(context, view)
         popupMenu.inflate(R.menu.ai_persona_item)
+        popupMenu.menu.findItem(R.id.menu_del).isVisible = persona.id != DEFAULT_PERSONA_ID
         popupMenu.setOnMenuItemClickListener { menuItem ->
             when (menuItem.itemId) {
+                R.id.menu_select_persona_use -> callBack.select(persona)
                 R.id.menu_del -> callBack.delete(persona)
             }
             true
@@ -71,7 +88,12 @@ class AiPersonaAdapter(
 
     interface CallBack {
         fun edit(aiPersona: AiPersona)
+        fun select(aiPersona: AiPersona)
         fun delete(aiPersona: AiPersona)
+    }
+
+    companion object {
+        const val DEFAULT_PERSONA_ID = 0L
     }
 
 }
