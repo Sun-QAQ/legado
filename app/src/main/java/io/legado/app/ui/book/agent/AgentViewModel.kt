@@ -39,8 +39,6 @@ import io.legado.app.utils.toastOnUi
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.isActive
@@ -125,7 +123,7 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
     private val stepStartTimes = HashMap<String, Long>()
     private var stepSequence = 0L
     private var liveReply: AgentMessage? = null
-    private var activeJob: Job? = null
+    private val requestTracker = AgentRequestTracker()
     private var currentCall: okhttp3.Call? = null
     private var cancelRequested = false
     private var draftSource: BookSource? = null
@@ -286,13 +284,11 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
     }
 
     private suspend fun stopActiveRequest() {
-        val job = activeJob
-        if (job?.isActive == true) {
+        if (requestTracker.job?.isActive == true) {
             cancelRequested = true
             currentCall?.cancel()
-            job.cancelAndJoin()
         }
-        activeJob = null
+        requestTracker.cancelAndJoin()
         currentCall = null
         cancelRequested = false
         _waiting.value = false
@@ -390,7 +386,7 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
         if (key.isEmpty() || _waiting.value) return
         cancelRequested = false
         addUserMessage(key)
-        activeJob = viewModelScope.launch {
+        requestTracker.track(viewModelScope.launch {
             val supplier = if (selectedSupplierId > 0) {
                 appDb.aiSourceDao.get(selectedSupplierId)
             } else {
@@ -401,7 +397,7 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
             } else {
                 agentLoop(supplier, key)
             }
-        }
+        })
     }
 
     /**
@@ -412,7 +408,7 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
         if (key.isEmpty() || _waiting.value) return
         cancelRequested = false
         addUserMessage(key)
-        activeJob = viewModelScope.launch {
+        requestTracker.track(viewModelScope.launch {
             val supplier = if (selectedSupplierId > 0) {
                 appDb.aiSourceDao.get(selectedSupplierId)
             } else {
@@ -423,7 +419,7 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
             } else {
                 answerCurrentReading(supplier, key)
             }
-        }
+        })
     }
 
     /**
@@ -432,23 +428,22 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
     fun cancel() {
         cancelRequested = true
         currentCall?.cancel()
-        activeJob?.cancel()
-        activeJob = null
+        requestTracker.cancel()
     }
 
     fun searchBook(key: String) {
         if (key.isBlank() || _waiting.value) return
         cancelRequested = false
         addUserMessage(key)
-        activeJob = viewModelScope.launch {
+        requestTracker.track(viewModelScope.launch {
             searchDirect(key)
-        }
+        })
     }
 
     fun continueSearch() {
         if (_waiting.value || !canLoadMoreSearch || lastSearchKey.isBlank()) return
         cancelRequested = false
-        activeJob = viewModelScope.launch {
+        requestTracker.track(viewModelScope.launch {
             _waiting.value = true
             val stepId = startStep(getString(R.string.agent_step_continue_search))
             try {
@@ -500,7 +495,7 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
             } finally {
                 _waiting.value = false
             }
-        }
+        })
     }
 
     private fun addUserMessage(text: String) {
