@@ -2742,7 +2742,7 @@ internal class AgentSupplierSelection(
 }
 
 internal class AgentPersonaSelection(
-    load: () -> Long,
+    private val load: () -> Long,
     private val save: (Long) -> Unit
 ) {
     var currentId: Long = load().coerceAtLeast(0L)
@@ -2751,6 +2751,11 @@ internal class AgentPersonaSelection(
     fun select(id: Long) {
         currentId = id.coerceAtLeast(0L)
         save(currentId)
+    }
+
+    fun reload(): Long {
+        currentId = load().coerceAtLeast(0L)
+        return currentId
     }
 
     fun resolve(availableIds: Set<Long>): Long {

@@ -22,4 +22,31 @@ class AgentPersonaSelectionTest {
         assertEquals(0L, restarted.resolve(setOf(101L)))
         assertEquals(0L, persistedId)
     }
+
+    @Test
+    fun `重新读取管理页修改后的人格`() {
+        var persistedId = 101L
+        val selection = AgentPersonaSelection(
+            load = { persistedId },
+            save = { persistedId = it }
+        )
+
+        persistedId = 202L
+
+        assertEquals(202L, selection.reload())
+    }
+
+    @Test
+    fun `默认人格始终可以被选择`() {
+        var persistedId = 202L
+        val selection = AgentPersonaSelection(
+            load = { persistedId },
+            save = { persistedId = it }
+        )
+
+        selection.select(0L)
+
+        assertEquals(0L, selection.resolve(emptySet()))
+        assertEquals(0L, persistedId)
+    }
 }
