@@ -25,26 +25,3 @@
 * rss\source 订阅源界面
 * welcome 欢迎界面
 * widget 自定义插件
-
-## book\agent
-
-`book\agent` 提供 AI 对话、历史记录、人格、模型供应商、图像生成、网络搜索及工具管理能力。
-
-主要入口：
-
-* `AgentFragment.kt`：AI 对话界面和右上角功能菜单。
-* `AgentViewModel.kt`：对话状态、流式请求、工具调用循环及书源创建实现。
-* `AgentTool.kt`、`AgentTools.kt`：工具接口、参数 Schema 和工具注册表。
-* `AgentToolPreferences.kt`：保存工具启用状态；禁用工具不会发送给模型，也不能在本地执行。
-* `AiSourceManageActivity.kt`：管理对话模型供应商及当前模型。
-* `AiPersonaManageActivity.kt`：管理并选择当前人格。
-* `AiImageSourceManageActivity.kt`：管理图像生成供应商。
-* `AiSearchSourceManageActivity.kt`：管理 Tavily、Brave、SearXNG 或自定义搜索接口。
-* `AiToolManageActivity.kt`：查看、启用或禁用当前 Agent 工具。
-* `AgentConversationHistoryDialog.kt`：查看、恢复和删除历史对话。
-
-AI 创建书源由 `AgentTools.kt` 注册工具，具体逻辑位于 `AgentViewModel.kt`。标准流程为：
-
-`create_book_source` → `update_book_source` → `debug_source_search` → `debug_source_book_info` → `debug_source_toc` → `debug_source_content` → `save_book_source`
-
-创建中的书源先以禁用草稿保存于内存，各项规则调试和校验通过后才写入数据库，并归入“AI生成”分组。
