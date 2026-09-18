@@ -18,6 +18,7 @@ import io.legado.app.data.dao.AiSourceDao
 import io.legado.app.data.dao.AiPersonaDao
 import io.legado.app.data.dao.AiConversationDao
 import io.legado.app.data.dao.AiImageSourceDao
+import io.legado.app.data.dao.AiSearchSourceDao
 import io.legado.app.data.dao.CacheDao
 import io.legado.app.data.dao.CookieDao
 import io.legado.app.data.dao.DictRuleDao
@@ -45,6 +46,7 @@ import io.legado.app.data.entities.AiSource
 import io.legado.app.data.entities.AiPersona
 import io.legado.app.data.entities.AiConversation
 import io.legado.app.data.entities.AiImageSource
+import io.legado.app.data.entities.AiSearchSource
 import io.legado.app.data.entities.Cache
 import io.legado.app.data.entities.Cookie
 import io.legado.app.data.entities.DictRule
@@ -77,14 +79,14 @@ val appDb by lazy {
 }
 
 @Database(
-    version = 81,
+    version = 82,
     exportSchema = true,
     entities = [Book::class, BookGroup::class, BookSource::class, BookChapter::class,
         ReplaceRule::class, SearchBook::class, SearchKeyword::class, Cookie::class,
         RssSource::class, Bookmark::class, RssArticle::class, RssReadRecord::class,
         RssStar::class, TxtTocRule::class, ReadRecord::class, ReadStat::class, HttpTTS::class, Cache::class,
         RuleSub::class, DictRule::class, KeyboardAssist::class, Server::class, AiSource::class,
-        AiPersona::class, AiConversation::class, AiImageSource::class],
+        AiPersona::class, AiConversation::class, AiImageSource::class, AiSearchSource::class],
     views = [BookSourcePart::class],
     autoMigrations = [
         AutoMigration(from = 43, to = 44),
@@ -125,6 +127,7 @@ val appDb by lazy {
         AutoMigration(from = 78, to = 79),
         AutoMigration(from = 79, to = 80),
         AutoMigration(from = 80, to = 81),
+        AutoMigration(from = 81, to = 82),
     ]
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -155,6 +158,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract val aiPersonaDao: AiPersonaDao
     abstract val aiConversationDao: AiConversationDao
     abstract val aiImageSourceDao: AiImageSourceDao
+    abstract val aiSearchSourceDao: AiSearchSourceDao
 
     companion object {
 
