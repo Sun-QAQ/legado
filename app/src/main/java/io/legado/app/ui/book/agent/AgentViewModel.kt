@@ -2694,7 +2694,7 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
 }
 
 internal class AgentSupplierSelection(
-    load: () -> Long,
+    private val load: () -> Long,
     private val save: (Long) -> Unit
 ) {
     var currentId: Long = load().coerceAtLeast(0L)
@@ -2703,6 +2703,19 @@ internal class AgentSupplierSelection(
     fun select(id: Long) {
         currentId = id.coerceAtLeast(0L)
         save(currentId)
+    }
+
+    fun reload(): Long {
+        currentId = load().coerceAtLeast(0L)
+        return currentId
+    }
+
+    fun resolve(availableIds: List<Long>): Long {
+        val resolvedId = currentId.takeIf { it in availableIds }
+            ?: availableIds.firstOrNull()
+            ?: 0L
+        if (resolvedId != currentId) select(resolvedId)
+        return currentId
     }
 }
 
