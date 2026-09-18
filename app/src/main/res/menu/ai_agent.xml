@@ -40,6 +40,12 @@
         app:showAsAction="never" />
 
     <item
+        android:id="@+id/menu_manage_tools"
+        android:icon="@drawable/ic_cfg_source"
+        android:title="@string/agent_tools"
+        app:showAsAction="never" />
+
+    <item
         android:id="@+id/menu_clear_chat"
         android:icon="@drawable/ic_clear_all"
         android:title="@string/agent_clear_chat"

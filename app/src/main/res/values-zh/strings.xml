@@ -762,6 +762,7 @@
     <string name="agent_week">本周</string>
     <string name="agent_month">本月</string>
     <string name="agent_send">发送</string>
+    <string name="agent_tools">工具</string>
     <string name="ai_image_source">生图供应商</string>
     <string name="ai_image_source_manage">图像生成配置</string>
     <string name="ai_image_source_default">默认</string>
