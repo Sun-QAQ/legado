@@ -693,7 +693,7 @@
     <string name="ai_persona_name">人格名称</string>
     <string name="ai_persona_prompt">系统提示词</string>
     <string name="ai_persona_select_use">选择使用此人格</string>
-    <string name="ai_persona_default_desc">内置默认人格</string>
+    <string name="ai_persona_default_desc">内置阅读助手，可帮助找书、理解内容、管理书架并调用可用工具</string>
     <string name="ai_source_current">当前使用</string>
     <string name="agent_searching">正在搜索书籍…</string>
     <string name="agent_waiting">正在等待回复…</string>
