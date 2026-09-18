@@ -16,6 +16,7 @@ import io.legado.app.data.entities.Book
 import io.legado.app.data.entities.BookChapter
 import io.legado.app.data.entities.BookSource
 import io.legado.app.data.entities.AiPersona
+import io.legado.app.data.entities.AiConversation
 import io.legado.app.data.entities.SearchBook
 import io.legado.app.exception.NoStackTraceException
 import io.legado.app.help.book.BookHelp
@@ -39,6 +40,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.isActive
@@ -53,6 +55,8 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
@@ -76,6 +80,9 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
     private val _streamingText = MutableStateFlow<String?>(null)
     val streamingText: StateFlow<String?> = _streamingText
 
+    private val _currentConversationId = MutableStateFlow<String?>(null)
+    val currentConversationId: StateFlow<String?> = _currentConversationId
+
     private val supplierSelection = AgentSupplierSelection(
         load = { context.getPrefLong(PreferKey.aiSupplierId) },
         save = { context.putPrefLong(PreferKey.aiSupplierId, it) }
@@ -98,7 +105,11 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
     val currentPersonaName: StateFlow<String> = _currentPersonaName
     private var currentPersonaPrompt: String = SYSTEM_PROMPT
 
-    private val history = arrayListOf<ChatTurn>()
+    private val history = arrayListOf<AgentChatTurn>()
+    private val persistenceMutex = Mutex()
+    private var conversationHistoryEnabled = false
+    private var conversationHistoryStarted = false
+    private var conversationCreatedAt = 0L
     private var selectedSupplierId: Long = supplierSelection.currentId
     private var lastBooks: List<SearchBook> = emptyList()
     private var lastRepositorySources: List<SourceRepositoryItem> = emptyList()
@@ -131,6 +142,7 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
         selectedSupplierId = id
         _currentSupplierId.value = id
         _supplierName.value = name
+        scheduleConversationSave()
     }
 
     fun selectDefaultPersona() {
@@ -138,6 +150,7 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
         _currentPersonaId.value = 0L
         currentPersonaPrompt = SYSTEM_PROMPT
         _currentPersonaName.value = getString(R.string.agent_persona_default)
+        scheduleConversationSave()
     }
 
     fun selectPersona(id: Long, name: String, prompt: String) {
@@ -145,6 +158,7 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
         _currentPersonaId.value = id
         currentPersonaPrompt = prompt
         _currentPersonaName.value = name
+        scheduleConversationSave()
     }
 
     fun restorePersona(personas: List<AiPersona>) {
@@ -164,7 +178,89 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
         }
     }
 
+    fun startConversationHistory() {
+        if (conversationHistoryStarted) return
+        conversationHistoryStarted = true
+        conversationHistoryEnabled = true
+        viewModelScope.launch {
+            val conversation = withContext(Dispatchers.IO) {
+                appDb.aiConversationDao.latest()
+            }
+            if (_messages.value.isEmpty()) {
+                conversation?.let(::restoreConversation)
+            }
+        }
+    }
+
+    fun newConversation() {
+        viewModelScope.launch {
+            stopActiveRequest()
+            persistConversationNow()
+            resetConversationState()
+        }
+    }
+
+    fun openConversation(id: String) {
+        if (id == _currentConversationId.value) return
+        viewModelScope.launch {
+            stopActiveRequest()
+            persistConversationNow()
+            val conversation = withContext(Dispatchers.IO) {
+                appDb.aiConversationDao.get(id)
+            } ?: return@launch
+            restoreConversation(conversation)
+        }
+    }
+
+    fun deleteConversation(id: String) {
+        viewModelScope.launch {
+            if (id == _currentConversationId.value) {
+                stopActiveRequest()
+            }
+            val latest = withContext(Dispatchers.IO) {
+                persistenceMutex.withLock {
+                    appDb.aiConversationDao.delete(id)
+                    if (id == _currentConversationId.value) {
+                        appDb.aiConversationDao.latest()
+                    } else {
+                        null
+                    }
+                }
+            }
+            if (id == _currentConversationId.value) {
+                resetConversationState()
+                latest?.let(::restoreConversation)
+            }
+        }
+    }
+
+    fun deleteAllConversations() {
+        viewModelScope.launch {
+            stopActiveRequest()
+            withContext(Dispatchers.IO) {
+                persistenceMutex.withLock {
+                    appDb.aiConversationDao.deleteAll()
+                }
+            }
+            resetConversationState()
+        }
+    }
+
     fun clearChat() {
+        viewModelScope.launch {
+            stopActiveRequest()
+            _currentConversationId.value?.let { id ->
+                withContext(Dispatchers.IO) {
+                    persistenceMutex.withLock {
+                        appDb.aiConversationDao.delete(id)
+                    }
+                }
+            }
+            resetConversationState()
+        }
+    }
+
+    private fun resetConversationState() {
         activeSteps.clear()
         stepStartTimes.clear()
         history.clear()
@@ -185,6 +281,108 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
         draftSource = null
         sourceCreationMode = false
         hasSavedSource = false
+        _currentConversationId.value = null
+        conversationCreatedAt = 0L
+    }
+
+    private suspend fun stopActiveRequest() {
+        val job = activeJob
+        if (job?.isActive == true) {
+            cancelRequested = true
+            currentCall?.cancel()
+            job.cancelAndJoin()
+        }
+        activeJob = null
+        currentCall = null
+        cancelRequested = false
+        _waiting.value = false
+    }
+
+    private fun restoreConversation(conversation: AiConversation) {
+        resetConversationState()
+        _currentConversationId.value = conversation.id
+        conversationCreatedAt = conversation.createdAt
+        history.addAll(AgentConversationCodec.decodeTurns(conversation.turnsJson))
+        _messages.value = AgentConversationCodec.decodeMessages(conversation.messagesJson)
+            .filterNot { it.placeholder }
+            .map { message ->
+                message.copy(
+                    canLoadMore = false,
+                    streaming = false,
+                    steps = message.steps.map { step ->
+                        if (step.state == AgentStepState.RUNNING) {
+                            step.copy(
+                                state = AgentStepState.FAILED,
+                                summary = getString(R.string.agent_interrupted)
+                            )
+                        } else {
+                            step
+                        }
+                    }
+                )
+            }
+        if (conversation.supplierId > 0) {
+            supplierSelection.select(conversation.supplierId)
+            selectedSupplierId = conversation.supplierId
+            _currentSupplierId.value = conversation.supplierId
+        }
+        if (conversation.personaId == 0L) {
+            personaSelection.select(0L)
+            _currentPersonaId.value = 0L
+            _currentPersonaName.value = getString(R.string.agent_persona_default)
+            currentPersonaPrompt = conversation.personaPrompt.ifBlank { SYSTEM_PROMPT }
+        } else {
+            personaSelection.select(conversation.personaId)
+            _currentPersonaId.value = conversation.personaId
+            _currentPersonaName.value = conversation.personaName
+            currentPersonaPrompt = conversation.personaPrompt
+        }
+    }
+
+    private fun scheduleConversationSave() {
+        if (!conversationHistoryEnabled) return
+        val conversation = currentConversationSnapshot() ?: return
+        viewModelScope.launch(Dispatchers.IO) {
+            persistenceMutex.withLock {
+                appDb.aiConversationDao.insert(conversation)
+            }
+        }
+    }
+
+    private suspend fun persistConversationNow() {
+        if (!conversationHistoryEnabled) return
+        val conversation = currentConversationSnapshot() ?: return
+        withContext(Dispatchers.IO) {
+            persistenceMutex.withLock {
+                appDb.aiConversationDao.insert(conversation)
+            }
+        }
+    }
+
+    private fun currentConversationSnapshot(): AiConversation? {
+        val messages = _messages.value.filterNot { it.placeholder || it.streaming }
+        if (messages.isEmpty()) return null
+        val now = System.currentTimeMillis()
+        val id = _currentConversationId.value ?: UUID.randomUUID().toString().also {
+            _currentConversationId.value = it
+            conversationCreatedAt = now
+        }
+        val firstQuestion = messages.firstOrNull { it.isUser }?.text.orEmpty()
+        return AiConversation(
+            id = id,
+            title = AgentConversationCodec.titleFrom(
+                firstQuestion,
+                getString(R.string.agent_new_chat)
+            ),
+            messagesJson = AgentConversationCodec.encodeMessages(messages),
+            turnsJson = AgentConversationCodec.encodeTurns(history),
+            supplierId = _currentSupplierId.value,
+            personaId = _currentPersonaId.value,
+            personaName = _currentPersonaName.value,
+            personaPrompt = currentPersonaPrompt,
+            createdAt = conversationCreatedAt.takeIf { it > 0 } ?: now,
+            updatedAt = now
+        )
     }
 
     fun send(text: String) {
@@ -306,9 +504,10 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
     }
 
     private fun addUserMessage(text: String) {
-        history.add(ChatTurn(ROLE_USER, text))
+        history.add(AgentChatTurn(ROLE_USER, text))
         _messages.value = _messages.value.map { it.copy(canLoadMore = false) } +
             AgentMessage(true, text)
+        scheduleConversationSave()
     }
 
     private fun addAgentMessage(
@@ -316,8 +515,9 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
         books: List<SearchBook> = emptyList(),
         canLoadMore: Boolean = false
     ) {
-        history.add(ChatTurn(ROLE_ASSISTANT, text))
+        history.add(AgentChatTurn(ROLE_ASSISTANT, text))
         _messages.value = _messages.value + AgentMessage(false, text, books, canLoadMore = canLoadMore)
+        scheduleConversationSave()
     }
 
     private fun startStep(title: String, detail: String? = null): String {
@@ -440,7 +640,7 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
         canLoadMore: Boolean = false
     ) {
         val reply = liveReply ?: return
-        history.add(ChatTurn(ROLE_ASSISTANT, text))
+        history.add(AgentChatTurn(ROLE_ASSISTANT, text))
         _messages.value = _messages.value.filterNot { it.streaming } +
             reply.copy(
                 text = text,
@@ -451,6 +651,7 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
             )
         _streamingText.value = null
         liveReply = null
+        scheduleConversationSave()
     }
 
     private fun emitSteps() {
@@ -468,6 +669,7 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
             AgentMessage(false, text, books, steps, canLoadMore = canLoadMore)
         activeSteps.clear()
         stepStartTimes.clear()
+        scheduleConversationSave()
     }
 
     /**
@@ -634,11 +836,11 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
                     //书源创建尚未完成时，若模型中途停下解释而不继续调用工具，则注入继续提示强制其继续
                     if (inSourceCreationFlow && !hasSavedSource && round < maxRounds() - 1) {
                         if (content.isNotBlank()) {
-                            history.add(ChatTurn(ROLE_ASSISTANT, content))
+                            history.add(AgentChatTurn(ROLE_ASSISTANT, content))
                         }
                         liveReply = liveReply?.copy(text = "")
                         _streamingText.value = null
-                        history.add(ChatTurn(ROLE_USER, getString(R.string.agent_source_continue)))
+                        history.add(AgentChatTurn(ROLE_USER, getString(R.string.agent_source_continue)))
                         round++
                         continue
                     }
@@ -658,7 +860,7 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
                     )
                 )
                 history.add(
-                    ChatTurn(
+                    AgentChatTurn(
                         ROLE_ASSISTANT,
                         content,
                         toolCalls = message.get("tool_calls")
@@ -677,7 +879,7 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
                         function.get("arguments")?.takeIf { !it.isJsonNull }?.asString.orEmpty()
                     val result = executeTool(name, arguments)
                     history.add(
-                        ChatTurn(
+                        AgentChatTurn(
                             ROLE_TOOL,
                             result,
                             toolCallId
@@ -2363,13 +2565,6 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
     private fun getString(resId: Int, vararg formatArgs: Any): String {
         return context.getString(resId, *formatArgs)
     }
-
-    data class ChatTurn(
-        val role: String,
-        val content: String,
-        val toolCallId: String? = null,
-        val toolCalls: JsonElement? = null
-    )
 
     data class SearchResult(
         val books: List<SearchBook>,

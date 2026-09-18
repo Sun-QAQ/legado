@@ -676,6 +676,7 @@
     <string name="agent_step_searching_source_repository">Searching source repository</string>
     <string name="agent_step_source_repository_done">Found %1$d source(s)</string>
     <string name="agent_clear_chat">Clear chat</string>
+    <string name="agent_new_chat">New chat</string>
     <string name="agent_select_supplier">Select AI supplier</string>
     <string name="agent_select_persona">Switch persona</string>
     <string name="agent_manage_persona">Persona management</string>

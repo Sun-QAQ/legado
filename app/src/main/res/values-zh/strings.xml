@@ -675,6 +675,7 @@
     <string name="agent_step_searching_source_repository">搜索书源仓库</string>
     <string name="agent_step_source_repository_done">找到 %1$d 个书源</string>
     <string name="agent_clear_chat">清空对话</string>
+    <string name="agent_new_chat">新对话</string>
     <string name="agent_select_supplier">选择AI供应商</string>
     <string name="agent_select_persona">切换人格</string>
     <string name="agent_manage_persona">人格管理</string>
