@@ -2,6 +2,10 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
 
     <item
+        android:id="@+id/menu_select_source_model"
+        android:title="@string/ai_source_select_use" />
+
+    <item
         android:id="@+id/menu_fetch_models"
         android:title="@string/fetch_models" />
 

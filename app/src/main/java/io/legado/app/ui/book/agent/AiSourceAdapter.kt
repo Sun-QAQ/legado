@@ -16,6 +16,14 @@ class AiSourceAdapter(
     private val callBack: CallBack
 ) : RecyclerAdapter<AiSource, ItemAiSourceBinding>(context) {
 
+    var currentId: Long = 0L
+        set(value) {
+            if (field != value) {
+                field = value
+                notifyDataSetChanged()
+            }
+        }
+
     val diffItemCallback = object : DiffUtil.ItemCallback<AiSource>() {
 
         override fun areItemsTheSame(oldItem: AiSource, newItem: AiSource): Boolean {
@@ -23,9 +31,7 @@ class AiSourceAdapter(
         }
 
         override fun areContentsTheSame(oldItem: AiSource, newItem: AiSource): Boolean {
-            return oldItem.name == newItem.name
-                    && oldItem.model == newItem.model
-                    && oldItem.enabled == newItem.enabled
+            return oldItem == newItem
         }
 
     }
@@ -40,7 +46,12 @@ class AiSourceAdapter(
         item: AiSource,
         payloads: MutableList<Any>
     ) {
-        binding.tvName.text = item.name
+        val prefix = if (item.id == currentId) {
+            "[${context.getString(R.string.ai_source_current)}] "
+        } else {
+            ""
+        }
+        binding.tvName.text = prefix + item.name
         binding.tvModel.text = item.model.ifBlank {
             context.getString(R.string.ai_source_model)
         }
@@ -67,8 +78,10 @@ class AiSourceAdapter(
         val source = getItem(position) ?: return
         val popupMenu = PopupMenu(context, view)
         popupMenu.inflate(R.menu.ai_source_item)
+        popupMenu.menu.findItem(R.id.menu_select_source_model).isVisible = source.enabled
         popupMenu.setOnMenuItemClickListener { menuItem ->
             when (menuItem.itemId) {
+                R.id.menu_select_source_model -> callBack.select(source)
                 R.id.menu_fetch_models -> callBack.fetchModels(source)
                 R.id.menu_del -> callBack.delete(source)
             }
@@ -80,6 +93,7 @@ class AiSourceAdapter(
     interface CallBack {
         fun enable(enabled: Boolean, aiSource: AiSource)
         fun edit(aiSource: AiSource)
+        fun select(aiSource: AiSource)
         fun fetchModels(aiSource: AiSource)
         fun delete(aiSource: AiSource)
     }

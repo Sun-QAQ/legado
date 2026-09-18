@@ -12,6 +12,7 @@ import io.legado.app.data.appDb
 import io.legado.app.data.entities.AiSource
 import io.legado.app.databinding.ActivityAiSourceBinding
 import io.legado.app.lib.dialogs.alert
+import io.legado.app.lib.dialogs.selector
 import io.legado.app.lib.theme.primaryColor
 import io.legado.app.ui.widget.recycler.VerticalDivider
 import io.legado.app.utils.setEdgeEffectColor
@@ -42,6 +43,7 @@ class AiSourceManageActivity :
             appDb.aiSourceDao.observeAll().catch {
                 AppLog.put("AI供应商管理界面获取数据失败\n${it.localizedMessage}", it)
             }.flowOn(kotlinx.coroutines.Dispatchers.IO).conflate().collect {
+                adapter.currentId = viewModel.resolveCurrent(it)
                 adapter.setItems(it, adapter.diffItemCallback)
             }
         }
@@ -65,6 +67,23 @@ class AiSourceManageActivity :
 
     override fun edit(aiSource: AiSource) {
         showDialogFragment(AiSourceEditDialog(aiSource.id))
+    }
+
+    override fun select(aiSource: AiSource) {
+        val models = buildList {
+            aiSource.model.takeIf { it.isNotBlank() }?.let(::add)
+            addAll(aiSource.getModelList().filter { it.isNotBlank() })
+        }.distinct()
+        if (models.isEmpty()) {
+            toastOnUi(R.string.ai_source_no_models)
+            return
+        }
+        selector(getString(R.string.ai_source_select_model), models) { _, index ->
+            val model = models[index]
+            viewModel.select(aiSource, model)
+            adapter.currentId = aiSource.id
+            toastOnUi(getString(R.string.ai_source_selected, aiSource.name, model))
+        }
     }
 
     override fun fetchModels(aiSource: AiSource) {
