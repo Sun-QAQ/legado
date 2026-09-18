@@ -28,6 +28,12 @@
         app:showAsAction="never" />
 
     <item
+        android:id="@+id/menu_manage_search_source"
+        android:icon="@drawable/ic_search"
+        android:title="@string/ai_search_source_manage"
+        app:showAsAction="never" />
+
+    <item
         android:id="@+id/menu_manage_persona"
         android:icon="@drawable/ic_personality"
         android:title="@string/agent_manage_persona"

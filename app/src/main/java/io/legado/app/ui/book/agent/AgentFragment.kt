@@ -173,6 +173,7 @@ class AgentFragment() : BaseFragment(R.layout.fragment_agent), MainFragmentInter
             R.id.menu_chat_history -> showDialogFragment<AgentConversationHistoryDialog>()
             R.id.menu_manage_supplier -> startActivity<AiSourceManageActivity>()
             R.id.menu_manage_image_source -> startActivity<AiImageSourceManageActivity>()
+            R.id.menu_manage_search_source -> startActivity<AiSearchSourceManageActivity>()
             R.id.menu_manage_persona -> startActivity<AiPersonaManageActivity>()
             R.id.menu_clear_chat -> {
                 alert(R.string.agent_clear_chat) {
