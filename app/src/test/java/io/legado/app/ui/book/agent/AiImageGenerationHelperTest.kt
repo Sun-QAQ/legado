@@ -16,6 +16,7 @@ class AiImageGenerationHelperTest {
 
         assertEquals("image-model", request["model"].asString)
         assertEquals("一只猫", request["prompt"].asString)
+        assertFalse(request.has("n"))
         assertFalse(request.has("response_format"))
     }
 

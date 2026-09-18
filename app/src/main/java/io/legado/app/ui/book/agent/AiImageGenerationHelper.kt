@@ -23,7 +23,6 @@ internal object AiImageGenerationHelper {
         JsonObject().apply {
             addProperty("model", source.model)
             addProperty("prompt", prompt)
-            addProperty("n", 1)
             addProperty("size", size.ifBlank { source.imageSize })
             if (source.responseFormat != AiImageSource.RESPONSE_FORMAT_AUTO) {
                 addProperty("response_format", source.responseFormat)
