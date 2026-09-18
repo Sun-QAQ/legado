@@ -69,6 +69,7 @@ class AiSearchSourceAdapter(
             setOnMenuItemClickListener {
                 when (it.itemId) {
                     R.id.menu_set_default -> callBack.setDefault(source)
+                    R.id.menu_test_connection -> callBack.test(source)
                     R.id.menu_del -> callBack.delete(source)
                 }
                 true
@@ -88,6 +89,7 @@ class AiSearchSourceAdapter(
         fun enable(enabled: Boolean, source: AiSearchSource)
         fun edit(source: AiSearchSource)
         fun setDefault(source: AiSearchSource)
+        fun test(source: AiSearchSource)
         fun delete(source: AiSearchSource)
     }
 }

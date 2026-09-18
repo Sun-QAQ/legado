@@ -803,6 +803,9 @@
     <string name="ai_search_custom_body">Custom request body (JSON, optional)</string>
     <string name="ai_search_json_invalid">Custom request body must be a JSON object</string>
     <string name="ai_search_headers_invalid">Custom headers must be a JSON object</string>
+    <string name="ai_search_test_connection">Test connection</string>
+    <string name="ai_search_test_success">Connection successful</string>
+    <string name="ai_search_test_failed">Connection failed: %1$s</string>
     <string name="agent_search_not_configured">No enabled web search provider. Configure one in Web search settings.</string>
     <string name="agent_step_web_searching">Searching the web</string>
     <string name="agent_step_web_search_done">Found %1$d result(s)</string>

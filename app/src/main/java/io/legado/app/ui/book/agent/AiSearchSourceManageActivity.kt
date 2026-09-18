@@ -23,6 +23,7 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.conflate
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class AiSearchSourceManageActivity :
     VMBaseActivity<ActivityAiSourceBinding, AiSearchSourceManageViewModel>(),
@@ -69,6 +70,21 @@ class AiSearchSourceManageActivity :
         viewModel.setDefault(source)
         adapter.currentId = source.id
         toastOnUi(R.string.ai_search_source_default_set)
+    }
+
+    override fun test(source: AiSearchSource) {
+        lifecycleScope.launch {
+            val result = runCatching {
+                withContext(Dispatchers.IO) {
+                    AiWebSearchHelper.search(source, "Android", 1, "")
+                }
+            }
+            result.onSuccess {
+                toastOnUi(R.string.ai_search_test_success)
+            }.onFailure {
+                toastOnUi(getString(R.string.ai_search_test_failed, it.localizedMessage ?: it.message))
+            }
+        }
     }
 
     override fun delete(source: AiSearchSource) {

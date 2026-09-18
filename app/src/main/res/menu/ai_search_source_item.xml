@@ -4,6 +4,9 @@
         android:id="@+id/menu_set_default"
         android:title="@string/ai_search_source_set_default" />
     <item
+        android:id="@+id/menu_test_connection"
+        android:title="@string/ai_search_test_connection" />
+    <item
         android:id="@+id/menu_del"
         android:title="@string/delete" />
 </menu>
