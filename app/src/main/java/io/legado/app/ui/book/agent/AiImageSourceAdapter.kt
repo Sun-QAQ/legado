@@ -17,6 +17,12 @@ class AiImageSourceAdapter(
 ) : RecyclerAdapter<AiImageSource, ItemAiSourceBinding>(context) {
 
     var currentId: Long = 0L
+        set(value) {
+            if (field != value) {
+                field = value
+                notifyDataSetChanged()
+            }
+        }
 
     val diffItemCallback = object : DiffUtil.ItemCallback<AiImageSource>() {
         override fun areItemsTheSame(oldItem: AiImageSource, newItem: AiImageSource) = oldItem.id == newItem.id

@@ -769,6 +769,11 @@
     <string name="ai_image_response_auto">自动（推荐）</string>
     <string name="ai_image_response_url">URL</string>
     <string name="ai_image_response_base64">Base64</string>
+    <string name="agent_image_not_configured">尚未配置已启用的生图供应商，请先前往“图像生成配置”。</string>
+    <string name="agent_step_generating_image">正在生成图片</string>
+    <string name="agent_step_image_done">图片生成完成</string>
+    <string name="agent_image_generated">图片已生成并展示给用户。</string>
+    <string name="agent_image_generate_failed">图片生成失败：%1$s</string>
     <string name="agent_step_read_book">正在读取书籍内容</string>
     <string name="agent_step_read_book_done">已读取%1$d章，共%2$d字</string>
     <string name="agent_book_no_chapters">书籍《%1$s》暂无章节目录</string>

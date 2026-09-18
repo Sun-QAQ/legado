@@ -45,6 +45,8 @@ interface AgentToolContext {
         count: Int,
         maxChars: Int
     ): String
+
+    suspend fun generateImage(prompt: String, size: String): String
 }
 
 /**

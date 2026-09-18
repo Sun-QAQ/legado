@@ -20,7 +20,11 @@ class AgentConversationCodecTest {
     fun `消息和工具上下文可完整序列化恢复`() {
         val messages = listOf(
             AgentMessage(isUser = true, text = "查找三体"),
-            AgentMessage(text = "找到了", steps = listOf(AgentStep("1", "搜索")))
+            AgentMessage(
+                text = "找到了",
+                steps = listOf(AgentStep("1", "搜索")),
+                generatedImages = listOf(AgentGeneratedImage("/images/result.img", "星空"))
+            )
         )
         val turns = listOf(
             AgentChatTurn("user", "查找三体"),

@@ -19,7 +19,9 @@ internal object AgentConversationCodec {
     fun encodeMessages(messages: List<AgentMessage>): String = GSON.toJson(messages)
 
     fun decodeMessages(json: String): List<AgentMessage> = runCatching {
-        GSON.fromJson<List<AgentMessage>>(json, messageListType).orEmpty()
+        GSON.fromJson<List<AgentMessage>>(json, messageListType).orEmpty().map {
+            it.copy(generatedImages = it.generatedImages.orEmpty())
+        }
     }.getOrDefault(emptyList())
 
     fun encodeTurns(turns: List<AgentChatTurn>): String = GSON.toJson(turns)

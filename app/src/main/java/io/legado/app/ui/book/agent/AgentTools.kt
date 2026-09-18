@@ -478,6 +478,37 @@ object AgentTools {
         }
     )
 
+    private val generateImageTool = AgentTool(
+        name = "generate_image",
+        description = "根据用户描述生成一张图片，并直接显示在对话中。用户提出画图、生成图片、制作插画或封面等要求时调用",
+        parameters = objectParameters(
+            properties = JsonObject().apply {
+                add(
+                    "prompt",
+                    JsonObject().apply {
+                        addProperty("type", "string")
+                        addProperty("description", "完整、具体的图像生成提示词")
+                    }
+                )
+                add(
+                    "size",
+                    JsonObject().apply {
+                        addProperty("type", "string")
+                        addProperty("description", "可选图片尺寸，例如 1024x1024；省略时使用供应商默认尺寸")
+                    }
+                )
+            },
+            required = arrayOf("prompt")
+        ),
+        execute = { arguments ->
+            val prompt = arguments.getStringValue("prompt")
+            if (prompt.isBlank()) "图像描述为空" else generateImage(
+                prompt,
+                arguments.getStringValue("size")
+            )
+        }
+    )
+
     private val allTools = listOf(
         searchBooksTool,
         searchSourceRepositoryTool,
@@ -493,7 +524,8 @@ object AgentTools {
         readingReportTool,
         libraryStatsTool,
         createAiBookTool,
-        readBookContentTool
+        readBookContentTool,
+        generateImageTool
     )
     private val toolMap = allTools.associateBy { it.name }
 

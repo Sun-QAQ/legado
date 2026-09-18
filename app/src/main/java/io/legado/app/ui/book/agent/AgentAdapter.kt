@@ -7,6 +7,9 @@ import android.graphics.drawable.Drawable
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ImageView
+import android.widget.LinearLayout
+import androidx.appcompat.widget.AppCompatImageView
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.core.content.ContextCompat
@@ -27,12 +30,14 @@ import io.legado.app.databinding.ItemAgentStepBinding
 import io.legado.app.help.config.AppConfig
 import io.legado.app.lib.theme.accentColor
 import io.legado.app.utils.visible
+import io.legado.app.utils.dpToPx
 import io.noties.markwon.Markwon
 import io.noties.markwon.ext.tables.TablePlugin
 import io.noties.markwon.html.HtmlPlugin
 import io.noties.markwon.image.AsyncDrawable
 import io.noties.markwon.image.glide.GlideImagesPlugin
 import java.util.Locale
+import java.io.File
 
 class AgentAdapter(
     private val context: Context,
@@ -147,6 +152,7 @@ class AgentAdapter(
                 callBack.onLoadMore()
             }
             bindSteps(viewBinding, item, position)
+            bindGeneratedImages(viewBinding, item)
             if (item.books.isEmpty()) {
                 viewBinding.llBookResult.visibility = android.view.View.GONE
             } else {
@@ -300,6 +306,28 @@ class AgentAdapter(
 
     }
 
+    private fun bindGeneratedImages(binding: ItemAgentReplyBinding, item: AgentMessage) {
+        binding.llGeneratedImages.removeAllViews()
+        binding.llGeneratedImages.visibility =
+            if (item.generatedImages.isEmpty()) View.GONE else View.VISIBLE
+        item.generatedImages.forEach { generated ->
+            val imageView = AppCompatImageView(context).apply {
+                layoutParams = LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    280.dpToPx()
+                ).apply { bottomMargin = 6.dpToPx() }
+                scaleType = ImageView.ScaleType.FIT_CENTER
+                adjustViewBounds = true
+                contentDescription = generated.prompt
+                setOnClickListener { callBack.openGeneratedImage(generated.path) }
+            }
+            imageRequestManager.load(File(generated.path))
+                .error(R.drawable.image_loading_error)
+                .into(imageView)
+            binding.llGeneratedImages.addView(imageView)
+        }
+    }
+
     class SourceListAdapter(
         private val context: Context,
         private val callBack: CallBack
@@ -353,6 +381,7 @@ class AgentAdapter(
         fun openBook(book: SearchBook)
         fun onLoadMore()
         fun importBookSource(source: SourceRepositoryItem)
+        fun openGeneratedImage(path: String)
     }
 
     /**

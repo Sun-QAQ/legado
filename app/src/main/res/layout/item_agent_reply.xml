@@ -68,6 +68,15 @@
         android:textSize="15sp"
         tools:text="Agent reply" />
 
+    <LinearLayout
+        android:id="@+id/ll_generated_images"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:orientation="vertical"
+        android:visibility="gone"
+        tools:visibility="visible" />
+
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/ll_book_result"
         android:layout_width="match_parent"

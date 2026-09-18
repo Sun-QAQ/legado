@@ -16,6 +16,7 @@ import io.legado.app.databinding.FragmentAgentBinding
 import io.legado.app.lib.theme.accentColor
 import io.legado.app.model.ReadBook
 import io.legado.app.ui.association.ImportBookSourceDialog
+import io.legado.app.ui.widget.dialog.PhotoDialog
 import io.legado.app.utils.setLayout
 import io.legado.app.utils.showDialogFragment
 import io.legado.app.utils.viewbindingdelegate.viewBinding
@@ -36,6 +37,10 @@ class ReadingAssistantDialog : BaseDialogFragment(R.layout.fragment_agent, true)
 
             override fun importBookSource(source: SourceRepositoryItem) {
                 showDialogFragment(ImportBookSourceDialog(source.jsonUrl))
+            }
+
+            override fun openGeneratedImage(path: String) {
+                showDialogFragment(PhotoDialog(path))
             }
         })
     }

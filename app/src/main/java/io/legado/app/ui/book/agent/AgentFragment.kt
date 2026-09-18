@@ -26,6 +26,7 @@ import io.legado.app.ui.association.ImportBookSourceDialog
 import io.legado.app.ui.book.info.BookInfoActivity
 import io.legado.app.ui.main.MainFragmentInterface
 import io.legado.app.ui.widget.recycler.VerticalDivider
+import io.legado.app.ui.widget.dialog.PhotoDialog
 import io.legado.app.utils.applyTint
 import io.legado.app.utils.dpToPx
 import io.legado.app.utils.imeHeight
@@ -64,6 +65,9 @@ class AgentFragment() : BaseFragment(R.layout.fragment_agent), MainFragmentInter
         }
         override fun importBookSource(source: SourceRepositoryItem) {
             showDialogFragment(ImportBookSourceDialog(source.jsonUrl))
+        }
+        override fun openGeneratedImage(path: String) {
+            showDialogFragment(PhotoDialog(path))
         }
     }) }
 

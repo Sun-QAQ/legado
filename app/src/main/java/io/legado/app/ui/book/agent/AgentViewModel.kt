@@ -111,6 +111,7 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
     private var selectedSupplierId: Long = supplierSelection.currentId
     private var lastBooks: List<SearchBook> = emptyList()
     private var lastRepositorySources: List<SourceRepositoryItem> = emptyList()
+    private var lastGeneratedImages: List<AgentGeneratedImage> = emptyList()
     private var lastSearchKey = ""
     private var lastSearchGroup = ""
     private var searchedSourceCount = 0
@@ -218,6 +219,7 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
             val latest = withContext(Dispatchers.IO) {
                 persistenceMutex.withLock {
                     appDb.aiConversationDao.delete(id)
+                    AgentImageStorage.deleteConversation(context, id)
                     if (id == _currentConversationId.value) {
                         appDb.aiConversationDao.latest()
                     } else {
@@ -238,6 +240,7 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
             withContext(Dispatchers.IO) {
                 persistenceMutex.withLock {
                     appDb.aiConversationDao.deleteAll()
+                    AgentImageStorage.deleteAll(context)
                 }
             }
             resetConversationState()
@@ -251,6 +254,7 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
                 withContext(Dispatchers.IO) {
                     persistenceMutex.withLock {
                         appDb.aiConversationDao.delete(id)
+                        AgentImageStorage.deleteConversation(context, id)
                     }
                 }
             }
@@ -275,6 +279,7 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
         canLoadMoreSearch = false
         hasBooks = false
         lastRepositorySources = emptyList()
+        lastGeneratedImages = emptyList()
         lastDisplayLimit = SEARCH_PAGE_SIZE
         draftSource = null
         sourceCreationMode = false
@@ -642,7 +647,8 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
                 books = books,
                 canLoadMore = canLoadMore,
                 streaming = false,
-                repositorySources = lastRepositorySources
+                repositorySources = lastRepositorySources,
+                generatedImages = lastGeneratedImages
             )
         _streamingText.value = null
         liveReply = null
@@ -796,6 +802,7 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
             var finalText = ""
             lastBooks = emptyList()
             lastRepositorySources = emptyList()
+            lastGeneratedImages = emptyList()
             hasBooks = false
             var finished = false
             beginLiveReply()
@@ -953,6 +960,39 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
             stepStartTimes.clear()
             currentSupplier = null
             _waiting.value = false
+        }
+    }
+
+    override suspend fun generateImage(prompt: String, size: String): String {
+        val selection = AgentImageSourceSelection(
+            load = { context.getPrefLong(PreferKey.aiImageSourceId) },
+            save = { context.putPrefLong(PreferKey.aiImageSourceId, it) }
+        )
+        val enabled = appDb.aiImageSourceDao.allEnabled
+        val sourceId = selection.resolve(enabled.map { it.id })
+        val source = enabled.firstOrNull { it.id == sourceId }
+            ?: return getString(R.string.agent_image_not_configured)
+        val actualSize = size.takeIf { IMAGE_SIZE_PATTERN.matches(it) }.orEmpty()
+            .ifBlank { source.imageSize }
+        val stepId = startStep(
+            getString(R.string.agent_step_generating_image),
+            "${source.name} · ${source.model} · $actualSize"
+        )
+        return try {
+            val bytes = AiImageGenerationHelper.generate(source, prompt, actualSize)
+            val conversationId = _currentConversationId.value
+                ?: currentConversationSnapshot()?.id
+                ?: UUID.randomUUID().toString()
+            val path = AgentImageStorage.save(context, conversationId, bytes)
+            lastGeneratedImages = lastGeneratedImages + AgentGeneratedImage(path, prompt)
+            finishStep(stepId, getString(R.string.agent_step_image_done))
+            getString(R.string.agent_image_generated)
+        } catch (e: Exception) {
+            failStep(stepId, e)
+            getString(
+                R.string.agent_image_generate_failed,
+                e.localizedMessage ?: e.message ?: getString(R.string.unknown_error)
+            )
         }
     }
 
@@ -2582,6 +2622,7 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
         private const val SOURCE_HTML_HINT_LENGTH = 6000
         private const val SOURCE_CONTENT_PREVIEW_LENGTH = 1000
         private const val MAX_AI_BOOK_CHAPTERS = 50
+        private val IMAGE_SIZE_PATTERN = Regex("^[1-9]\\d{1,4}x[1-9]\\d{1,4}$")
         private const val READING_ASSISTANT_PROMPT =
             "你是小说阅读助手，使用中文回答。只能依据用户提供的已读正文回答，绝不引用、推测或暗示当前章节之后的情节。" +
                 "若正文中没有足够依据，应明确说“已读内容中未提及”，不要编造。" +

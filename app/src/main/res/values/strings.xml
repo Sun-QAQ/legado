@@ -770,6 +770,11 @@
     <string name="ai_image_response_auto">Auto (recommended)</string>
     <string name="ai_image_response_url">URL</string>
     <string name="ai_image_response_base64">Base64</string>
+    <string name="agent_image_not_configured">No enabled image provider. Configure one in Image generation settings.</string>
+    <string name="agent_step_generating_image">Generating image</string>
+    <string name="agent_step_image_done">Image generated</string>
+    <string name="agent_image_generated">The image was generated and displayed to the user.</string>
+    <string name="agent_image_generate_failed">Image generation failed: %1$s</string>
     <string name="agent_book_url_empty">Book URL is empty</string>
     <string name="agent_book_not_found">Book not found, search for it first</string>
     <string name="agent_step_add_shelf">Adding to bookshelf</string>
