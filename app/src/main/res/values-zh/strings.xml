@@ -682,7 +682,6 @@
     <string name="agent_delete_chat_confirm">确定删除“%1$s”吗？</string>
     <string name="agent_delete_all_chats_confirm">确定删除全部历史对话吗？</string>
     <string name="agent_clear_chat_confirm">确定删除当前对话吗？</string>
-    <string name="agent_select_supplier">选择AI供应商</string>
     <string name="ai_source_select_use">选择使用供应商及模型</string>
     <string name="ai_source_select_model">选择模型</string>
     <string name="ai_source_no_models">请先配置模型或获取模型列表</string>

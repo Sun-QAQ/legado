@@ -16,12 +16,6 @@
         app:showAsAction="never" />
 
     <item
-        android:id="@+id/menu_select_supplier"
-        android:icon="@drawable/ic_cfg_source"
-        android:title="@string/agent_select_supplier"
-        app:showAsAction="never" />
-
-    <item
         android:id="@+id/menu_manage_supplier"
         android:icon="@drawable/ic_cfg_source"
         android:title="@string/ai_source_manage"

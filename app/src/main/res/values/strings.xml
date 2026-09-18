@@ -683,7 +683,6 @@
     <string name="agent_delete_chat_confirm">Delete “%1$s”?</string>
     <string name="agent_delete_all_chats_confirm">Delete all chat history?</string>
     <string name="agent_clear_chat_confirm">Delete the current chat?</string>
-    <string name="agent_select_supplier">Select AI supplier</string>
     <string name="ai_source_select_use">Use provider and model</string>
     <string name="ai_source_select_model">Select model</string>
     <string name="ai_source_no_models">Configure a model or fetch the model list first</string>

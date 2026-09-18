@@ -17,6 +17,7 @@ import io.legado.app.data.entities.BookChapter
 import io.legado.app.data.entities.BookSource
 import io.legado.app.data.entities.AiPersona
 import io.legado.app.data.entities.AiConversation
+import io.legado.app.data.entities.AiSource
 import io.legado.app.data.entities.SearchBook
 import io.legado.app.exception.NoStackTraceException
 import io.legado.app.help.book.BookHelp
@@ -150,6 +151,27 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
         currentPersonaPrompt = SYSTEM_PROMPT
         _currentPersonaName.value = getString(R.string.agent_persona_default)
         scheduleConversationSave()
+    }
+
+    fun restoreSupplier(suppliers: List<AiSource>) {
+        supplierSelection.reload()
+        val resolvedId = supplierSelection.resolve(suppliers.map { it.id })
+        val supplier = suppliers.firstOrNull { it.id == resolvedId }
+        if (supplier == null) {
+            if (selectedSupplierId != 0L || _currentSupplierId.value != 0L) {
+                selectedSupplierId = 0L
+                _currentSupplierId.value = 0L
+                _supplierName.value = ""
+                scheduleConversationSave()
+            }
+            return
+        }
+        if (selectedSupplierId != supplier.id ||
+            _currentSupplierId.value != supplier.id ||
+            _supplierName.value != supplier.name
+        ) {
+            selectSupplier(supplier.id, supplier.name)
+        }
     }
 
     fun selectPersona(id: Long, name: String, prompt: String) {

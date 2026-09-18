@@ -132,12 +132,7 @@ class AgentFragment() : BaseFragment(R.layout.fragment_agent), MainFragmentInter
                 AppLog.put("获取AI供应商列表失败", it)
             }.flowOn(Dispatchers.IO).collect { list ->
                 val enabled = list.filter { it.enabled }
-                if (enabled.isNotEmpty()) {
-                    val currentId = viewModel.currentSupplierId.value
-                    if (currentId == 0L || enabled.none { it.id == currentId }) {
-                        viewModel.selectSupplier(enabled.first().id, enabled.first().name)
-                    }
-                }
+                viewModel.restoreSupplier(enabled)
             }
         }
     }
@@ -170,7 +165,6 @@ class AgentFragment() : BaseFragment(R.layout.fragment_agent), MainFragmentInter
         when (item.itemId) {
             R.id.menu_new_chat -> viewModel.newConversation()
             R.id.menu_chat_history -> showDialogFragment<AgentConversationHistoryDialog>()
-            R.id.menu_select_supplier -> selectSupplier()
             R.id.menu_manage_supplier -> startActivity<AiSourceManageActivity>()
             R.id.menu_manage_image_source -> startActivity<AiImageSourceManageActivity>()
             R.id.menu_select_persona -> selectPersona()
@@ -186,27 +180,6 @@ class AgentFragment() : BaseFragment(R.layout.fragment_agent), MainFragmentInter
                 }
             }
             R.id.menu_log -> showDialogFragment<AppLogDialog>()
-        }
-    }
-
-    private fun selectSupplier() {
-        viewLifecycleOwner.lifecycleScope.launch {
-            val suppliers = appDb.aiSourceDao.allEnabled
-            if (suppliers.isEmpty()) {
-                toastOnUi(R.string.ai_not_configured)
-                return@launch
-            }
-            val names = suppliers.map {
-                if (it.id == viewModel.currentSupplierId.value) {
-                    "[${getString(R.string.ai_source_current)}]${it.name}"
-                } else {
-                    it.name
-                }
-            }
-            context?.selector(getString(R.string.agent_select_supplier), names) { _, index ->
-                val source = suppliers[index]
-                viewModel.selectSupplier(source.id, source.name)
-            }
         }
     }
 
