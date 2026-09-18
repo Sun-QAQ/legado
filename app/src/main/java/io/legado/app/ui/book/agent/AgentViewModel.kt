@@ -354,7 +354,7 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
             personaSelection.select(0L)
             _currentPersonaId.value = 0L
             _currentPersonaName.value = getString(R.string.agent_persona_default)
-            currentPersonaPrompt = conversation.personaPrompt.ifBlank { SYSTEM_PROMPT }
+            currentPersonaPrompt = SYSTEM_PROMPT
         } else {
             personaSelection.select(conversation.personaId)
             _currentPersonaId.value = conversation.personaId
