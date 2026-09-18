@@ -18,7 +18,6 @@ import io.legado.app.base.BaseFragment
 import io.legado.app.data.appDb
 import io.legado.app.data.entities.SearchBook
 import io.legado.app.databinding.FragmentAgentBinding
-import io.legado.app.lib.dialogs.selector
 import io.legado.app.lib.dialogs.alert
 import io.legado.app.lib.theme.accentColor
 import io.legado.app.ui.about.AppLogDialog
@@ -126,6 +125,13 @@ class AgentFragment() : BaseFragment(R.layout.fragment_agent), MainFragmentInter
         observePersonas()
     }
 
+    override fun onResume() {
+        super.onResume()
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewModel.restorePersona(appDb.aiPersonaDao.all)
+        }
+    }
+
     private fun observeSuppliers() {
         viewLifecycleOwner.lifecycleScope.launch {
             appDb.aiSourceDao.observeAll().catch {
@@ -167,7 +173,6 @@ class AgentFragment() : BaseFragment(R.layout.fragment_agent), MainFragmentInter
             R.id.menu_chat_history -> showDialogFragment<AgentConversationHistoryDialog>()
             R.id.menu_manage_supplier -> startActivity<AiSourceManageActivity>()
             R.id.menu_manage_image_source -> startActivity<AiImageSourceManageActivity>()
-            R.id.menu_select_persona -> selectPersona()
             R.id.menu_manage_persona -> startActivity<AiPersonaManageActivity>()
             R.id.menu_clear_chat -> {
                 alert(R.string.agent_clear_chat) {
@@ -180,30 +185,6 @@ class AgentFragment() : BaseFragment(R.layout.fragment_agent), MainFragmentInter
                 }
             }
             R.id.menu_log -> showDialogFragment<AppLogDialog>()
-        }
-    }
-
-    private fun selectPersona() {
-        viewLifecycleOwner.lifecycleScope.launch {
-            val personas = appDb.aiPersonaDao.all
-            val defaultName = getString(R.string.agent_persona_default)
-            val currentId = viewModel.currentPersonaId.value
-            val names = buildList {
-                add(if (currentId == 0L) "[${getString(R.string.ai_source_current)}]$defaultName" else defaultName)
-                personas.forEach {
-                    add(if (currentId == it.id) "[${getString(R.string.ai_source_current)}]${it.name}" else it.name)
-                }
-            }
-            context?.selector(getString(R.string.agent_select_persona), names) { _, index ->
-                if (index == 0) {
-                    viewModel.selectDefaultPersona()
-                    toastOnUi(getString(R.string.agent_persona_switched, defaultName))
-                } else {
-                    val persona = personas[index - 1]
-                    viewModel.selectPersona(persona.id, persona.name, persona.prompt)
-                    toastOnUi(getString(R.string.agent_persona_switched, persona.name))
-                }
-            }
         }
     }
 

@@ -686,7 +686,6 @@
     <string name="ai_source_select_model">选择模型</string>
     <string name="ai_source_no_models">请先配置模型或获取模型列表</string>
     <string name="ai_source_selected">已选择：%1$s · %2$s</string>
-    <string name="agent_select_persona">切换人格</string>
     <string name="agent_manage_persona">人格管理</string>
     <string name="agent_persona">人格</string>
     <string name="agent_persona_default">阅读助手</string>

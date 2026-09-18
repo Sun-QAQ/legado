@@ -183,6 +183,7 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
     }
 
     fun restorePersona(personas: List<AiPersona>) {
+        personaSelection.reload()
         val restoredId = personaSelection.resolve(personas.mapTo(HashSet()) { it.id })
         val persona = personas.firstOrNull { it.id == restoredId }
         if (persona == null) {
