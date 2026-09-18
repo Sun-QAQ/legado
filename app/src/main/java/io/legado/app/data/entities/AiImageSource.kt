@@ -20,6 +20,7 @@ data class AiImageSource(
     var model: String = "",
     var imageSize: String = "1024x1024",
     var responseFormat: String = RESPONSE_FORMAT_AUTO,
+    var customBody: String? = null,
     var headers: String? = null,
     @ColumnInfo(defaultValue = "1")
     var enabled: Boolean = true,

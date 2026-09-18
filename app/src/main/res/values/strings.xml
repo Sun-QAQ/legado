@@ -766,6 +766,8 @@
     <string name="ai_image_source_default_set">Default image provider updated</string>
     <string name="ai_image_size">Image size (for example 1024x1024)</string>
     <string name="ai_image_size_invalid">Use a size such as 1024x1024</string>
+    <string name="ai_image_custom_body">Custom request body (JSON)</string>
+    <string name="ai_image_custom_body_invalid">Custom request body must be a JSON object</string>
     <string name="ai_image_response_format">Response format</string>
     <string name="ai_image_response_auto">Auto (recommended)</string>
     <string name="ai_image_response_url">URL</string>

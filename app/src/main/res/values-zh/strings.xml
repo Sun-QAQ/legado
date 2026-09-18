@@ -765,6 +765,8 @@
     <string name="ai_image_source_default_set">已更新默认生图供应商</string>
     <string name="ai_image_size">图片尺寸（例如 1024x1024）</string>
     <string name="ai_image_size_invalid">请输入类似 1024x1024 的尺寸</string>
+    <string name="ai_image_custom_body">自定义请求体（JSON）</string>
+    <string name="ai_image_custom_body_invalid">自定义请求体必须是合法的 JSON 对象</string>
     <string name="ai_image_response_format">响应格式</string>
     <string name="ai_image_response_auto">自动（推荐）</string>
     <string name="ai_image_response_url">URL</string>

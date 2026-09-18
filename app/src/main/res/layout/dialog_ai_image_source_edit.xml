@@ -113,6 +113,21 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginHorizontal="12dp"
+                    android:hint="@string/ai_image_custom_body">
+                    <io.legado.app.lib.theme.view.ThemeEditText
+                        android:id="@+id/tv_custom_body"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="top|start"
+                        android:inputType="textMultiLine|textNoSuggestions"
+                        android:minLines="5"
+                        android:padding="14dp" />
+                </io.legado.app.ui.widget.text.TextInputLayout>
+
+                <io.legado.app.ui.widget.text.TextInputLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginHorizontal="12dp"
                     android:hint="@string/ai_source_headers">
                     <io.legado.app.lib.theme.view.ThemeEditText
                         android:id="@+id/tv_headers"

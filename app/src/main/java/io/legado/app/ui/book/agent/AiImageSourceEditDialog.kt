@@ -6,6 +6,7 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.appcompat.widget.Toolbar
 import androidx.fragment.app.viewModels
+import com.google.gson.JsonParser
 import io.legado.app.R
 import io.legado.app.base.BaseDialogFragment
 import io.legado.app.data.entities.AiImageSource
@@ -63,6 +64,7 @@ class AiImageSourceEditDialog() : BaseDialogFragment(R.layout.dialog_ai_image_so
         tvModel.setText(source.model)
         tvImageSize.setText(source.imageSize)
         tvResponseFormat.setText(source.responseFormat)
+        tvCustomBody.setText(source.customBody)
         tvHeaders.setText(source.headers)
     }
 
@@ -86,6 +88,10 @@ class AiImageSourceEditDialog() : BaseDialogFragment(R.layout.dialog_ai_image_so
         if (baseUrl.isBlank()) return toastOnUi(R.string.input_base_url)
         if (model.isBlank()) return toastOnUi(R.string.ai_source_model)
         if (!SIZE_PATTERN.matches(size)) return toastOnUi(R.string.ai_image_size_invalid)
+        val customBody = binding.tvCustomBody.text?.toString()?.trim()?.takeIf { it.isNotBlank() }
+        if (customBody != null && !isJsonObject(customBody)) {
+            return toastOnUi(R.string.ai_image_custom_body_invalid)
+        }
         val responseFormat = binding.tvResponseFormat.text?.toString()?.trim()
             ?.takeIf { it in responseFormats } ?: AiImageSource.RESPONSE_FORMAT_AUTO
         source = source.copy(
@@ -95,6 +101,7 @@ class AiImageSourceEditDialog() : BaseDialogFragment(R.layout.dialog_ai_image_so
             model = model,
             imageSize = size,
             responseFormat = responseFormat,
+            customBody = customBody,
             headers = binding.tvHeaders.text?.toString()?.trim()?.takeIf { it.isNotBlank() },
             lastUpdateTime = System.currentTimeMillis()
         )
@@ -106,5 +113,9 @@ class AiImageSourceEditDialog() : BaseDialogFragment(R.layout.dialog_ai_image_so
 
     companion object {
         private val SIZE_PATTERN = Regex("^[1-9]\\d{1,4}x[1-9]\\d{1,4}$")
+
+        private fun isJsonObject(value: String): Boolean = runCatching {
+            JsonParser.parseString(value).isJsonObject
+        }.getOrDefault(false)
     }
 }
