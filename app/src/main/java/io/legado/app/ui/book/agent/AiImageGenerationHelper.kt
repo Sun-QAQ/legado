@@ -28,6 +28,15 @@ internal object AiImageGenerationHelper {
             if (source.responseFormat != AiImageSource.RESPONSE_FORMAT_AUTO) {
                 addProperty("response_format", source.responseFormat)
             }
+            source.customBody?.takeIf { it.isNotBlank() }?.let { customBody ->
+                val customObject = JsonParser.parseString(customBody)
+                require(customObject.isJsonObject) { "自定义请求体必须是 JSON 对象" }
+                customObject.asJsonObject.entrySet().forEach { (key, value) ->
+                    if (key !in PROTECTED_REQUEST_FIELDS) add(key, value)
+                }
+            }
+            addProperty("model", source.model)
+            addProperty("prompt", prompt)
         }
 
     fun parseResponse(body: String): AiGeneratedImageReference {
@@ -92,6 +101,7 @@ internal object AiImageGenerationHelper {
     }
 
     private val JSON_MEDIA_TYPE = "application/json; charset=UTF-8".toMediaType()
+    private val PROTECTED_REQUEST_FIELDS = setOf("model", "prompt")
     private const val MAX_IMAGE_BYTES = 25 * 1024 * 1024
     private const val MAX_BASE64_CHARS = 36 * 1024 * 1024
 }
