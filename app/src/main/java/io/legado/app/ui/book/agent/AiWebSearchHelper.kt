@@ -175,6 +175,7 @@ internal object AiWebSearchHelper {
         }
         val datePath = when (source.type) {
             AiSearchSource.TYPE_BRAVE -> "page_age"
+            AiSearchSource.TYPE_SEARXNG -> "publishedDate"
             else -> source.publishedAtPath
         }
         val title = stringAtPath(item, titlePath).take(MAX_TITLE_LENGTH)
