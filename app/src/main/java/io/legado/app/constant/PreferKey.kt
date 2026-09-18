@@ -40,6 +40,7 @@ object PreferKey {
     const val showAi = "showAi"
     const val aiSupplierId = "aiSupplierId"
     const val aiPersonaId = "aiPersonaId"
+    const val aiImageSourceId = "aiImageSourceId"
     const val enableReview = "enableReview"
     const val showRss = "showRss"
     const val bookshelfLayout = "bookshelfLayout"
