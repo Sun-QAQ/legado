@@ -78,6 +78,12 @@ class App : Application() {
         applyDayNightInit(this)
         registerActivityLifecycleCallbacks(LifecycleHelp)
         defaultSharedPreferences.registerOnSharedPreferenceChangeListener(AppConfig)
+        //必须在主线程同步配置,否则配置完成前发布的事件会被默认 autoClear 丢弃
+        LiveEventBus.config()
+            .lifecycleObserverAlwaysActive(true)
+            .autoClear(false)
+            .enableLogger(BuildConfig.DEBUG || AppConfig.recordLog)
+            .setLogger(EventLogger())
         Coroutine.async {
             LogUtils.init(this@App)
             LogUtils.d("App", "onCreate")
@@ -85,11 +91,6 @@ class App : Application() {
             //预下载Cronet so
             Cronet.preDownload()
             createNotificationChannels()
-            LiveEventBus.config()
-                .lifecycleObserverAlwaysActive(true)
-                .autoClear(false)
-                .enableLogger(BuildConfig.DEBUG || AppConfig.recordLog)
-                .setLogger(EventLogger())
             DefaultData.upVersion()
             AppFreezeMonitor.init(this@App)
             DispatchersMonitor.init()

@@ -19,6 +19,7 @@ import androidx.viewbinding.ViewBinding
 import io.legado.app.R
 import io.legado.app.constant.AppConst
 import io.legado.app.constant.AppLog
+import io.legado.app.constant.EventBus
 import io.legado.app.constant.Theme
 import io.legado.app.help.config.AppConfig
 import io.legado.app.help.config.ThemeConfig
@@ -33,6 +34,7 @@ import io.legado.app.utils.applyTint
 import io.legado.app.utils.disableAutoFill
 import io.legado.app.utils.fullScreen
 import io.legado.app.utils.hideSoftInput
+import io.legado.app.utils.observeEvent
 import io.legado.app.utils.setLightStatusBar
 import io.legado.app.utils.setNavigationBarColorAuto
 import io.legado.app.utils.setStatusBarColorAuto
@@ -94,6 +96,11 @@ abstract class BaseActivity<VB : ViewBinding>(
             finish()
         }
         observeLiveBus()
+        observeEvent<String>(EventBus.UP_THEME) {
+            if (!isFinishing && !isDestroyed) {
+                recreate()
+            }
+        }
         onActivityCreated(savedInstanceState)
     }
 

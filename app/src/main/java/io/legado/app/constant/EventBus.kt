@@ -3,6 +3,10 @@ package io.legado.app.constant
 object EventBus {
     const val MEDIA_BUTTON = "mediaButton"
     const val RECREATE = "RECREATE"
+    /**
+     * 不改变 uiMode 的外观变化(主题色/字体缩放/背景等),需要刷新所有界面
+     */
+    const val UP_THEME = "upTheme"
     const val UP_BOOKSHELF = "upBookToc"
     const val BOOKSHELF_REFRESH = "bookshelfRefresh"
     const val ALOUD_STATE = "aloud_state"

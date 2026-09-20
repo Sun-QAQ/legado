@@ -28,6 +28,12 @@ class ThemeRadioNoButton(context: Context, attrs: AttributeSet) :
         TooltipCompat.setTooltipText(this, text)
     }
 
+    override fun onAttachedToWindow() {
+        super.onAttachedToWindow()
+        //ViewHolder 复用或宿主未重建时,重新附着会再次读取当前主题色
+        initTheme()
+    }
+
     private fun initTheme() {
         when {
             isInEditMode -> Unit

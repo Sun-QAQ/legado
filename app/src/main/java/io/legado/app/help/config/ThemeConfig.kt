@@ -199,8 +199,13 @@ object ThemeConfig {
                 context.putPrefInt(PreferKey.cBackground, background)
                 context.putPrefInt(PreferKey.cBBackground, bBackground)
             }
+            val nightModeChanged = AppConfig.isNightTheme != config.isNightTheme
             AppConfig.isNightTheme = config.isNightTheme
             applyDayNight(context)
+            //夜间模式未变时 applyDayNight 不会触发系统重建,需额外通知所有界面刷新
+            if (!nightModeChanged) {
+                postEvent(EventBus.UP_THEME, "")
+            }
         } catch (e: Exception) {
             AppLog.put("设置主题出错\n$e", e, true)
         }

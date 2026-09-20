@@ -311,7 +311,8 @@ class ThemeConfigFragment : PreferenceFragment(),
     }
 
     private fun recreateActivities() {
-        postEvent(EventBus.RECREATE, "")
+        //主题色/字体缩放等变化不改变 uiMode,需通知所有界面重建
+        postEvent(EventBus.UP_THEME, "")
     }
 
     private fun upPreferenceSummary(preferenceKey: String, value: String? = null) {

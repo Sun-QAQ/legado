@@ -17,6 +17,14 @@ class ThemeRadioButton(context: Context, attrs: AttributeSet) :
         }
     }
 
+    override fun onAttachedToWindow() {
+        super.onAttachedToWindow()
+        //ViewHolder 复用或宿主未重建时,重新附着会再次读取当前主题强调色
+        if (!isInEditMode) {
+            applyTint(context.accentColor)
+        }
+    }
+
     override fun performClick(): Boolean {
         isUserAction = true
         val result = super.performClick()

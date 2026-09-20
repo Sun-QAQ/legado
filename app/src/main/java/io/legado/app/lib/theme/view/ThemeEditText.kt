@@ -20,4 +20,12 @@ class ThemeEditText @JvmOverloads constructor(
             isLocalePreferredLineHeightForMinimumUsed = false
         }
     }
+
+    override fun onAttachedToWindow() {
+        super.onAttachedToWindow()
+        //ViewHolder 复用或宿主未重建时,重新附着会再次读取当前主题强调色
+        if (!isInEditMode) {
+            applyTint(context.accentColor)
+        }
+    }
 }
