@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<TextView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/tv_agent_persona"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:layout_gravity="center"
+    android:ellipsize="end"
+    android:maxWidth="180dp"
+    android:maxLines="1"
+    android:textAppearance="@style/ToolbarTitle"
+    tools:text="阅读助手" />

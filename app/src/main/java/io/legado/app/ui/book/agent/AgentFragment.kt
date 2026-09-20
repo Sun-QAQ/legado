@@ -6,6 +6,7 @@ import android.view.Menu
 import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
+import android.widget.TextView
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updateLayoutParams
 import androidx.fragment.app.viewModels
@@ -72,6 +73,7 @@ class AgentFragment() : BaseFragment(R.layout.fragment_agent), MainFragmentInter
 
     override fun onFragmentCreated(view: View, savedInstanceState: Bundle?) {
         setSupportToolbar(binding.titleBar.toolbar)
+        val personaTitleView = binding.titleBar.toolbar.findViewById<TextView>(R.id.tv_agent_persona)
         viewModel.startConversationHistory()
         binding.btnSend.backgroundTintList = ColorStateList.valueOf(requireContext().accentColor)
         binding.llInput.applyAgentInputInsets()
@@ -118,6 +120,13 @@ class AgentFragment() : BaseFragment(R.layout.fragment_agent), MainFragmentInter
                         binding.btnSend.setImageResource(R.drawable.ic_send)
                         binding.btnSend.contentDescription = getString(R.string.agent_send)
                     }
+                }
+            }
+        }
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+                viewModel.currentPersonaName.collect { name ->
+                    personaTitleView?.text = name
                 }
             }
         }

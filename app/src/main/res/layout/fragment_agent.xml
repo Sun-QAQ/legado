@@ -12,6 +12,7 @@
         android:layout_height="wrap_content"
         app:attachToActivity="false"
         app:contentInsetStartWithNavigation="0dp"
+        app:contentLayout="@layout/view_agent_title"
         app:layout_constraintTop_toTopOf="parent"
         app:title="@string/agent" />
 
