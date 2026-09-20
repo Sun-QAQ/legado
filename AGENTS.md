@@ -15,10 +15,13 @@ Get-Content build.log | Select-String "BUILD|error|FAILED|e: file"
 - Gradle 任务必须带 flavor，如 `compileAppDebugKotlin`、`assembleAppDebug`。
 - 输出先重定向到日志再检索；缓存完整时可用 `--offline`，变更依赖时不要用。
 - adb：`G:\Software\AndroidStudioSDK\platform-tools\adb.exe`；APK：`app\build\outputs\apk\app\debug\legado_app_*.apk`。
-- 先用 MuMu adb（`G:\Software\MuMuPlayer-12.0\nx_device\12.0\shell\adb.exe`）运行 `devices` 注册端点，再用标准 adb 获取当前 `<guest-ip>:5555`；不要硬编码旧 IP。
+- 优先使用 MuMu 管理器（`G:\Software\MuMuPlayer-12.0\nx_main\MuMuManager.exe`）的 `adb -v 0` 获取当前实例的 JSON 地址；从其中的 `adb_host` 和 `adb_port` 生成设备地址，再用标准 adb `connect`。不要硬编码旧 IP 或端口。内置 adb 的 `devices` 未发现设备时，管理器查询仍可获取已运行实例。
 ```powershell
 $adb="G:\Software\AndroidStudioSDK\platform-tools\adb.exe"
-$device="从 adb devices 获取的 guest-ip:5555"
+$mumuInfo=& "G:\Software\MuMuPlayer-12.0\nx_main\MuMuManager.exe" adb -v 0 | ConvertFrom-Json
+$device="{0}:{1}" -f $mumuInfo.adb_host,$mumuInfo.adb_port
+& $adb connect $device
+& $adb devices
 $apk=(Get-ChildItem "app\build\outputs\apk\app\debug\legado_app_*.apk" | Sort-Object LastWriteTime -Descending | Select-Object -First 1).FullName
 & $adb -s $device install -r $apk
 ```
