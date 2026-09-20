@@ -655,6 +655,7 @@
     <string name="ai_source_name">Supplier name</string>
     <string name="ai_source_base_url">API address</string>
     <string name="ai_source_api_key">API key</string>
+    <string name="ai_search_api_key_helper">One per line; multiple keys are used in rotation</string>
     <string name="ai_source_model">Default model</string>
     <string name="ai_source_headers">Custom headers</string>
     <string name="ai_source_headers_hint">JSON format, e.g. {"Authorization":"..."}</string>

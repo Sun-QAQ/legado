@@ -654,6 +654,7 @@
     <string name="ai_source_name">供应商名称</string>
     <string name="ai_source_base_url">接口地址</string>
     <string name="ai_source_api_key">API密钥</string>
+    <string name="ai_search_api_key_helper">每行一个，配置多个时按顺序轮询使用</string>
     <string name="ai_source_model">默认模型</string>
     <string name="ai_source_headers">自定义请求头</string>
     <string name="ai_source_headers_hint">JSON格式，例如 {"Authorization":"..."}</string>

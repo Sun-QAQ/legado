@@ -3,6 +3,7 @@ package io.legado.app.ui.book.agent
 import io.legado.app.data.entities.AiSearchSource
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -83,5 +84,38 @@ class AiWebSearchHelperTest {
         assertEquals(1, results.size)
         assertEquals("嵌套标题", results.first().title)
         assertFalse(results.first().snippet.isBlank())
+    }
+
+    @Test
+    fun `配置多个 API Key 时按顺序轮询且兼容多种分隔符`() {
+        val source = AiSearchSource(
+            id = 202609201L,
+            type = AiSearchSource.TYPE_CUSTOM,
+            apiKey = "key-a\nkey-b, key-c;key-d"
+        )
+
+        assertEquals(listOf("key-a", "key-b", "key-c", "key-d"), source.getApiKeyList())
+        assertEquals("key-a", AiWebSearchHelper.nextApiKey(source))
+        assertEquals("key-b", AiWebSearchHelper.nextApiKey(source))
+        assertEquals("key-c", AiWebSearchHelper.nextApiKey(source))
+        assertEquals("key-d", AiWebSearchHelper.nextApiKey(source))
+        assertEquals("key-a", AiWebSearchHelper.nextApiKey(source))
+    }
+
+    @Test
+    fun `只配置一个 API Key 时始终返回同一个`() {
+        val source = AiSearchSource(id = 202609202L, apiKey = " only-key ")
+
+        assertEquals(listOf("only-key"), source.getApiKeyList())
+        assertEquals("only-key", AiWebSearchHelper.nextApiKey(source))
+        assertEquals("only-key", AiWebSearchHelper.nextApiKey(source))
+    }
+
+    @Test
+    fun `未配置 API Key 时返回 null`() {
+        val source = AiSearchSource(id = 202609203L, apiKey = "  \n , ; ")
+
+        assertTrue(source.getApiKeyList().isEmpty())
+        assertNull(AiWebSearchHelper.nextApiKey(source))
     }
 }

@@ -75,12 +75,16 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginHorizontal="12dp"
-                    android:hint="@string/ai_source_api_key">
+                    android:hint="@string/ai_source_api_key"
+                    app:helperText="@string/ai_search_api_key_helper">
                     <io.legado.app.lib.theme.view.ThemeEditText
                         android:id="@+id/tv_api_key"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:inputType="textPassword"
+                        android:gravity="top|start"
+                        android:inputType="textPassword|textMultiLine"
+                        android:maxLines="5"
+                        android:minLines="2"
                         android:padding="14dp" />
                 </io.legado.app.ui.widget.text.TextInputLayout>
 

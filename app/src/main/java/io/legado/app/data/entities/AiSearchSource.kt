@@ -41,6 +41,12 @@ data class AiSearchSource(
         return GSON.fromJsonObject<Map<String, String>>(value).getOrDefault(emptyMap())
     }
 
+    /** 支持配置多个 API Key,按换行/逗号/分号分隔,配置多个时按顺序轮询使用。 */
+    fun getApiKeyList(): List<String> = apiKey
+        .split('\n', '\r', ',', ';')
+        .map { it.trim() }
+        .filter { it.isNotBlank() }
+
     companion object {
         const val TYPE_TAVILY = "tavily"
         const val TYPE_BRAVE = "brave"

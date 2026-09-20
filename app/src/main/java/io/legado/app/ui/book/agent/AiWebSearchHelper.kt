@@ -13,7 +13,9 @@ import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody.Companion.toRequestBody
 import java.net.URI
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicInteger
 
 internal data class AiWebSearchResult(
     val title: String,
@@ -44,7 +46,7 @@ internal object AiWebSearchHelper {
             .callTimeout(45, TimeUnit.SECONDS)
             .readTimeout(45, TimeUnit.SECONDS)
             .build()
-        val headers = buildHeaders(source)
+        val headers = buildHeaders(source, nextApiKey(source))
         val endpoint = endpoint(source)
         val response = client.newCallStrResponse {
             addHeaders(headers)
@@ -192,17 +194,32 @@ internal object AiWebSearchHelper {
         )
     }
 
-    private fun buildHeaders(source: AiSearchSource): Map<String, String> =
+    private fun buildHeaders(source: AiSearchSource, apiKey: String?): Map<String, String> =
         HashMap(source.getHeaderMap()).apply {
-            if (source.apiKey.isBlank()) return@apply
+            if (apiKey.isNullOrBlank()) return@apply
             when (source.type) {
-                AiSearchSource.TYPE_BRAVE -> putIfAbsent("X-Subscription-Token", source.apiKey)
+                AiSearchSource.TYPE_BRAVE -> putIfAbsent("X-Subscription-Token", apiKey)
                 else -> putIfAbsent(
                     "Authorization",
-                    if (source.apiKey.startsWith("Bearer ")) source.apiKey else "Bearer ${source.apiKey}"
+                    if (apiKey.startsWith("Bearer ")) apiKey else "Bearer $apiKey"
                 )
             }
         }
+
+    private val apiKeyIndexes = ConcurrentHashMap<Long, AtomicInteger>()
+
+    /**
+     * 配置多个 API Key 时按调用顺序轮询取用,只配置一个或未配置时直接返回。
+     */
+    internal fun nextApiKey(source: AiSearchSource): String? {
+        val keys = source.getApiKeyList()
+        if (keys.size <= 1) return keys.firstOrNull()
+        val counter = apiKeyIndexes.getOrPut(source.id) { AtomicInteger() }
+        val attempt = counter.getAndIncrement()
+        // 避免 Math.floorMod(API 24) 与负数取模问题
+        val index = ((attempt % keys.size) + keys.size) % keys.size
+        return keys[index]
+    }
 
     private fun endpoint(source: AiSearchSource): String {
         val baseUrl = source.baseUrl.trim().trimEnd('/')
