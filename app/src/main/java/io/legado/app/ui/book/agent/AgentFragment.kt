@@ -6,6 +6,7 @@ import android.view.Menu
 import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
+import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updateLayoutParams
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
@@ -29,7 +30,6 @@ import io.legado.app.ui.widget.dialog.PhotoDialog
 import io.legado.app.utils.applyTint
 import io.legado.app.utils.dpToPx
 import io.legado.app.utils.imeHeight
-import io.legado.app.utils.navigationBarHeight
 import io.legado.app.utils.setOnApplyWindowInsetsListenerCompat
 import io.legado.app.utils.showDialogFragment
 import io.legado.app.utils.startActivity
@@ -207,7 +207,9 @@ internal fun View.applyAgentInputInsets() {
         view.updateLayoutParams<ViewGroup.MarginLayoutParams> {
             bottomMargin = resolveAgentInputBottomMargin(
                 imeHeight = windowInsets.imeHeight,
-                navigationBarHeight = windowInsets.navigationBarHeight,
+                navigationBarHeight = windowInsets.getInsetsIgnoringVisibility(
+                    WindowInsetsCompat.Type.navigationBars()
+                ).bottom,
                 bottomBarOffset = bottomBarOffset,
                 keyboardGap = keyboardGap
             )
@@ -222,9 +224,10 @@ internal fun resolveAgentInputBottomMargin(
     bottomBarOffset: Int,
     keyboardGap: Int
 ): Int {
-    return if (imeHeight > 0) {
+    // 电脑控制等场景中，窗口可能因输入而重排，但 IME Insets 会暂时为 0 或较小值。
+    // 始终保留主界面底部导航栏的空间，再根据实际 IME 高度向上避让。
+    return maxOf(
+        navigationBarHeight + bottomBarOffset,
         imeHeight + keyboardGap
-    } else {
-        navigationBarHeight + bottomBarOffset
-    }
+    )
 }

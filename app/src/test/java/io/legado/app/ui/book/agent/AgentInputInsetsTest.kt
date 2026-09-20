@@ -6,7 +6,7 @@ import org.junit.Test
 class AgentInputInsetsTest {
 
     @Test
-    fun `键盘显示时避让键盘隐藏时避让底栏`() {
+    fun `键盘显示时避让键盘并始终避让底栏`() {
         assertEquals(
             1010,
             resolveAgentInputBottomMargin(
@@ -20,6 +20,15 @@ class AgentInputInsetsTest {
             168,
             resolveAgentInputBottomMargin(
                 imeHeight = 0,
+                navigationBarHeight = 80,
+                bottomBarOffset = 88,
+                keyboardGap = 10
+            )
+        )
+        assertEquals(
+            168,
+            resolveAgentInputBottomMargin(
+                imeHeight = 50,
                 navigationBarHeight = 80,
                 bottomBarOffset = 88,
                 keyboardGap = 10
