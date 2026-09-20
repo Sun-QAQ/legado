@@ -49,6 +49,7 @@ abstract class BaseActivity<VB : ViewBinding>(
 ) : AppCompatActivity() {
 
     protected abstract val binding: VB
+    private var nightMode = 0
 
     val isInMultiWindow: Boolean
         @SuppressLint("ObsoleteSdkInt")
@@ -81,6 +82,7 @@ abstract class BaseActivity<VB : ViewBinding>(
         window.decorView.disableAutoFill()
         initTheme()
         super.onCreate(savedInstanceState)
+        nightMode = resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK
         setupSystemBar()
         setContentView(binding.root)
         upBackgroundImage()
@@ -108,6 +110,14 @@ abstract class BaseActivity<VB : ViewBinding>(
         findViewById<TitleBar>(R.id.title_bar)
             ?.onMultiWindowModeChanged(isInMultiWindow, fullScreen)
         setupSystemBar()
+        val newNightMode = newConfig.uiMode and Configuration.UI_MODE_NIGHT_MASK
+        if (newNightMode != nightMode) {
+            nightMode = newNightMode
+            if (theme != Theme.Transparent) {
+                window.decorView.applyBackgroundTint(backgroundColor)
+                upBackgroundImage()
+            }
+        }
     }
 
     abstract fun onActivityCreated(savedInstanceState: Bundle?)
