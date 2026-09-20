@@ -323,7 +323,7 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
                 shape = GradientDrawable.RECTANGLE
                 cornerRadius = 12.dpToPx().toFloat()
                 setColor(ReadBookConfig.bgMeanColor)
-                setStroke(1.dpToPx(), ThemeStore.accentColor)
+                setStroke(1.dpToPx(), ThemeStore.cachedAccentColor)
             }
         }
         textView.measure(

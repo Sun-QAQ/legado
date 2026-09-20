@@ -50,7 +50,7 @@ data class TextColumn(
             ChapterProvider.contentPaint
         }
         val textColor = if (textLine.isReadAloud || isSearchResult || noteContent != null) {
-            ThemeStore.accentColor
+            ThemeStore.cachedAccentColor
         } else {
             ReadBookConfig.textColor
         }

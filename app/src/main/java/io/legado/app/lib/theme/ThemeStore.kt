@@ -162,12 +162,17 @@ private constructor(private val mContext: Context) : ThemeStoreInterface {
         mEditor.putLong(ThemeStorePrefKeys.VALUES_CHANGED, System.currentTimeMillis())
             .putBoolean(ThemeStorePrefKeys.IS_CONFIGURED_KEY, true)
             .apply()
-        accentColor = accentColor()
+        cachedAccentColor = accentColor()
     }
 
     companion object {
 
-        var accentColor = accentColor()
+        /**
+         * 强调色的进程级缓存,仅在 [ThemeStore.apply] 时刷新。
+         * 需要实时值请调用 [ThemeStore.accentColor] 函数。
+         * 供阅读页热点绘制路径使用,避免每帧读取 SharedPreferences。
+         */
+        var cachedAccentColor = accentColor()
 
         fun editTheme(context: Context): ThemeStore {
             return ThemeStore(context)

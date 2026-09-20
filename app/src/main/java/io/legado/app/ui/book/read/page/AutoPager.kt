@@ -34,7 +34,7 @@ class AutoPager(private val readView: ReadView) : Runnable {
         if (isEInkMode) {
             readView.postDelayed(this, ReadBookConfig.autoReadSpeed * 1000L)
         } else {
-            paint.color = ThemeStore.accentColor
+            paint.color = ThemeStore.cachedAccentColor
             lastTimeMillis = SystemClock.uptimeMillis()
             readView.invalidate()
         }
