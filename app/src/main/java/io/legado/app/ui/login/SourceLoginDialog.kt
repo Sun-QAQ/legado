@@ -1,10 +1,12 @@
 package io.legado.app.ui.login
 
 import android.content.DialogInterface
+import android.graphics.Color
 import android.os.Bundle
 import android.text.InputType
 import android.view.View
 import android.view.ViewGroup
+import android.widget.TextView
 import androidx.core.view.setPadding
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
@@ -18,7 +20,10 @@ import io.legado.app.databinding.DialogLoginBinding
 import io.legado.app.databinding.ItemFilletTextBinding
 import io.legado.app.databinding.ItemSourceEditBinding
 import io.legado.app.lib.dialogs.alert
+import io.legado.app.lib.theme.Selector
+import io.legado.app.lib.theme.primaryColor
 import io.legado.app.ui.about.AppLogDialog
+import io.legado.app.utils.ColorUtils
 import io.legado.app.utils.GSON
 import io.legado.app.utils.applyTint
 import io.legado.app.utils.dpToPx
@@ -92,6 +97,7 @@ class SourceLoginDialog : BaseDialogFragment(R.layout.dialog_login, true) {
                         it.root.id = index + 1000
                         it.textView.text = rowUi.name
                         it.textView.setPadding(16.dpToPx())
+                        applyPrimaryColor(it.textView)
                         it.root.onClick {
                             handleButtonClick(source, rowUi, loginUi)
                         }
@@ -125,6 +131,21 @@ class SourceLoginDialog : BaseDialogFragment(R.layout.dialog_login, true) {
             }
             return@setOnMenuItemClickListener true
         }
+    }
+
+    /**
+     * 登录按钮底色使用主题设置中的主色调，按下加深，文字颜色按底色明暗自动取黑/白
+     */
+    private fun applyPrimaryColor(view: TextView) {
+        val primaryColor = requireContext().primaryColor
+        view.background = Selector.shapeBuild()
+            .setCornerRadius(999.dpToPx())
+            .setDefaultBgColor(primaryColor)
+            .setPressedBgColor(ColorUtils.darkenColor(primaryColor))
+            .create()
+        view.setTextColor(
+            if (ColorUtils.isColorLight(primaryColor)) Color.BLACK else Color.WHITE
+        )
     }
 
     private fun handleButtonClick(source: BaseSource, rowUi: RowUi, loginUi: List<RowUi>) {
