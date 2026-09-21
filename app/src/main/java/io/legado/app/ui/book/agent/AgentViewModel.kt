@@ -35,7 +35,9 @@ import io.legado.app.utils.GSON
 import io.legado.app.utils.fromJsonArray
 import io.legado.app.utils.fromJsonObject
 import io.legado.app.utils.getPrefLong
+import io.legado.app.utils.getPrefString
 import io.legado.app.utils.putPrefLong
+import io.legado.app.utils.putPrefString
 import io.legado.app.utils.toastOnUi
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.CancellationException
@@ -205,13 +207,30 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
         conversationHistoryStarted = true
         conversationHistoryEnabled = true
         viewModelScope.launch {
+            val rememberedId = context.getPrefString(PreferKey.aiConversationId)
             val conversation = withContext(Dispatchers.IO) {
-                appDb.aiConversationDao.latest()
+                if (rememberedId.isNullOrEmpty()) {
+                    // 空串表示上次退出时处于新对话状态，保持空白；null 为旧版本无记录，兼容恢复最近会话
+                    if (rememberedId == null) appDb.aiConversationDao.latest() else null
+                } else {
+                    appDb.aiConversationDao.get(rememberedId) ?: appDb.aiConversationDao.latest()
+                }
             }
             if (_messages.value.isEmpty()) {
-                conversation?.let(::restoreConversation)
+                if (conversation == null) {
+                    rememberConversationId(null)
+                } else {
+                    restoreConversation(conversation)
+                }
             }
         }
+    }
+
+    /**
+     * 记录当前对话，保证重启后能回到同一会话；空值表示停留在新对话状态
+     */
+    private fun rememberConversationId(id: String?) {
+        context.putPrefString(PreferKey.aiConversationId, id ?: "")
     }
 
     fun newConversation() {
@@ -309,6 +328,7 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
         hasSavedSource = false
         _currentConversationId.value = null
         conversationCreatedAt = 0L
+        rememberConversationId(null)
     }
 
     private suspend fun stopActiveRequest() {
@@ -326,6 +346,7 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
         resetConversationState()
         _currentConversationId.value = conversation.id
         conversationCreatedAt = conversation.createdAt
+        rememberConversationId(conversation.id)
         history.addAll(AgentConversationCodec.decodeTurns(conversation.turnsJson))
         _messages.value = AgentConversationCodec.decodeMessages(conversation.messagesJson)
             .filterNot { it.placeholder }
@@ -390,6 +411,7 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
         val id = _currentConversationId.value ?: UUID.randomUUID().toString().also {
             _currentConversationId.value = it
             conversationCreatedAt = now
+            rememberConversationId(it)
         }
         val firstQuestion = messages.firstOrNull { it.isUser }?.text.orEmpty()
         return AiConversation(
