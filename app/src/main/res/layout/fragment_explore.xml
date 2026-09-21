@@ -65,24 +65,18 @@
             tools:visibility="visible" />
     </LinearLayout>
 
-    <!-- 书源分组筛选 -->
-    <HorizontalScrollView
-        android:id="@+id/scroll_groups"
+    <!-- 书源分组筛选：与书架页分组保持一致的 TabLayout 样式 -->
+    <com.google.android.material.tabs.TabLayout
+        android:id="@+id/tab_group"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:clipToPadding="false"
-        android:paddingLeft="18dp"
-        android:paddingRight="18dp"
-        android:scrollbars="none"
+        android:layout_height="40dp"
+        android:background="@android:color/transparent"
+        android:theme="?attr/actionBarStyle"
         app:layout_constraintTop_toBottomOf="@id/search_bar"
-        tools:ignore="RtlSymmetry">
-
-        <LinearLayout
-            android:id="@+id/ll_groups"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal" />
-    </HorizontalScrollView>
+        app:tabBackground="@android:color/transparent"
+        app:tabMaxWidth="100dp"
+        app:tabMinWidth="10dp"
+        app:tabRippleColor="@android:color/transparent" />
 
     <LinearLayout
         android:id="@+id/ll_section_meta"
@@ -94,7 +88,7 @@
         android:paddingTop="3dp"
         android:paddingRight="23dp"
         android:paddingBottom="11dp"
-        app:layout_constraintTop_toBottomOf="@id/scroll_groups"
+        app:layout_constraintTop_toBottomOf="@id/tab_group"
         tools:ignore="RtlSymmetry">
 
         <TextView

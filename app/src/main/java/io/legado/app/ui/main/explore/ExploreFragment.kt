@@ -1,7 +1,6 @@
 package io.legado.app.ui.main.explore
 
 import android.graphics.Color
-import android.graphics.Typeface
 import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
 import android.text.Editable
@@ -9,10 +8,9 @@ import android.text.TextWatcher
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
-import android.widget.LinearLayout
-import android.widget.TextView
 import androidx.appcompat.app.AlertDialog
 import androidx.core.view.isVisible
+import com.google.android.material.tabs.TabLayout
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
@@ -30,7 +28,6 @@ import io.legado.app.help.config.AppConfig
 import io.legado.app.lib.dialogs.alert
 import io.legado.app.lib.theme.accentColor
 import io.legado.app.lib.theme.primaryColor
-import io.legado.app.lib.theme.secondaryTextColor
 import io.legado.app.ui.book.explore.ExploreShowActivity
 import io.legado.app.ui.book.search.SearchActivity
 import io.legado.app.ui.book.search.SearchScope
@@ -38,8 +35,8 @@ import io.legado.app.ui.book.source.edit.BookSourceEditActivity
 import io.legado.app.ui.login.SourceLoginActivity
 import io.legado.app.ui.main.MainFragmentInterface
 import io.legado.app.utils.applyStatusBarPadding
-import io.legado.app.utils.dpToPx
 import io.legado.app.utils.flowWithLifecycleAndDatabaseChange
+import io.legado.app.utils.getCompatColor
 import io.legado.app.utils.setEdgeEffectColor
 import io.legado.app.utils.startActivity
 import io.legado.app.utils.viewbindingdelegate.viewBinding
@@ -85,6 +82,11 @@ class ExploreFragment() : VMBaseFragment<ExploreViewModel>(R.layout.fragment_exp
      * 切换分组时清空搜索框会触发文本监听，这里做一次抑制
      */
     private var suppressSearchChange = false
+
+    /**
+     * 重建分组 Tab 时抑制选中回调
+     */
+    private var suppressTabChange = false
 
     override fun onFragmentCreated(view: View, savedInstanceState: Bundle?) {
         binding.vwStatusBar.applyStatusBarPadding()
@@ -139,6 +141,7 @@ class ExploreFragment() : VMBaseFragment<ExploreViewModel>(R.layout.fragment_exp
     }
 
     private fun initGroupData() {
+        initGroupTabs()
         viewLifecycleOwner.lifecycleScope.launch {
             appDb.bookSourceDao.flowExploreGroups()
                 .flowWithLifecycleAndDatabaseChange(
@@ -154,55 +157,62 @@ class ExploreFragment() : VMBaseFragment<ExploreViewModel>(R.layout.fragment_exp
                     if (selectedGroup != null && !groups.contains(selectedGroup)) {
                         selectedGroup = null
                     }
-                    upGroupChips()
+                    upGroupTabs()
                     delay(500)
                 }
         }
     }
 
     /**
-     * 重建分组筛选条，首个为「全部」
+     * 分组筛选条：与书架页分组一致的下划线 TabLayout 样式
      */
-    private fun upGroupChips() {
-        val container = binding.llGroups
-        container.removeAllViews()
-        val accent = requireContext().accentColor
-        val normal = requireContext().secondaryTextColor
-        addGroupChip(container, null, accent, normal)
-        groups.forEach { addGroupChip(container, it, accent, normal) }
+    private fun initGroupTabs() {
+        binding.tabGroup.apply {
+            isTabIndicatorFullWidth = false
+            tabMode = TabLayout.MODE_SCROLLABLE
+            setSelectedTabIndicatorColor(requireContext().accentColor)
+            setTabTextColors(
+                tabTextColors?.defaultColor
+                    ?: context.getCompatColor(R.color.secondaryText),
+                requireContext().accentColor
+            )
+            addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
+                override fun onTabSelected(tab: TabLayout.Tab) {
+                    if (suppressTabChange) return
+                    val title = tab.text?.toString()
+                    selectGroup(title?.takeIf { it != getString(R.string.all) })
+                }
+
+                override fun onTabUnselected(tab: TabLayout.Tab) = Unit
+
+                override fun onTabReselected(tab: TabLayout.Tab) = Unit
+            })
+        }
     }
 
-    private fun addGroupChip(
-        container: LinearLayout,
-        group: String?,
-        accentColor: Int,
-        normalColor: Int
-    ) {
-        val chip = TextView(requireContext()).apply {
-            text = group ?: getString(R.string.all)
-            gravity = Gravity.CENTER
-            includeFontPadding = false
-            textSize = 13f
-            typeface = Typeface.DEFAULT_BOLD
-            setPadding(15.dpToPx(), 0, 15.dpToPx(), 0)
-            setBackgroundResource(R.drawable.bg_explore_chip)
-            isSelected = group == selectedGroup
-            setTextColor(if (isSelected) accentColor else normalColor)
-            layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.WRAP_CONTENT,
-                34.dpToPx()
-            ).apply {
-                marginEnd = 8.dpToPx()
-            }
-            setOnClickListener { selectGroup(group) }
+    /**
+     * 重建分组 Tab，首个为「全部」
+     */
+    private fun upGroupTabs() {
+        val tabLayout = binding.tabGroup
+        suppressTabChange = true
+        tabLayout.removeAllTabs()
+        tabLayout.addTab(
+            tabLayout.newTab().setText(R.string.all),
+            selectedGroup == null
+        )
+        groups.forEach { group ->
+            tabLayout.addTab(
+                tabLayout.newTab().setText(group),
+                group == selectedGroup
+            )
         }
-        container.addView(chip)
+        suppressTabChange = false
     }
 
     private fun selectGroup(group: String?) {
         if (selectedGroup == group) return
         selectedGroup = group
-        upGroupChips()
         if (!binding.etSearch.text.isNullOrEmpty()) {
             suppressSearchChange = true
             binding.etSearch.setText("")
