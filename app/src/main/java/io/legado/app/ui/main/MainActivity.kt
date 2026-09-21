@@ -367,7 +367,7 @@ class MainActivity : VMBaseActivity<ActivityMainBinding, MainViewModel>(),
             onUpBooksBadgeView!!.setBadgeCount(it)
         }
         observeEvent<String>(EventBus.RECREATE) {
-            recreate()
+            recreateForTheme()
         }
         observeEvent<Boolean>(EventBus.NOTIFY_MAIN) {
             binding.apply {

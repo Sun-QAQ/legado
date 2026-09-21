@@ -97,12 +97,28 @@ abstract class BaseActivity<VB : ViewBinding>(
         }
         observeLiveBus()
         observeEvent<String>(EventBus.UP_THEME) {
-            if (!isFinishing && !isDestroyed) {
-                recreate()
-            }
+            recreateForTheme()
         }
         onActivityCreated(savedInstanceState)
     }
+
+    /**
+     * 主题（昼夜模式/主题色）变化后重建界面。
+     *
+     * MainActivity 等界面声明了 uiMode，昼夜切换时系统不会自动重建，
+     * 已 inflate 的视图不会重新解析夜间颜色资源（表现为部分区域仍是旧主题色），
+     * 因此这里主动重建；并用时间戳去抖，避免配置变化与主题事件重复重建。
+     */
+    protected fun recreateForTheme() {
+        val now = System.currentTimeMillis()
+        if (now - lastRecreateTime < 500) return
+        lastRecreateTime = now
+        if (!isFinishing && !isDestroyed) {
+            recreate()
+        }
+    }
+
+    private var lastRecreateTime = 0L
 
     @RequiresApi(Build.VERSION_CODES.O)
     override fun onMultiWindowModeChanged(isInMultiWindowMode: Boolean, newConfig: Configuration) {
@@ -120,9 +136,11 @@ abstract class BaseActivity<VB : ViewBinding>(
         val newNightMode = newConfig.uiMode and Configuration.UI_MODE_NIGHT_MASK
         if (newNightMode != nightMode) {
             nightMode = newNightMode
-            if (theme != Theme.Transparent) {
+            if (theme == Theme.Transparent) {
                 window.decorView.applyBackgroundTint(backgroundColor)
                 upBackgroundImage()
+            } else {
+                recreateForTheme()
             }
         }
     }

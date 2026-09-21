@@ -44,7 +44,7 @@ class ConfigActivity : VMBaseActivity<ActivityConfigBinding, ConfigViewModel>() 
     override fun observeLiveBus() {
         super.observeLiveBus()
         observeEvent<String>(EventBus.RECREATE) {
-            recreate()
+            recreateForTheme()
         }
     }
 
