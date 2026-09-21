@@ -12,6 +12,8 @@ interface AgentToolContext {
 
     suspend fun searchSourceRepository(query: String, limit: Int): String
 
+    suspend fun listBookSources(keyword: String, limit: Int, withRules: Boolean): String
+
     suspend fun addBookToShelf(bookUrl: String): String
 
     suspend fun createBookSource(url: String): String

@@ -738,6 +738,7 @@
     <string name="agent_step_validating_source_done">校验通过</string>
     <string name="agent_step_source_draft">创建书源草稿</string>
     <string name="agent_step_source_draft_done">草稿已创建：%1$s</string>
+    <string name="agent_step_source_list">读取书源列表</string>
     <string name="agent_step_source_update">更新书源草稿</string>
     <string name="agent_step_source_debug">调试书源</string>
     <string name="agent_step_source_debug_search">调试搜索</string>

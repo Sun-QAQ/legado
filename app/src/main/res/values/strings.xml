@@ -739,6 +739,7 @@
     <string name="agent_step_validating_source_done">Validation passed</string>
     <string name="agent_step_source_draft">Creating book source draft</string>
     <string name="agent_step_source_draft_done">Draft ready: %1$s</string>
+    <string name="agent_step_source_list">Reading book source list</string>
     <string name="agent_step_source_update">Updating book source draft</string>
     <string name="agent_step_source_debug">Debugging book source</string>
     <string name="agent_step_source_debug_search">Debugging search</string>

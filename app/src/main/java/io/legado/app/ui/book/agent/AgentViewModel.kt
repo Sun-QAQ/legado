@@ -1154,6 +1154,72 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
         }
     }
 
+    override suspend fun listBookSources(keyword: String, limit: Int, withRules: Boolean): String {
+        val stepId = startStep(getString(R.string.agent_step_source_list))
+        return try {
+            val key = keyword.trim()
+            val result = withContext(Dispatchers.IO) {
+                val matched = appDb.bookSourceDao.all.filter { source ->
+                    key.isEmpty() ||
+                        source.bookSourceName.contains(key, true) ||
+                        source.bookSourceUrl.contains(key, true) ||
+                        source.bookSourceGroup?.contains(key, true) == true
+                }
+                when {
+                    matched.isEmpty() ->
+                        if (key.isEmpty()) "书源库中暂无书源" else "没有匹配“$key”的书源"
+
+                    withRules -> matched.take(REFERENCE_SOURCE_LIMIT)
+                        .joinToString("\n\n") { GSON.toJson(it) }
+
+                    else -> matched.take(limit.coerceIn(1, MAX_SOURCE_LIST_LIMIT))
+                        .joinToString("\n") { sourceSummary(it) }
+                }
+            }
+            finishStep(stepId)
+            result
+        } catch (e: Exception) {
+            failStep(stepId, e)
+            "读取书源列表失败：${e.localizedMessage ?: e.message ?: "未知错误"}"
+        }
+    }
+
+    private fun sourceSummary(source: BookSource): String = buildString {
+        append(source.bookSourceName.ifBlank { source.bookSourceUrl })
+        append("｜分组：").append(source.bookSourceGroup?.takeIf { it.isNotBlank() } ?: "未分组")
+        append("｜网址：").append(source.bookSourceUrl)
+        append("｜").append(if (source.enabled) "已启用" else "未启用")
+        append("｜").append(if (source.searchUrl.isNullOrBlank()) "无搜索规则" else "有搜索规则")
+        if (!source.exploreUrl.isNullOrBlank()) {
+            append("｜有发现规则")
+        }
+    }
+
+    /**
+     * 为正在编写的书源挑选参考：优先同域名书源，其次 AI 生成分组的书源，最后取任一规则完整的书源
+     */
+    private fun buildReferenceSources(siteUrl: String): String {
+        val host = runCatching {
+            io.legado.app.utils.NetworkUtils.getBaseUrl(siteUrl)
+                ?.substringAfter("://", "")
+                ?.substringBefore("/")
+        }.getOrNull().orEmpty()
+        val sources = appDb.bookSourceDao.all.filter {
+            it.searchUrl?.isNotBlank() == true && it.ruleSearch?.bookList?.isNotBlank() == true
+        }
+        val picked = sources.firstOrNull { host.isNotBlank() && it.bookSourceUrl.contains(host, true) }
+            ?: sources.firstOrNull { it.bookSourceGroup?.contains(AI_GENERATED_GROUP) == true }
+            ?: sources.firstOrNull()
+        return picked?.let { source ->
+            val json = GSON.toJson(source)
+            if (json.length > REFERENCE_JSON_LIMIT) {
+                json.take(REFERENCE_JSON_LIMIT) + "\n…（参考书源内容已截断）"
+            } else {
+                json
+            }
+        } ?: "（书源库中没有可参考的书源，请按下方字段说明与规则语法要点自行编写）"
+    }
+
     override suspend fun createBookSource(url: String): String {
         val stepId = startStep(getString(R.string.agent_step_source_draft))
         return try {
@@ -1167,10 +1233,11 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
                         ?.substringAfter("://", "")
                         ?.substringBefore("/", "")
                 }.getOrNull() ?: finalUrl,
-                bookSourceGroup = "AI生成",
+                bookSourceGroup = AI_GENERATED_GROUP,
                 enabled = false
             )
             sourceCreationMode = true
+            val referenceSources = withContext(Dispatchers.IO) { buildReferenceSources(finalUrl) }
             finishStep(
                 stepId,
                 summary = getString(R.string.agent_step_source_draft_done, draftSource!!.bookSourceName)
@@ -1178,6 +1245,7 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
             SOURCE_CREATE_GUIDE
                 .replace("{siteUrl}", finalUrl)
                 .replace("{html}", html)
+                .replace("{referenceSources}", referenceSources)
                 .replace("{draftJson}", GSON.toJson(draftSource))
         } catch (e: Exception) {
             failStep(stepId, e)
@@ -1227,10 +1295,33 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
             draftSource = source
             finishStep(stepId, summary = source.bookSourceName)
             "已更新书源草稿：${source.bookSourceName}，地址：${source.bookSourceUrl}\n" +
+                missingRuleHint(source) +
                 "当前草稿JSON：\n${GSON.toJson(source)}"
         } catch (e: Exception) {
             failStep(stepId, e)
             "书源JSON解析失败：${e.localizedMessage ?: e.message ?: "格式错误"}"
+        }
+    }
+
+    /**
+     * 草稿规则自检：指出仍缺失的关键规则，便于模型自查后继续调试
+     */
+    private fun missingRuleHint(source: BookSource): String {
+        val missing = arrayListOf<String>()
+        if (source.searchUrl.isNullOrBlank()) missing.add("searchUrl")
+        val search = source.ruleSearch
+        if (search?.bookList.isNullOrBlank()) missing.add("ruleSearch.bookList")
+        if (search?.name.isNullOrBlank()) missing.add("ruleSearch.name")
+        if (search?.bookUrl.isNullOrBlank()) missing.add("ruleSearch.bookUrl")
+        if (source.ruleBookInfo?.tocUrl.isNullOrBlank()) missing.add("ruleBookInfo.tocUrl")
+        val toc = source.ruleToc
+        if (toc?.chapterList.isNullOrBlank()) missing.add("ruleToc.chapterList")
+        if (toc?.chapterUrl.isNullOrBlank()) missing.add("ruleToc.chapterUrl")
+        if (source.ruleContent?.content.isNullOrBlank()) missing.add("ruleContent.content")
+        return if (missing.isEmpty()) {
+            "规则自检：关键规则已填写。\n"
+        } else {
+            "规则自检：仍缺少 ${missing.joinToString("、")}，请补齐后再调试。\n"
         }
     }
 
@@ -1406,7 +1497,7 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
         }
         return try {
             validateBookSource(source)
-            source.bookSourceGroup = "AI生成"
+            source.bookSourceGroup = AI_GENERATED_GROUP
             source.enabled = true
             source.lastUpdateTime = System.currentTimeMillis()
             appDb.bookSourceDao.insert(source)
@@ -2690,6 +2781,10 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
         private const val SOURCE_CREATE_MAX_ROUNDS = 20
         private const val SOURCE_HTML_HINT_LENGTH = 6000
         private const val SOURCE_CONTENT_PREVIEW_LENGTH = 1000
+        private const val AI_GENERATED_GROUP = "AI生成"
+        private const val MAX_SOURCE_LIST_LIMIT = 50
+        private const val REFERENCE_SOURCE_LIMIT = 3
+        private const val REFERENCE_JSON_LIMIT = 3000
         private const val MAX_AI_BOOK_CHAPTERS = 50
         private val IMAGE_SIZE_PATTERN = Regex("^[1-9]\\d{1,4}x[1-9]\\d{1,4}$")
         private const val READING_ASSISTANT_PROMPT =
@@ -2739,7 +2834,8 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
                 "2. 加入书架前先搜索书籍，再使用搜索结果中的准确地址执行加入操作。\n" +
                 "3. 创作小说时准确提取类型、核心设定、章节数和每章字数；缺省参数使用工具默认值。\n" +
                 "4. 创建书源时先调用 create_book_source，并严格遵循其返回的流程指南连续完成页面分析、" +
-                "规则编写、逐项调试和保存；失败时根据返回信息修正规则后重试，只有 save_book_source 成功后才结束。\n" +
+                "规则编写、逐项调试和保存；失败时根据返回信息修正规则后重试，只有 save_book_source 成功后才结束。" +
+                "需要参考现有书源写法或了解用户已有书源分组时，调用 list_book_sources。\n" +
                 "5. 查找可导入书源时只展示候选结果，导入操作必须由用户在界面中确认。\n\n" +
                 "回答方式：\n" +
                 "1. 先直接回答用户最关心的结果，再补充必要依据、来源或下一步。\n" +
@@ -2750,6 +2846,24 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
             "已获取网站首页并创建书源草稿，请严格按以下步骤逐步编写书源，每一步验证通过后才能进入下一步，未通过则修正后重试：\n" +
                     "\n网站地址：{siteUrl}\n首页HTML片段：\n{html}\n\n" +
                     "当前书源草稿JSON：\n{draftJson}\n\n" +
+                    "可参考的已有书源（同一站点或规则写法的示例，字段含义以本说明为准）：\n{referenceSources}\n\n" +
+                    "书源字段：bookSourceUrl(必填)、bookSourceName、bookSourceGroup(默认写\"AI生成\")、bookSourceType(0文本)、" +
+                    "header(请求头JSON，可含User-Agent、Referer、Cookie)、searchUrl、exploreUrl(可选发现页地址)、" +
+                    "ruleSearch、ruleBookInfo、ruleToc、ruleContent。\n" +
+                    "规则字段：ruleSearch=bookList,name,author,kind,lastChapter,intro,coverUrl,bookUrl；" +
+                    "ruleBookInfo=init,name,author,kind,lastChapter,intro,coverUrl,tocUrl,wordCount；" +
+                    "ruleToc=chapterList,chapterName,chapterUrl,nextTocUrl,isVip；" +
+                    "ruleContent=content,nextContentUrl,title,author,webJs。\n" +
+                    "规则语法：\n" +
+                    "1. 列表规则(bookList/chapterList)必须用选择器：CSS(如class.content、id.list、tbody>tr、div li)或XPath(如//div[@id=\"content\"]/a)；" +
+                    "其余字段规则写在同一行的选择器表达式里，如 tag.a@href、img@src、h1@text、class.content@html、h1@textNodes。\n" +
+                    "2. 选择器可带下标：tag.a.0(第一个)、tag.a.-1(最后一个)；多个候选规则用||按顺序取先成功者，需要串联时用&&。\n" +
+                    "3. 可用正则加工：规则##正则(仅保留匹配内容)、规则##正则##替换、规则###(保留原文)；例如 class.container@text##作者：.*。\n" +
+                    "4. 变量：{{key}}(搜索关键字，自动URL编码)、{{page}}(页码)、{{baseUrl}}、{{bookUrl}}、{{chapterUrl}}，可用于searchUrl与规则中。\n" +
+                    "5. searchUrl 直接写地址；需要POST或自定义头时写成 地址,{\"method\":\"POST\",\"body\":\"key={{key}}\",\"charset\":\"UTF-8\"}。\n" +
+                    "6. 仅在选择器与正则无法完成时才用@js:规则，返回值必须是字符串。\n" +
+                    "7. 相对链接(如 /book/1.html、a.html)会自动拼接bookSourceUrl，不需要补全域名；目录或正文分页用nextTocUrl/nextContentUrl。\n" +
+                    "8. 需要登录态或防盗链时，在header中补Referer/User-Agent/Cookie；仍无法解决就如实说明，不要编造规则。\n\n" +
                     "流程：\n" +
                     "1. 分析首页HTML，找到搜索表单/搜索链接（搜索接口、关键字参数名）。\n" +
                     "2. 用 fetch_page 访问搜索页（把测试词\"遮天\"代入），查看搜索结果的HTML结构。\n" +
@@ -2764,7 +2878,8 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
                     "10. 取某一章的章节url用 fetch_page 访问正文页，查看正文HTML，编写 ruleContent（content/title/author）。\n" +
                     "11. 调用 debug_source_content(chapterUrl) 调试正文；解析到正文则继续，否则回到第10步修正 ruleContent。\n" +
                     "12. 全部调试通过后调用 save_book_source 校验并保存，完成等待。\n\n" +
-                    "规则语法提示：bookList/chapterList 等列表选择器用XPath或CSS；name/author/bookUrl/content 等字段用规则表达式；" +
+                    "常见问题排查：列表规则解析不到时先看返回的HTML片段确认选择器是否命中；搜索无结果时检查{{key}}参数名与请求方式；" +
+                    "正文为空时确认内容是否由JS动态渲染；详情页取不到tocUrl时改用bookUrlPattern或补充ruleBookInfo的tocUrl。" +
                     "ruleSearch、ruleBookInfo、ruleToc、ruleContent 必须使用JSON对象格式。\n\n" +
                     "重要：请自主连续调用工具完成全部步骤，不要中途停下向用户解释，直到 save_book_source 成功。" +
                     "某步失败就根据返回的HTML修正对应规则后立即重试。"

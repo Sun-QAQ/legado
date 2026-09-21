@@ -17,6 +17,7 @@ object AgentTools {
     )
 
     private const val DEFAULT_LIMIT = 5
+    private const val DEFAULT_SOURCE_LIST_LIMIT = 20
 
     private val webSearchTool = AgentTool(
         name = "web_search",
@@ -155,6 +156,47 @@ object AgentTools {
         ),
         execute = { arguments ->
             addBookToShelf(arguments.getStringValue("bookUrl"))
+        }
+    )
+
+    private val listBookSourcesTool = AgentTool(
+        name = "list_book_sources",
+        description = "读取用户书源库中已有的书源（名称、分组、网址、启用状态、是否有搜索/发现规则）。" +
+            "回答“我有哪些书源”“某站点有没有书源”或准备编写、修改书源前调用；" +
+            "withRules=true 时返回最多3条完整书源规则JSON，可作为同类站点的规则写法参考",
+        parameters = objectParameters(
+            properties = JsonObject().apply {
+                add(
+                    "keyword",
+                    JsonObject().apply {
+                        addProperty("type", "string")
+                        addProperty("description", "可选，按书源名称、分组或网址过滤；省略时返回全部")
+                    }
+                )
+                add(
+                    "limit",
+                    JsonObject().apply {
+                        addProperty("type", "integer")
+                        addProperty("description", "可选，返回条数，默认20，最大50")
+                    }
+                )
+                add(
+                    "withRules",
+                    JsonObject().apply {
+                        addProperty("type", "boolean")
+                        addProperty("description", "可选，是否返回完整规则JSON，默认false；为true时最多返回3条，用于参考规则写法"
+                        )
+                    }
+                )
+            },
+            required = arrayOf()
+        ),
+        execute = { arguments ->
+            listBookSources(
+                arguments.getStringValue("keyword"),
+                arguments.getIntValue("limit", DEFAULT_SOURCE_LIST_LIMIT),
+                arguments.getBooleanValue("withRules", false)
+            )
         }
     )
 
@@ -564,6 +606,7 @@ object AgentTools {
         webSearchTool,
         searchBooksTool,
         searchSourceRepositoryTool,
+        listBookSourcesTool,
         addBookToShelfTool,
         createBookSourceTool,
         fetchPageTool,
@@ -639,4 +682,7 @@ object AgentTools {
 
     private fun JsonObject.getIntValue(key: String, default: Int): Int =
         get(key)?.takeIf { !it.isJsonNull }?.asInt ?: default
+
+    private fun JsonObject.getBooleanValue(key: String, default: Boolean): Boolean =
+        get(key)?.takeIf { !it.isJsonNull }?.asBoolean ?: default
 }
