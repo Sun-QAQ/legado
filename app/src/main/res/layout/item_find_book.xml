@@ -134,11 +134,15 @@
                 android:textSize="12sp" />
         </LinearLayout>
 
-        <LinearLayout
-            android:id="@+id/ll_category_grid"
+        <!-- 发现分类：默认三列等宽，书源可通过 kind.style 的 flex 参数调整 -->
+        <com.google.android.flexbox.FlexboxLayout
+            android:id="@+id/flexbox"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical" />
+            android:clipToPadding="false"
+            android:overScrollMode="never"
+            app:flexDirection="row"
+            app:flexWrap="wrap" />
     </LinearLayout>
 
 </LinearLayout>

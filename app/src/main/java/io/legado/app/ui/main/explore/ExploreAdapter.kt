@@ -6,11 +6,10 @@ import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
 import android.text.TextUtils
 import android.view.Gravity
-import android.view.View
 import android.view.ViewGroup
-import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.core.view.isVisible
+import com.google.android.flexbox.FlexboxLayout
 import io.legado.app.R
 import io.legado.app.base.adapter.ItemViewHolder
 import io.legado.app.base.adapter.RecyclerAdapter
@@ -31,10 +30,11 @@ import kotlin.math.abs
 import splitties.views.onLongClick
 
 /**
- * 发现页书源列表：卡片式书源 + 展开后的三列发现分类网格
+ * 发现页书源列表：卡片式书源 + 展开后的发现分类
  *
- * 说明：旧实现使用 FlexboxLayout 渲染分类并套用书源自定义的 flex 样式，
- * 新原型要求固定三列等宽网格，因此不再套用 [ExploreKind.style]（该样式仅含 flex 布局参数）。
+ * 分类使用 FlexboxLayout 渲染：默认每个分类占 1/3 宽（三列等宽），
+ * 书源可通过 [ExploreKind.style] 自定义 flex 参数，例如
+ * `{"layout_flexBasisPercent": 1, "layout_flexGrow": 1}` 可让该项独占整行。
  */
 class ExploreAdapter(context: Context, val callBack: CallBack) :
     RecyclerAdapter<BookSourcePart, ItemFindBookBinding>(context) {
@@ -81,16 +81,16 @@ class ExploreAdapter(context: Context, val callBack: CallBack) :
             llCategories.isVisible = expanded
             if (!expanded) {
                 llLoading.isVisible = false
-                llCategoryGrid.removeAllViews()
+                flexbox.removeAllViews()
                 return
             }
             val kinds = kindsCache[sourceUrl]
             if (kinds != null) {
                 llLoading.isVisible = false
-                upKindList(llCategoryGrid, sourceUrl, kinds)
+                upKindList(flexbox, sourceUrl, kinds)
                 return
             }
-            llCategoryGrid.removeAllViews()
+            flexbox.removeAllViews()
             llLoading.isVisible = true
             rotateLoading.loadingColor = context.accentColor
             Coroutine.async(callBack.scope) {
@@ -100,7 +100,7 @@ class ExploreAdapter(context: Context, val callBack: CallBack) :
                 // 异步期间 item 可能已被回收或复用，需要确认视图仍对应同一书源
                 if (holder.layoutPosition == position && getItem(position)?.bookSourceUrl == sourceUrl) {
                     llLoading.isVisible = false
-                    upKindList(llCategoryGrid, sourceUrl, kindList)
+                    upKindList(flexbox, sourceUrl, kindList)
                 }
             }.onError {
                 if (holder.layoutPosition == position && getItem(position)?.bookSourceUrl == sourceUrl) {
@@ -189,27 +189,29 @@ class ExploreAdapter(context: Context, val callBack: CallBack) :
     }
 
     /**
-     * 渲染三列等宽的分类网格
+     * 渲染分类：默认三列等宽，书源自定义的 flex 样式（如 flexBasisPercent=1 独占整行）优先生效
      */
-    private fun upKindList(container: LinearLayout, sourceUrl: String, kinds: List<ExploreKind>) {
-        container.removeAllViews()
-        container.isVisible = kinds.isNotEmpty()
-        kinds.chunked(COLUMN_COUNT).forEach { rowKinds ->
-            val row = LinearLayout(context).apply {
-                orientation = LinearLayout.HORIZONTAL
-                layoutParams = LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.MATCH_PARENT,
-                    LinearLayout.LayoutParams.WRAP_CONTENT
-                )
+    private fun upKindList(flexbox: FlexboxLayout, sourceUrl: String, kinds: List<ExploreKind>) {
+        flexbox.removeAllViews()
+        flexbox.isVisible = kinds.isNotEmpty()
+        kinds.forEach { kind ->
+            val tv = createCategoryView(kind, sourceUrl)
+            tv.layoutParams = FlexboxLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+            ).apply {
+                width = 0
+                flexShrink = 1f
+                flexGrow = 0f
             }
-            rowKinds.forEach { kind ->
-                row.addView(createCategoryView(kind, sourceUrl), categoryLayoutParams())
+            // 书源自定义样式：flexBasisPercent / flexGrow / wrapBefore 等
+            kind.style().apply(tv)
+            val lp = tv.layoutParams as FlexboxLayout.LayoutParams
+            if (lp.flexBasisPercent < 0f) {
+                // 未指定宽度比例的按三列等宽排布
+                lp.flexBasisPercent = DEFAULT_BASIS_PERCENT
             }
-            // 补占位，保证不足一行的分类也是三列等宽
-            repeat(COLUMN_COUNT - rowKinds.size) {
-                row.addView(View(context), categoryLayoutParams())
-            }
-            container.addView(row)
+            flexbox.addView(tv)
         }
     }
 
@@ -220,26 +222,25 @@ class ExploreAdapter(context: Context, val callBack: CallBack) :
             includeFontPadding = false
             maxLines = 1
             ellipsize = TextUtils.TruncateAt.END
-            minHeight = 40.dpToPx()
+            // 背景内缩 4dp 形成网格间隙，故高度需要补偿
+            minHeight = 48.dpToPx()
             setPadding(7.dpToPx(), 8.dpToPx(), 7.dpToPx(), 8.dpToPx())
             setBackgroundResource(R.drawable.bg_explore_category)
             setTextColor(context.primaryTextColor)
             textSize = 12f
             typeface = Typeface.DEFAULT_BOLD
-            setOnClickListener {
-                if (kind.title.startsWith("ERROR:")) {
-                    it.activity?.showDialogFragment(TextDialog("ERROR", kind.url))
-                } else {
-                    callBack.openExplore(sourceUrl, kind.title, kind.url)
+            if (kind.url.isNullOrBlank()) {
+                // 无地址的分类通常是书源用来分组的标题，不可点击
+                isClickable = false
+            } else {
+                setOnClickListener {
+                    if (kind.title.startsWith("ERROR:")) {
+                        it.activity?.showDialogFragment(TextDialog("ERROR", kind.url))
+                    } else {
+                        callBack.openExplore(sourceUrl, kind.title, kind.url)
+                    }
                 }
             }
-        }
-    }
-
-    private fun categoryLayoutParams(): LinearLayout.LayoutParams {
-        return LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply {
-            val gap = 4.dpToPx()
-            setMargins(gap, gap, gap, gap)
         }
     }
 
@@ -255,6 +256,10 @@ class ExploreAdapter(context: Context, val callBack: CallBack) :
     }
 
     companion object {
-        private const val COLUMN_COUNT = 3
+        /**
+         * 未指定 layout_flexBasisPercent 时的默认宽度比例：三列等宽。
+         * 取值略小于 1/3，避免浮点累加后超出容器宽度而换行成两列。
+         */
+        private const val DEFAULT_BASIS_PERCENT = 0.3333f
     }
 }
