@@ -11,6 +11,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.LinearLayout
 import android.widget.TextView
+import androidx.appcompat.app.AlertDialog
 import androidx.core.view.isVisible
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
@@ -285,9 +286,13 @@ class ExploreFragment() : VMBaseFragment<ExploreViewModel>(R.layout.fragment_exp
         val sheet = DialogExploreSourceMenuBinding.inflate(layoutInflater)
         sheet.tvSheetSourceName.text = source.bookSourceName
         sheet.btnLogin.isVisible = source.hasLoginUrl
-        val dialog = alert {
-            customView { sheet.root }
-        }
+        val dialog = AlertDialog.Builder(requireContext())
+            .setView(sheet.root)
+            .create()
+        // 动画必须在 show() 之前设置才会生效
+        dialog.window?.setWindowAnimations(R.style.Animation_Legado_BottomSheet)
+        dialog.show()
+        // 位置与尺寸在 show() 之后设置，面板才会贴着屏幕底部弹出
         dialog.window?.apply {
             setGravity(Gravity.BOTTOM)
             setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)

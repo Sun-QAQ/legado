@@ -143,4 +143,10 @@
         <item name="marginHorizontal">6dp</item>
     </style>
 
+    <!-- 底部面板进出动画（用于 windowAnimations） -->
+    <style name="Animation.Legado.BottomSheet" parent="">
+        <item name="android:windowEnterAnimation">@anim/anim_sheet_bottom_in</item>
+        <item name="android:windowExitAnimation">@anim/anim_sheet_bottom_out</item>
+    </style>
+
 </resources>
