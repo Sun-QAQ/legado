@@ -159,6 +159,10 @@ class BookshelfFragment1() : BaseBookshelfFragment(R.layout.fragment_bookshelf1)
             if (fragment.groupId != group?.groupId) {
                 return POSITION_NONE
             }
+            // 视图未创建时（如配置变更/界面重建过程中）跳过刷新，避免访问未初始化的 binding
+            if (fragment.view == null) {
+                return POSITION_UNCHANGED
+            }
             val bookSort = group.getRealBookSort()
             fragment.setEnableRefresh(group.enableRefresh)
             if (fragment.bookSort != bookSort) {

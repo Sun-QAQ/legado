@@ -153,7 +153,10 @@ class BooksFragment() : BaseFragment(R.layout.fragment_books),
 
     fun setEnableRefresh(enable: Boolean) {
         enableRefresh = enable
-        binding.refreshLayout.isEnabled = enable
+        // 视图尚未创建时不访问 binding，视图创建后会按该值初始化
+        if (viewLifecycleOwnerLiveData.value != null) {
+            binding.refreshLayout.isEnabled = enable
+        }
     }
 
     /**

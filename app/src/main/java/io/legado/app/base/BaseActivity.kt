@@ -140,7 +140,10 @@ abstract class BaseActivity<VB : ViewBinding>(
                 window.decorView.applyBackgroundTint(backgroundColor)
                 upBackgroundImage()
             } else {
-                recreateForTheme()
+                // 配置变更过程中 Fragment 的视图可能已被销毁，
+                // 此时同步 recreate 会在 notifyDataSetChanged 的回调里访问未初始化的 binding，
+                // 因此延后一帧再重建
+                window.decorView.post { recreateForTheme() }
             }
         }
     }
