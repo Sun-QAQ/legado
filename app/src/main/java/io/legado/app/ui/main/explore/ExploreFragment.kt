@@ -3,12 +3,11 @@ package io.legado.app.ui.main.explore
 import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
-import android.text.Editable
-import android.text.TextWatcher
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
 import androidx.appcompat.app.AlertDialog
+import androidx.appcompat.widget.SearchView as AppCompatSearchView
 import androidx.core.view.isVisible
 import com.google.android.material.tabs.TabLayout
 import androidx.fragment.app.viewModels
@@ -28,13 +27,16 @@ import io.legado.app.help.config.AppConfig
 import io.legado.app.lib.dialogs.alert
 import io.legado.app.lib.theme.accentColor
 import io.legado.app.lib.theme.primaryColor
+import io.legado.app.lib.theme.primaryTextColor
 import io.legado.app.ui.book.explore.ExploreShowActivity
 import io.legado.app.ui.book.search.SearchActivity
 import io.legado.app.ui.book.search.SearchScope
 import io.legado.app.ui.book.source.edit.BookSourceEditActivity
 import io.legado.app.ui.login.SourceLoginActivity
 import io.legado.app.ui.main.MainFragmentInterface
+import io.legado.app.ui.widget.SearchView
 import io.legado.app.utils.applyStatusBarPadding
+import io.legado.app.utils.applyTint
 import io.legado.app.utils.flowWithLifecycleAndDatabaseChange
 import io.legado.app.utils.getCompatColor
 import io.legado.app.utils.setEdgeEffectColor
@@ -67,6 +69,7 @@ class ExploreFragment() : VMBaseFragment<ExploreViewModel>(R.layout.fragment_exp
 
     override val viewModel by viewModels<ExploreViewModel>()
     private val binding by viewBinding(FragmentExploreBinding::bind)
+    private val searchView: SearchView by lazy { binding.searchView }
     private val adapter by lazy { ExploreAdapter(requireContext(), this) }
     private val linearLayoutManager by lazy { LinearLayoutManager(context) }
     private val diffItemCallBack = ExploreDiffItemCallBack()
@@ -90,7 +93,8 @@ class ExploreFragment() : VMBaseFragment<ExploreViewModel>(R.layout.fragment_exp
 
     override fun onFragmentCreated(view: View, savedInstanceState: Bundle?) {
         binding.vwStatusBar.applyStatusBarPadding()
-        initSearchBar()
+        initSearchView()
+        initCollapseAll()
         initRecyclerView()
         initGroupData()
         upExploreData()
@@ -98,27 +102,28 @@ class ExploreFragment() : VMBaseFragment<ExploreViewModel>(R.layout.fragment_exp
 
     override fun onPause() {
         super.onPause()
-        binding.etSearch.clearFocus()
+        searchView.clearFocus()
     }
 
-    private fun initSearchBar() {
-        binding.etSearch.addTextChangedListener(object : TextWatcher {
-            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {
+    private fun initSearchView() {
+        searchView.applyTint(primaryTextColor)
+        searchView.isSubmitButtonEnabled = true
+        searchView.queryHint = getString(R.string.screen_find)
+        searchView.setOnQueryTextListener(object : AppCompatSearchView.OnQueryTextListener {
+            override fun onQueryTextSubmit(query: String?): Boolean {
+                return false
             }
 
-            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
-            }
-
-            override fun afterTextChanged(s: Editable?) {
-                binding.ivClearSearch.isVisible = !s.isNullOrEmpty()
+            override fun onQueryTextChange(newText: String?): Boolean {
                 if (!suppressSearchChange) {
                     upExploreData()
                 }
+                return false
             }
         })
-        binding.ivClearSearch.setOnClickListener {
-            binding.etSearch.setText("")
-        }
+    }
+
+    private fun initCollapseAll() {
         binding.tvCollapseAll.setTextColor(requireContext().accentColor)
         binding.tvCollapseAll.setOnClickListener {
             adapter.compressExplore()
@@ -213,9 +218,9 @@ class ExploreFragment() : VMBaseFragment<ExploreViewModel>(R.layout.fragment_exp
     private fun selectGroup(group: String?) {
         if (selectedGroup == group) return
         selectedGroup = group
-        if (!binding.etSearch.text.isNullOrEmpty()) {
+        if (!searchView.query.isNullOrEmpty()) {
             suppressSearchChange = true
-            binding.etSearch.setText("")
+            searchView.setQuery("", false)
             suppressSearchChange = false
         }
         upExploreData()
@@ -224,7 +229,7 @@ class ExploreFragment() : VMBaseFragment<ExploreViewModel>(R.layout.fragment_exp
 
     private fun upExploreData() {
         exploreFlowJob?.cancel()
-        val keyword = binding.etSearch.text?.toString()?.trim().orEmpty()
+        val keyword = searchView.query?.toString()?.trim().orEmpty()
         val group = selectedGroup
         val sourceFlow = when {
             keyword.isNotEmpty() -> appDb.bookSourceDao.flowExplore(keyword)
