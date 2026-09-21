@@ -27,7 +27,9 @@ class ExploreShowViewModel(application: Application) : BaseViewModel(application
     val upAdapterLiveData = MutableLiveData<String>()
     val booksData = MutableLiveData<List<SearchBook>>()
     val errorLiveData = MutableLiveData<String>()
-    private var bookSource: BookSource? = null
+    val sourceName = MutableLiveData<String>()
+    var bookSource: BookSource? = null
+        private set
     private var exploreUrl: String? = null
     private var page = 1
     private var books = linkedSetOf<SearchBook>()
@@ -62,6 +64,7 @@ class ExploreShowViewModel(application: Application) : BaseViewModel(application
             if (bookSource == null && sourceUrl != null) {
                 bookSource = appDb.bookSourceDao.getBookSource(sourceUrl)
             }
+            bookSource?.let { sourceName.postValue(it.bookSourceName) }
             explore()
         }
     }

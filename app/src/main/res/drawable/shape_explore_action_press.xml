@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?><!-- 底部面板操作项：按下 -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <corners android:radius="16dp" />
+    <solid android:color="@color/color_primary_container" />
+</shape>

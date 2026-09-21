@@ -980,6 +980,12 @@
     <string name="search_content">Search content</string>
     <string name="rss_source_empty">Empty now!</string>
     <string name="explore_empty">Empty now!</string>
+    <string name="explore_empty_title">No matching Discovery sources</string>
+    <string name="explore_empty_desc">Try another name or group, or add Discovery rules in the book source management.</string>
+    <string name="explore_source_count">%1$d Discovery sources</string>
+    <string name="explore_collapse_all">Collapse all</string>
+    <string name="explore_kinds_loading">Loading Discovery rules…</string>
+    <string name="explore_source_action">Source actions</string>
     <string name="page_key_set_help">Focusing on the input box and pressing a physical key will automatically enter the value of the key, and multiple keys will be automatically separated by commas.</string>
     <string name="theme_name">Theme name</string>
     <string name="auto_clear_expired">"Clear expired search histories automatically "</string>

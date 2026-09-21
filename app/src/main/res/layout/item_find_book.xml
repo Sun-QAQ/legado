@@ -4,77 +4,141 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:gravity="center"
-    android:orientation="vertical"
-    android:focusable="true"
-    android:background="@drawable/bg_item_focused_on_tv">
+    android:layout_marginBottom="10dp"
+    android:background="@drawable/bg_source_card"
+    android:orientation="vertical">
 
+    <!-- 书源概要：头像 + 名称/分组 + 更多操作 + 展开箭头 -->
     <LinearLayout
         android:id="@+id/ll_title"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:paddingLeft="14dp"
-        android:paddingRight="12dp"
-        android:paddingTop="12dp"
-        android:paddingBottom="12dp"
-        android:background="@drawable/bg_find_book_group"
+        android:background="?attr/selectableItemBackground"
+        android:focusable="true"
+        android:gravity="center_vertical"
+        android:minHeight="68dp"
         android:orientation="horizontal"
-        android:gravity="center_vertical">
+        android:paddingLeft="13dp"
+        android:paddingTop="11dp"
+        android:paddingRight="10dp"
+        android:paddingBottom="11dp"
+        tools:ignore="RtlHardcoded">
 
         <TextView
-            android:id="@+id/tv_name"
+            android:id="@+id/tv_avatar"
+            android:layout_width="42dp"
+            android:layout_height="42dp"
+            android:background="@drawable/bg_source_avatar"
+            android:gravity="center"
+            android:importantForAccessibility="no"
+            android:includeFontPadding="false"
+            android:textColor="@color/accent"
+            android:textSize="15sp"
+            android:textStyle="bold"
+            tools:text="起" />
+
+        <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
+            android:layout_marginStart="11dp"
             android:layout_weight="1"
-            android:includeFontPadding="false"
-            android:maxLines="1"
-            android:ellipsize="end"
-            android:textStyle="bold"
-            android:textColor="@color/primaryText"
-            android:textSize="15sp"
-            tools:text="起点中文" />
+            android:orientation="vertical">
 
-        <io.legado.app.ui.widget.anima.RotateLoading
-            android:id="@+id/rotate_loading"
-            android:layout_width="20dp"
-            android:layout_height="20dp"
-            android:visibility="gone"
-            android:layout_gravity="center"
-            android:layout_marginRight="8dp"
-            app:loading_width="1dp"
-            tools:ignore="RtlHardcoded" />
+            <TextView
+                android:id="@+id/tv_name"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:includeFontPadding="false"
+                android:maxLines="1"
+                android:textColor="@color/primaryText"
+                android:textSize="15sp"
+                android:textStyle="bold"
+                tools:text="起点中文网" />
+
+            <TextView
+                android:id="@+id/tv_detail"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:ellipsize="end"
+                android:includeFontPadding="false"
+                android:maxLines="1"
+                android:textColor="@color/secondaryText"
+                android:textSize="11sp"
+                tools:text="正版 · 支持登录" />
+        </LinearLayout>
+
+        <ImageView
+            android:id="@+id/iv_menu"
+            android:layout_width="38dp"
+            android:layout_height="38dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:importantForAccessibility="no"
+            android:padding="10dp"
+            android:src="@drawable/ic_more"
+            app:tint="@color/secondaryText" />
 
         <ImageView
             android:id="@+id/iv_status"
-            android:layout_width="20dp"
-            android:layout_height="20dp"
+            android:layout_width="19dp"
+            android:layout_height="19dp"
+            android:layout_marginStart="2dp"
+            android:importantForAccessibility="no"
             android:src="@drawable/ic_arrow_right"
-            app:tint="@color/secondaryText"
-            tools:ignore="ContentDescription" />
+            app:tint="@color/secondaryText" />
 
     </LinearLayout>
 
-    <FrameLayout
+    <!-- 发现分类：展开后才解析并渲染 -->
+    <LinearLayout
+        android:id="@+id/ll_categories"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:paddingLeft="8dp"
-        android:paddingRight="8dp"
-        android:layout_gravity="center">
+        android:orientation="vertical"
+        android:paddingLeft="14dp"
+        android:paddingRight="14dp"
+        android:paddingBottom="15dp"
+        android:visibility="gone"
+        tools:visibility="visible">
 
-        <com.google.android.flexbox.FlexboxLayout
-            android:id="@+id/flexbox"
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_marginBottom="12dp"
+            android:background="@color/bg_divider_line" />
+
+        <LinearLayout
+            android:id="@+id/ll_loading"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:clipToPadding="false"
-            android:overScrollMode="never"
-            android:padding="2dp"
-            android:layout_marginTop="4dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingBottom="3dp"
             android:visibility="gone"
-            app:dividerDrawable="@drawable/shape_explore_space_divider"
-            app:flexDirection="row"
-            app:flexWrap="wrap"
-            app:showDivider="middle" />
+            tools:visibility="visible"
+            tools:ignore="RtlHardcoded">
 
-    </FrameLayout>
+            <io.legado.app.ui.widget.anima.RotateLoading
+                android:id="@+id/rotate_loading"
+                android:layout_width="18dp"
+                android:layout_height="18dp"
+                app:loading_width="2dp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="10dp"
+                android:text="@string/explore_kinds_loading"
+                android:textColor="@color/secondaryText"
+                android:textSize="12sp" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/ll_category_grid"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical" />
+    </LinearLayout>
 
 </LinearLayout>

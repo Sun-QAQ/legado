@@ -1,6 +1,8 @@
 package io.legado.app.ui.book.explore
 
 import android.os.Bundle
+import android.view.Menu
+import android.view.MenuItem
 import androidx.activity.viewModels
 import androidx.core.os.bundleOf
 import androidx.recyclerview.widget.RecyclerView
@@ -10,6 +12,8 @@ import io.legado.app.data.entities.SearchBook
 import io.legado.app.databinding.ActivityExploreShowBinding
 import io.legado.app.databinding.ViewLoadMoreBinding
 import io.legado.app.ui.book.info.BookInfoActivity
+import io.legado.app.ui.book.search.SearchActivity
+import io.legado.app.ui.book.search.SearchScope
 import io.legado.app.ui.widget.recycler.LoadMoreView
 import io.legado.app.ui.widget.recycler.VerticalDivider
 import io.legado.app.utils.applyNavigationBarPadding
@@ -30,6 +34,9 @@ class ExploreShowActivity : VMBaseActivity<ActivityExploreShowBinding, ExploreSh
     override fun onActivityCreated(savedInstanceState: Bundle?) {
         binding.titleBar.title = intent.getStringExtra("exploreName")
         initRecyclerView()
+        viewModel.sourceName.observe(this) {
+            binding.titleBar.subtitle = "$it · ${getString(R.string.discovery)}"
+        }
         viewModel.booksData.observe(this) { upData(it) }
         viewModel.initData(intent)
         viewModel.errorLiveData.observe(this) {
@@ -38,6 +45,22 @@ class ExploreShowActivity : VMBaseActivity<ActivityExploreShowBinding, ExploreSh
         viewModel.upAdapterLiveData.observe(this) {
             adapter.notifyItemRangeChanged(0, adapter.itemCount, bundleOf(it to null))
         }
+    }
+
+    override fun onCompatCreateOptionsMenu(menu: Menu): Boolean {
+        menuInflater.inflate(R.menu.explore_show, menu)
+        return super.onCompatCreateOptionsMenu(menu)
+    }
+
+    override fun onCompatOptionsItemSelected(item: MenuItem): Boolean {
+        when (item.itemId) {
+            R.id.menu_search -> viewModel.bookSource?.let { source ->
+                startActivity<SearchActivity> {
+                    putExtra("searchScope", SearchScope(source).toString())
+                }
+            }
+        }
+        return super.onCompatOptionsItemSelected(item)
     }
 
     private fun initRecyclerView() {
