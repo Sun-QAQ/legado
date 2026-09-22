@@ -78,6 +78,9 @@ object Backup {
             "dictRule.json",
             "servers.json",
             "aiSources.json",
+            "aiPersonas.json",
+            "aiImageSources.json",
+            "aiSearchSources.json",
             DirectLinkUpload.ruleFileName,
             ReadBookConfig.configFileName,
             ReadBookConfig.shareConfigFileName,
@@ -150,22 +153,11 @@ object Backup {
         writeListToJson(appDb.httpTTSDao.all, "httpTTS.json", backupPath)
         writeListToJson(appDb.keyboardAssistsDao.all, "keyboardAssists.json", backupPath)
         writeListToJson(appDb.dictRuleDao.all, "dictRule.json", backupPath)
-        GSON.toJson(appDb.serverDao.all).let { json ->
-            aes.runCatching {
-                encryptBase64(json)
-            }.getOrDefault(json).let {
-                FileUtils.createFileIfNotExist(backupPath + File.separator + "servers.json")
-                    .writeText(it)
-            }
-        }
-        GSON.toJson(appDb.aiSourceDao.all).let { json ->
-            aes.runCatching {
-                encryptBase64(json)
-            }.getOrDefault(json).let {
-                FileUtils.createFileIfNotExist(backupPath + File.separator + "aiSources.json")
-                    .writeText(it)
-            }
-        }
+        writeEncryptedListToJson(appDb.serverDao.all, "servers.json", aes)
+        writeEncryptedListToJson(appDb.aiSourceDao.all, "aiSources.json", aes)
+        writeEncryptedListToJson(appDb.aiPersonaDao.all, "aiPersonas.json", aes)
+        writeEncryptedListToJson(appDb.aiImageSourceDao.all, "aiImageSources.json", aes)
+        writeEncryptedListToJson(appDb.aiSearchSourceDao.all, "aiSearchSources.json", aes)
         currentCoroutineContext().ensureActive()
         GSON.toJson(ReadBookConfig.configList).let {
             FileUtils.createFileIfNotExist(backupPath + File.separator + ReadBookConfig.configFileName)
@@ -256,6 +248,18 @@ object Backup {
         }.let {
             AppWebDav.upBgs(it.toTypedArray())
         }
+    }
+
+    /**
+     * 写入 AES 加密的列表 JSON(加密失败时回退为明文)。
+     */
+    private fun writeEncryptedListToJson(list: List<Any>, fileName: String, aes: BackupAES) {
+        val json = GSON.toJson(list)
+        val content = aes.runCatching {
+            encryptBase64(json)
+        }.getOrDefault(json)
+        FileUtils.createFileIfNotExist(backupPath + File.separator + fileName)
+            .writeText(content)
     }
 
     private suspend fun writeListToJson(list: List<Any>, fileName: String, path: String) {

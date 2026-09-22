@@ -15,6 +15,9 @@ interface AiImageSourceDao {
     @Query("select * from aiImageSources order by lastUpdateTime desc")
     fun observeAll(): Flow<List<AiImageSource>>
 
+    @get:Query("select * from aiImageSources order by lastUpdateTime desc")
+    val all: List<AiImageSource>
+
     @get:Query("select * from aiImageSources where enabled = 1 order by lastUpdateTime desc")
     val allEnabled: List<AiImageSource>
 

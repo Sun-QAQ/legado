@@ -10,6 +10,9 @@ import io.legado.app.constant.AppConst.androidId
 import io.legado.app.constant.AppLog
 import io.legado.app.constant.PreferKey
 import io.legado.app.data.appDb
+import io.legado.app.data.entities.AiImageSource
+import io.legado.app.data.entities.AiPersona
+import io.legado.app.data.entities.AiSearchSource
 import io.legado.app.data.entities.AiSource
 import io.legado.app.data.entities.Book
 import io.legado.app.data.entities.BookGroup
@@ -186,32 +189,21 @@ object Restore {
         fileToListT<ReadStat>(path, "readStats.json")?.let {
             appDb.readStatDao.insert(*it.toTypedArray())
         }
-File(path, "servers.json").takeIf {
-            it.exists()
-        }?.runCatching {
-            var json = readText()
-            if (!json.isJsonArray()) {
-                json = aes.decryptStr(json)
-            }
-            GSON.fromJsonArray<Server>(json).getOrNull()?.let {
-                appDb.serverDao.insert(*it.toTypedArray())
-            }
-        }?.onFailure {
-            AppLog.put("恢复服务器配置出错\n${it.localizedMessage}", it)
-        }
-        File(path, "aiSources.json").takeIf {
-            it.exists()
-        }?.runCatching {
-            var json = readText()
-            if (!json.isJsonArray()) {
-                json = aes.decryptStr(json)
-            }
-            GSON.fromJsonArray<AiSource>(json).getOrNull()?.let {
-                appDb.aiSourceDao.insert(*it.toTypedArray())
-            }
-        }?.onFailure {
-            AppLog.put("恢复AI供应商配置出错\n${it.localizedMessage}", it)
-        }
+restoreEncryptedList<Server>(path, "servers.json", aes, "服务器配置") {
+    appDb.serverDao.insert(*it.toTypedArray())
+}
+restoreEncryptedList<AiSource>(path, "aiSources.json", aes, "AI供应商配置") {
+    appDb.aiSourceDao.insert(*it.toTypedArray())
+}
+restoreEncryptedList<AiPersona>(path, "aiPersonas.json", aes, "AI人设配置") {
+    appDb.aiPersonaDao.insert(*it.toTypedArray())
+}
+restoreEncryptedList<AiImageSource>(path, "aiImageSources.json", aes, "AI图像生成配置") {
+    it.forEach { source -> appDb.aiImageSourceDao.insert(source) }
+}
+restoreEncryptedList<AiSearchSource>(path, "aiSearchSources.json", aes, "AI网络搜索配置") {
+    it.forEach { source -> appDb.aiSearchSourceDao.insert(source) }
+}
         File(path, DirectLinkUpload.ruleFileName).takeIf {
             it.exists()
         }?.runCatching {
@@ -307,6 +299,29 @@ File(path, "servers.json").takeIf {
                 LauncherIconHelp.changeIcon(appCtx.getPrefString(PreferKey.launcherIcon))
             }
             ThemeConfig.applyDayNight(appCtx)
+        }
+    }
+
+    /**
+     * 读取 AES 加密的列表 JSON(未加密时按明文解析)并写入数据库。
+     */
+    private inline fun <reified T> restoreEncryptedList(
+        path: String,
+        fileName: String,
+        aes: BackupAES,
+        label: String,
+        insert: (List<T>) -> Unit
+    ) {
+        File(path, fileName).takeIf {
+            it.exists()
+        }?.runCatching {
+            var json = readText()
+            if (!json.isJsonArray()) {
+                json = aes.decryptStr(json)
+            }
+            GSON.fromJsonArray<T>(json).getOrThrow().let(insert)
+        }?.onFailure {
+            AppLog.put("恢复${label}出错\n${it.localizedMessage}", it)
         }
     }
 

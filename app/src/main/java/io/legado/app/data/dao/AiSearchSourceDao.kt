@@ -15,6 +15,9 @@ interface AiSearchSourceDao {
     @Query("select * from aiSearchSources order by lastUpdateTime desc")
     fun observeAll(): Flow<List<AiSearchSource>>
 
+    @get:Query("select * from aiSearchSources order by lastUpdateTime desc")
+    val all: List<AiSearchSource>
+
     @get:Query("select * from aiSearchSources where enabled = 1 order by lastUpdateTime desc")
     val allEnabled: List<AiSearchSource>
 
