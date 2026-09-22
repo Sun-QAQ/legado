@@ -2,6 +2,8 @@
 
 package io.legado.app.utils
 
+import io.legado.app.lib.theme.ThemePalette
+import io.legado.app.lib.theme.ThemeDrawables
 import android.annotation.SuppressLint
 import android.app.Activity
 import android.app.PendingIntent
@@ -196,12 +198,22 @@ fun Context.removePref(key: String) =
     defaultSharedPreferences.edit { remove(key) }
 
 
-fun Context.getCompatColor(@ColorRes id: Int): Int = ContextCompat.getColor(this, id)
+fun Context.getCompatColor(@ColorRes id: Int): Int =
+    if (ThemePalette.isThemeColor(id)) {
+        ThemePalette(this).color(id)!!
+    } else {
+        ContextCompat.getColor(this, id)
+    }
 
-fun Context.getCompatDrawable(@DrawableRes id: Int): Drawable? = ContextCompat.getDrawable(this, id)
+fun Context.getCompatDrawable(@DrawableRes id: Int): Drawable? =
+    ThemeDrawables.get(this, id) ?: ContextCompat.getDrawable(this, id)
 
 fun Context.getCompatColorStateList(@ColorRes id: Int): ColorStateList? =
-    ContextCompat.getColorStateList(this, id)
+    if (ThemePalette.isThemeColor(id)) {
+        ColorStateList.valueOf(getCompatColor(id))
+    } else {
+        ContextCompat.getColorStateList(this, id)
+    }
 
 fun Context.checkSelfUriPermission(uri: Uri, modeFlags: Int): Int =
     checkUriPermission(uri, Process.myPid(), Process.myUid(), modeFlags)

@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- 主色（亮色）：直接色值，主题属性使用；运行时可跟随 ThemeStore.primaryColor -->
-    <color name="primary">#6C5CE7</color>
-    <color name="primaryDark">#5A4BCF</color>
-    <color name="accent">#6C5CE7</color>
+    <!-- 预览/启动兜底与主题设置默认值一致，界面运行时从 ThemeStore 着色。 -->
+    <color name="primary">@color/md_brown_500</color>
+    <color name="primaryDark">@color/md_brown_700</color>
+    <color name="accent">@color/md_red_600</color>
     <color name="accent_activated">#C4B4AE</color>
 
     <color name="disabled">@color/md_light_disabled</color>
@@ -17,7 +17,7 @@
 
     <color name="night_mask">#00000000</color>
 
-    <color name="background">@color/md_theme_light_background</color>
+    <color name="background">@color/md_grey_100</color>
     <color name="background_card">@color/color_card</color>
     <color name="background_menu">@color/color_surface_variant</color>
     <color name="background_prefs">#7fffffff</color>
@@ -41,9 +41,9 @@
     <color name="tv_btn_normal_black">#737373</color>
     <color name="tv_btn_press_black">#adadad</color>
 
-    <color name="primaryText">@color/md_theme_light_onSurface</color>
-    <color name="secondaryText">@color/md_theme_light_onSurfaceVariant</color>
-    <color name="tv_text_summary">@color/md_theme_light_onSurfaceVariant</color>
+    <color name="primaryText">@color/md_light_primary_text</color>
+    <color name="secondaryText">@color/md_light_secondary</color>
+    <color name="tv_text_summary">@color/md_light_secondary</color>
     <color name="tv_text_book_detail">#dfdfdf</color>
     <color name="menu_color_default">#383838</color>
 
@@ -55,10 +55,10 @@
     <color name="darker_gray">#aaaaaaaa</color>
 
     <!-- 分格线背景色 -->
-    <color name="bg_divider_line">@color/md_theme_light_outlineVariant</color>
+    <color name="bg_divider_line">@color/md_grey_300</color>
     <!--statusBarBackground-->
     <color name="status_bar_bag">#19000000</color>
-    <color name="navigation_bar_bag">@color/md_theme_light_background</color>
+    <color name="navigation_bar_bag">@color/md_grey_100</color>
 
     <!--base-color-->
     <color name="translucent">#99343434</color>

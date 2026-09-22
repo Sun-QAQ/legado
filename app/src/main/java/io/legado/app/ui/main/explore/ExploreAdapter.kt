@@ -1,5 +1,6 @@
 package io.legado.app.ui.main.explore
 
+import io.legado.app.lib.theme.ThemeDrawables
 import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.Typeface
@@ -225,7 +226,7 @@ class ExploreAdapter(context: Context, val callBack: CallBack) :
             // 背景内缩 4dp 形成网格间隙，故高度需要补偿
             minHeight = 48.dpToPx()
             setPadding(7.dpToPx(), 8.dpToPx(), 7.dpToPx(), 8.dpToPx())
-            setBackgroundResource(R.drawable.bg_explore_category)
+            background = ThemeDrawables.get(context, R.drawable.bg_explore_category)
             setTextColor(context.primaryTextColor)
             textSize = 12f
             typeface = Typeface.DEFAULT_BOLD

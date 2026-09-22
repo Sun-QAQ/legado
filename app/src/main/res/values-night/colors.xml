@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- 主色（暗色）：直接色值，主题属性使用；运行时可跟随 ThemeStore.primaryColor -->
-    <color name="primary">#B9ACFF</color>
-    <color name="primaryDark">#9C8DF5</color>
-    <color name="accent">#B9ACFF</color>
+    <!-- 预览/启动兜底与主题设置默认值一致，界面运行时从 ThemeStore 着色。 -->
+    <color name="primary">@color/md_blue_grey_600</color>
+    <color name="primaryDark">@color/md_blue_grey_800</color>
+    <color name="accent">@color/md_deep_orange_800</color>
     <color name="accent_activated">#C4B4AE</color>
 
     <color name="disabled">@color/md_dark_disabled</color>
 
-    <color name="background">@color/md_theme_dark_background</color>
+    <color name="background">@color/md_grey_900</color>
     <color name="background_card">@color/color_card</color>
     <color name="background_menu">@color/color_surface_variant</color>
     <color name="background_prefs">#10303030</color>
@@ -23,7 +23,7 @@
     <color name="transparent30">#30ffffff</color>
     <color name="transparent50">#50ffffff</color>
 
-    <color name="bg_divider_line">@color/md_theme_dark_outlineVariant</color>
+    <color name="bg_divider_line">@color/md_grey_700</color>
 
     <color name="btn_bg_press">#634D4D4D</color>
     <color name="btn_bg_press_2">#63686868</color>
@@ -34,14 +34,14 @@
     <color name="tv_btn_normal_black">#737373</color>
     <color name="tv_btn_press_black">#565656</color>
 
-    <color name="primaryText">@color/md_theme_dark_onSurface</color>
-    <color name="secondaryText">@color/md_theme_dark_onSurfaceVariant</color>
-    <color name="tv_text_summary">@color/md_theme_dark_onSurfaceVariant</color>
+    <color name="primaryText">@color/md_dark_primary_text</color>
+    <color name="secondaryText">@color/md_dark_secondary</color>
+    <color name="tv_text_summary">@color/md_dark_secondary</color>
     <color name="menu_color_default">#b7b7b7</color>
 
 
     <color name="tv_text_button_nor">#303030</color>
 
     <!--statusBarBackground-->
-    <color name="navigation_bar_bag">@color/md_theme_dark_background</color>
+    <color name="navigation_bar_bag">@color/md_grey_900</color>
 </resources>

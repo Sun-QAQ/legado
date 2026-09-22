@@ -1,5 +1,7 @@
 package io.legado.app.ui.book.read.config
 
+import android.graphics.drawable.ColorDrawable
+import io.legado.app.lib.theme.ThemeStore
 import android.content.DialogInterface
 import android.os.Bundle
 import android.view.Gravity
@@ -44,7 +46,7 @@ class ReadStyleDialog : BaseDialogFragment(R.layout.dialog_read_book_style),
         super.onStart()
         dialog?.window?.run {
             clearFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND)
-            setBackgroundDrawableResource(R.color.background)
+            setBackgroundDrawable(ColorDrawable(ThemeStore.backgroundColor(context)))
             decorView.setPadding(0, 0, 0, 0)
             val attr = attributes
             attr.dimAmount = 0.0f

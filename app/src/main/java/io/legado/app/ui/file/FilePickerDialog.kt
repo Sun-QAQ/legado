@@ -1,5 +1,6 @@
 package io.legado.app.ui.file
 
+import io.legado.app.lib.theme.ThemePalette
 import android.annotation.SuppressLint
 import android.content.DialogInterface
 import android.content.Intent
@@ -80,7 +81,7 @@ class FilePickerDialog : BaseDialogFragment(R.layout.dialog_file_chooser),
 
     override fun onFragmentCreated(view: View, savedInstanceState: Bundle?) {
         binding.toolBar.setBackgroundColor(backgroundColor)
-        view.setBackgroundResource(R.color.background_card)
+        view.setBackgroundColor(ThemePalette(requireContext()).surface)
         initMenu()
         initContentView()
         viewModel.filesLiveData.observe(viewLifecycleOwner) {

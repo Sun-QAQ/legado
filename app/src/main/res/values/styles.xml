@@ -25,6 +25,7 @@
 
     <!-- Base application theme. -->
     <style name="Base.AppTheme" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="viewInflaterClass">io.legado.app.lib.theme.ThemeViewInflater</item>
         <item name="colorPrimary">@color/accent</item>
         <item name="colorPrimaryDark">@color/primaryDark</item>
         <item name="colorAccent">@color/accent</item>
@@ -36,6 +37,17 @@
         <item name="android:windowDrawsSystemBarBackgrounds">true</item>
         <item name="colorSurface">@color/background</item>
         <item name="android:colorBackground">@color/background</item>
+        <!-- Material 控件的静态兜底也使用中性色；可配置色由 ThemeViewInflater 着色。 -->
+        <item name="colorOnBackground">@color/primaryText</item>
+        <item name="colorOnSurface">@color/primaryText</item>
+        <item name="colorOnSurfaceVariant">@color/secondaryText</item>
+        <item name="colorSurfaceVariant">@color/background_menu</item>
+        <item name="colorPrimaryContainer">@color/color_primary_container</item>
+        <item name="colorSecondary">@color/accent</item>
+        <item name="colorSecondaryContainer">@color/color_primary_container</item>
+        <item name="colorOnPrimaryContainer">@color/primaryText</item>
+        <item name="colorOnSecondaryContainer">@color/primaryText</item>
+        <item name="colorOutline">@color/secondaryText</item>
     </style>
 
     <style name="AppTheme.AppBarOverlay.Light" parent="ThemeOverlay.AppCompat.Light">
