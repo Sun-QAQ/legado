@@ -2,7 +2,6 @@ package io.legado.app.lib.theme
 
 import android.content.Context
 import android.content.res.ColorStateList
-import android.graphics.Color
 import android.util.AttributeSet
 import android.view.View
 import android.widget.ImageView
@@ -13,7 +12,6 @@ import android.widget.CheckedTextView
 import android.widget.TextView
 import androidx.annotation.Keep
 import androidx.core.graphics.ColorUtils
-import com.google.android.material.button.MaterialButton
 import com.google.android.material.card.MaterialCardView
 import com.google.android.material.theme.MaterialComponentsViewInflater
 import io.legado.app.help.config.AppConfig
@@ -85,16 +83,6 @@ class ThemeViewInflater : MaterialComponentsViewInflater() {
             if (this is MaterialCardView) {
                 setCardBackgroundColor(color(8) ?: palette.surface)
                 strokeColor = color(9) ?: palette.divider
-                rippleColor = ColorStateList.valueOf(palette.accentContainer)
-            }
-            if (this is MaterialButton && !attributes.hasValue(0)) {
-                backgroundTintList = ColorStateList(
-                    arrayOf(intArrayOf(-android.R.attr.state_enabled), intArrayOf()),
-                    intArrayOf(palette.divider, palette.accent)
-                )
-                val onAccent = if (io.legado.app.utils.ColorUtils.isColorLight(palette.accent)) Color.BLACK else Color.WHITE
-                setTextColor(onAccent)
-                iconTint = ColorStateList.valueOf(onAccent)
                 rippleColor = ColorStateList.valueOf(palette.accentContainer)
             }
             if (this is EditText || this is ProgressBar || this is CompoundButton || this is CheckedTextView) {

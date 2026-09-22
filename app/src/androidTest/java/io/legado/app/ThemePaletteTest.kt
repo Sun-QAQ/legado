@@ -5,6 +5,7 @@ import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
 import android.view.View
 import android.widget.TextView
+import androidx.appcompat.app.AlertDialog
 import androidx.core.content.res.use
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
@@ -12,6 +13,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import io.legado.app.lib.theme.ThemeDrawables
 import io.legado.app.lib.theme.ThemePalette
 import io.legado.app.lib.theme.ThemeStore
+import io.legado.app.lib.dialogs.alert
 import io.legado.app.ui.book.search.SearchActivity
 import io.legado.app.utils.getCompatColor
 import org.junit.Assert.assertEquals
@@ -21,6 +23,41 @@ import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
 class ThemePaletteTest {
+    @Test
+    fun alertDialogButtonsKeepTextButtonAppearance() {
+        val context = ApplicationProvider.getApplicationContext<android.content.Context>()
+        val original = ThemePalette(context)
+        try {
+            ActivityScenario.launch<SearchActivity>(Intent(context, SearchActivity::class.java)).use { scenario ->
+                scenario.onActivity { activity ->
+                    ThemeStore.editTheme(activity)
+                        .primaryColor(Color.parseColor("#795548"))
+                        .accentColor(Color.parseColor("#E53935"))
+                        .backgroundColor(Color.parseColor("#F5F5F5"))
+                        .bottomBackground(Color.parseColor("#EEEEEE"))
+                        .apply()
+                    val dialog = activity.alert("用户隐私与协议", "协议内容") {
+                        positiveButton("同意")
+                        negativeButton("拒绝")
+                    }
+                    for (which in listOf(AlertDialog.BUTTON_POSITIVE, AlertDialog.BUTTON_NEGATIVE)) {
+                        val button = dialog.getButton(which)
+                        val background = button.backgroundTintList
+                            ?.getColorForState(button.drawableState, Color.TRANSPARENT)
+                            ?: Color.TRANSPARENT
+                        assertEquals(Color.parseColor("#E53935"), button.currentTextColor)
+                        assertNotEquals("弹窗文字按钮不能使用与文字相同的实色背景", button.currentTextColor, background)
+                    }
+                    dialog.dismiss()
+                }
+            }
+        } finally {
+            ThemeStore.editTheme(context)
+                .primaryColor(original.primary).accentColor(original.accent)
+                .backgroundColor(original.background).bottomBackground(original.bottom).apply()
+        }
+    }
+
     @Test
     fun customColorsReachInflatedViewsAndPressedDrawables() {
         val context = ApplicationProvider.getApplicationContext<android.content.Context>()
