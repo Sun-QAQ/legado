@@ -39,6 +39,12 @@ class ThemePaletteTest {
                             .backgroundColor(Color.parseColor(background))
                             .bottomBackground(Color.parseColor("#37474F"))
                             .apply()
+                        activity.initTheme()
+                        activity.obtainStyledAttributes(intArrayOf(androidx.appcompat.R.attr.actionBarStyle)).use {
+                            val expected = if (background == "#E8F5E9") R.style.AppTheme_AppBarOverlay_Light
+                                else R.style.AppTheme_AppBarOverlay_Dark
+                            assertEquals(expected, it.getResourceId(0, 0))
+                        }
                         val palette = ThemePalette(activity)
                         val category = activity.layoutInflater.inflate(R.layout.view_preference_category, null)
                         assertEquals(palette.accent, category.findViewById<TextView>(R.id.preference_title).currentTextColor)

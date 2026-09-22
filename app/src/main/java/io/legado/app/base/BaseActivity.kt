@@ -25,7 +25,6 @@ import io.legado.app.help.config.AppConfig
 import io.legado.app.help.config.ThemeConfig
 import io.legado.app.lib.theme.ThemeStore
 import io.legado.app.lib.theme.backgroundColor
-import io.legado.app.lib.theme.primaryColor
 import io.legado.app.ui.widget.TitleBar
 import io.legado.app.utils.ColorUtils
 import io.legado.app.utils.applyBackgroundTint
@@ -187,7 +186,8 @@ abstract class BaseActivity<VB : ViewBinding>(
             }
 
             else -> {
-                if (ColorUtils.isColorLight(primaryColor)) {
+                // 标题栏使用页面背景色，文字/返回键/菜单的明暗也要以背景为准。
+                if (ColorUtils.isColorLight(backgroundColor)) {
                     setTheme(R.style.AppTheme_Light)
                 } else {
                     setTheme(R.style.AppTheme_Dark)
