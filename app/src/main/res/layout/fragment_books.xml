@@ -33,9 +33,9 @@
             android:layout_gravity="center"
             android:layout_marginStart="16dp"
             android:layout_marginEnd="16dp"
-            android:layout_marginBottom="100dp"
             android:gravity="center"
             android:text="@string/bookshelf_empty"
+            android:translationY="-40dp"
             android:visibility="gone"
             tools:text="TextView" />
     </FrameLayout>
