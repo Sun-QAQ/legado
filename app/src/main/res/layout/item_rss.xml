@@ -7,7 +7,7 @@
     android:background="@drawable/bg_item_focused_on_tv"
     android:focusable="true"
     android:foreground="?android:attr/selectableItemBackground"
-    android:padding="8dp"
+    android:padding="16dp"
     android:scrollbars="none">
 
     <io.legado.app.ui.widget.image.FilletImageView
