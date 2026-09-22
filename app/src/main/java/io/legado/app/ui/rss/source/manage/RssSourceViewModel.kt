@@ -5,7 +5,6 @@ import android.text.TextUtils
 import io.legado.app.base.BaseViewModel
 import io.legado.app.data.appDb
 import io.legado.app.data.entities.RssSource
-import io.legado.app.help.DefaultData
 import io.legado.app.help.source.SourceHelp
 import io.legado.app.utils.FileUtils
 import io.legado.app.utils.GSON
@@ -149,12 +148,6 @@ class RssSourceViewModel(application: Application) : BaseViewModel(application) 
                 }
                 appDb.rssSourceDao.update(*sources.toTypedArray())
             }
-        }
-    }
-
-    fun importDefault() {
-        execute {
-            DefaultData.importDefaultRssSources()
         }
     }
 

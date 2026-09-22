@@ -5,7 +5,6 @@ import io.legado.app.data.appDb
 import io.legado.app.data.entities.DictRule
 import io.legado.app.data.entities.HttpTTS
 import io.legado.app.data.entities.KeyboardAssist
-import io.legado.app.data.entities.RssSource
 import io.legado.app.data.entities.TxtTocRule
 import io.legado.app.help.config.LocalConfig
 import io.legado.app.help.config.ReadBookConfig
@@ -30,8 +29,8 @@ object DefaultData {
                 if (LocalConfig.needUpTxtTocRule) {
                     importDefaultTocRules()
                 }
-                if (LocalConfig.needUpRssSources) {
-                    importDefaultRssSources()
+                if (LocalConfig.needRemoveBuiltInRssSources) {
+                    removeBuiltInRssSources()
                 }
                 if (LocalConfig.needUpDictRule) {
                     importDefaultDictRules()
@@ -78,14 +77,6 @@ object DefaultData {
         GSON.fromJsonArray<ThemeConfig.Config>(json).getOrNull() ?: emptyList()
     }
 
-    val rssSources: List<RssSource> by lazy {
-        val json = String(
-            appCtx.assets.open("defaultData${File.separator}rssSources.json")
-                .readBytes()
-        )
-        GSON.fromJsonArray<RssSource>(json).getOrDefault(emptyList())
-    }
-
     val coverRule: BookCover.CoverRule by lazy {
         val json = String(
             appCtx.assets.open("defaultData${File.separator}coverRule.json")
@@ -120,13 +111,20 @@ object DefaultData {
         appDb.txtTocRuleDao.insert(*txtTocRules.toTypedArray())
     }
 
-    fun importDefaultRssSources() {
-        appDb.rssSourceDao.deleteDefault()
-        appDb.rssSourceDao.insert(*rssSources.toTypedArray())
+    private fun removeBuiltInRssSources() {
+        appDb.rssSourceDao.deleteByUrls(*removedBuiltInRssSourceUrls)
     }
 
     fun importDefaultDictRules() {
         appDb.dictRuleDao.insert(*dictRules.toTypedArray())
     }
+
+    /** 仅用于升级时移除旧版本曾内置的订阅源。 */
+    private val removedBuiltInRssSourceUrls = arrayOf(
+        "https://www.yuque.com/legado",
+        "snssdk1128://user/profile/562564899806367",
+        "https://pan.miaogongzi.net",
+        "https://www.lanzoux.com/b0bw8jwoh"
+    )
 
 }

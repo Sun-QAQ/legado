@@ -126,7 +126,6 @@ class RssSourceActivity : VMBaseActivity<ActivityRssSourceBinding, RssSourceView
             R.id.menu_import_onLine -> showImportDialog()
             R.id.menu_import_qr -> qrCodeResult.launch()
             R.id.menu_group_manage -> showDialogFragment<GroupManageDialog>()
-            R.id.menu_import_default -> viewModel.importDefault()
             R.id.menu_enabled_group -> {
                 searchView.setQuery(getString(R.string.enabled), true)
             }

@@ -65,8 +65,8 @@ by appCtx.getSharedPreferences("local", Context.MODE_PRIVATE) {
     val needUpTxtTocRule: Boolean
         get() = !isLastVersion(3, "txtTocRuleVersion")
 
-    val needUpRssSources: Boolean
-        get() = !isLastVersion(6, "rssSourceVersion")
+    val needRemoveBuiltInRssSources: Boolean
+        get() = !isLastVersion(1, "removeBuiltInRssSourcesVersion")
 
     val needUpDictRule: Boolean
         get() = !isLastVersion(2, "needUpDictRule")
