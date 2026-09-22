@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- 预览/启动兜底与主题设置默认值一致，界面运行时从 ThemeStore 着色。 -->
-    <color name="primary">@color/md_brown_500</color>
-    <color name="primaryDark">@color/md_brown_700</color>
-    <color name="accent">@color/md_red_600</color>
+    <color name="primary">#795548</color>
+    <color name="primaryDark">#5D4037</color>
+    <color name="accent">#E53935</color>
     <color name="accent_activated">#C4B4AE</color>
 
     <color name="disabled">@color/md_light_disabled</color>

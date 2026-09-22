@@ -52,8 +52,17 @@ class ThemeViewInflater : MaterialComponentsViewInflater() {
         val palette = ThemePalette(context)
         val attributes = context.obtainStyledAttributes(attrs, COLOR_ATTRIBUTES)
         try {
-            fun color(index: Int) = palette.color(attributes.getResourceId(index, 0))
-            ThemeDrawables.get(context, attributes.getResourceId(0, 0), palette)?.let {
+            // TypedArray 会追踪 @color 别名到最终资源。先保留 XML 中原始语义 ID，
+            // 否则 @color/accent -> @color/md_red_600 会失去“强调色”的含义。
+            fun resource(index: Int): Int {
+                val attribute = COLOR_ATTRIBUTES[index]
+                val namespace = if (attribute ushr 24 == 1) ANDROID_NAMESPACE else APP_NAMESPACE
+                val name = resources.getResourceEntryName(attribute)
+                val original = attrs?.getAttributeResourceValue(namespace, name, 0) ?: 0
+                return if (original != 0) original else attributes.getResourceId(index, 0)
+            }
+            fun color(index: Int) = palette.color(resource(index))
+            ThemeDrawables.get(context, resource(0), palette)?.let {
                 // setBackground 会采用 drawable padding；保留布局和自定义控件的实际 padding。
                 val left = paddingLeft
                 val top = paddingTop
@@ -112,6 +121,8 @@ class ThemeViewInflater : MaterialComponentsViewInflater() {
     override fun createToggleButton(context: Context, attrs: AttributeSet) = super.createToggleButton(context, attrs).themed(attrs)
 
     companion object {
+        private const val ANDROID_NAMESPACE = "http://schemas.android.com/apk/res/android"
+        private const val APP_NAMESPACE = "http://schemas.android.com/apk/res-auto"
         private val COLOR_ATTRIBUTES = intArrayOf(
             android.R.attr.background, android.R.attr.backgroundTint,
             android.R.attr.textColor, android.R.attr.textColorHint, android.R.attr.textColorLink,

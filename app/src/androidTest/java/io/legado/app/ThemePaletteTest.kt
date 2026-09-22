@@ -5,6 +5,7 @@ import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
 import android.view.View
 import android.widget.TextView
+import androidx.core.content.res.use
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -27,6 +28,9 @@ class ThemePaletteTest {
         try {
             ActivityScenario.launch<SearchActivity>(Intent(context, SearchActivity::class.java)).use { scenario ->
                 scenario.onActivity { activity ->
+                    activity.obtainStyledAttributes(intArrayOf(androidx.appcompat.R.attr.viewInflaterClass)).use {
+                        assertEquals("io.legado.app.lib.theme.ThemeViewInflater", it.getString(0))
+                    }
                     // 同一进程中换两组差异明显的颜色，覆盖亮/暗背景以及颜色缓存失效。
                     for ((background, accent) in listOf("#E8F5E9" to "#00695C", "#14232A" to "#FFCA28")) {
                         ThemeStore.editTheme(activity)

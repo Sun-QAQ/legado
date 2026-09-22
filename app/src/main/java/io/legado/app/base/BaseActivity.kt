@@ -216,7 +216,8 @@ abstract class BaseActivity<VB : ViewBinding>(
             fullScreen()
         }
         val isTransparentStatusBar = AppConfig.isTransparentStatusBar
-        val statusBarColor = ThemeStore.statusBarColor(this, isTransparentStatusBar)
+        val statusBarColor = if (isTransparentStatusBar) backgroundColor
+            else ThemeStore.statusBarColor(this, false)
         setStatusBarColorAuto(statusBarColor, isTransparentStatusBar, fullScreen)
         if (toolBarTheme == Theme.Dark) {
             setLightStatusBar(false)

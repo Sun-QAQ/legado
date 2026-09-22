@@ -279,7 +279,7 @@
                         android:contentDescription="@string/ai_source_manage"
                         android:padding="8dp"
                         android:src="@drawable/ic_bottom_ai_s"
-                        app:tint="@color/success" />
+                        app:tint="@color/accent" />
 
                     <TextView
                         android:layout_width="0dp"
@@ -325,7 +325,7 @@
                         android:contentDescription="@string/theme_setting"
                         android:padding="8dp"
                         android:src="@drawable/ic_cfg_theme"
-                        app:tint="@color/tv_btn_normal_black" />
+                        app:tint="@color/accent" />
 
                     <TextView
                         android:layout_width="0dp"
@@ -371,7 +371,7 @@
                         android:contentDescription="@string/backup_restore"
                         android:padding="8dp"
                         android:src="@drawable/ic_cfg_backup"
-                        app:tint="@color/lightBlue_color" />
+                        app:tint="@color/accent" />
 
                     <TextView
                         android:layout_width="0dp"
@@ -417,7 +417,7 @@
                         android:contentDescription="@string/replace_purify"
                         android:padding="8dp"
                         android:src="@drawable/ic_cfg_replace"
-                        app:tint="@color/highlight" />
+                        app:tint="@color/accent" />
 
                     <TextView
                         android:layout_width="0dp"

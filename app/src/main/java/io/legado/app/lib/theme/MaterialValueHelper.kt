@@ -74,10 +74,10 @@ val Context.bottomBackground: Int
     get() = ThemeStore.bottomBackground(this)
 
 val Context.primaryTextColor: Int
-    get() = getPrimaryTextColor(isDarkTheme)
+    get() = ThemePalette(this).text
 
 val Context.secondaryTextColor: Int
-    get() = getSecondaryTextColor(isDarkTheme)
+    get() = ThemePalette(this).secondaryText
 
 val Context.primaryDisabledTextColor: Int
     get() = getPrimaryDisabledTextColor(isDarkTheme)
@@ -101,10 +101,10 @@ val Fragment.bottomBackground: Int
     get() = ThemeStore.bottomBackground(requireContext())
 
 val Fragment.primaryTextColor: Int
-    get() = requireContext().getPrimaryTextColor(isDarkTheme)
+    get() = requireContext().primaryTextColor
 
 val Fragment.secondaryTextColor: Int
-    get() = requireContext().getSecondaryTextColor(isDarkTheme)
+    get() = requireContext().secondaryTextColor
 
 val Fragment.primaryDisabledTextColor: Int
     get() = requireContext().getPrimaryDisabledTextColor(isDarkTheme)

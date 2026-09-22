@@ -19,6 +19,7 @@ import androidx.core.view.children
 import com.google.android.material.appbar.AppBarLayout
 import io.legado.app.R
 import io.legado.app.help.config.AppConfig
+import io.legado.app.lib.theme.ThemePalette
 import io.legado.app.lib.theme.backgroundColor
 import io.legado.app.lib.theme.elevation
 import io.legado.app.utils.activity
@@ -181,6 +182,10 @@ class TitleBar @JvmOverloads constructor(
                 setBackgroundResource(R.drawable.bg_eink_border_bottom)
             } else {
                 setBackgroundColor(context.backgroundColor)
+                val palette = ThemePalette(context)
+                toolbar.setTitleTextColor(palette.text)
+                toolbar.setSubtitleTextColor(palette.secondaryText)
+                setColorFilter(palette.text)
             }
 
             stateListAnimator = null
