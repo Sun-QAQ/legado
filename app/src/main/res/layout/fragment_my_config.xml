@@ -213,6 +213,72 @@
                 android:orientation="vertical">
 
                 <LinearLayout
+                    android:id="@+id/ll_web_service"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:foreground="?attr/selectableItemBackground"
+                    android:foregroundGravity="fill"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:paddingLeft="16dp"
+                    android:paddingTop="14dp"
+                    android:paddingRight="16dp"
+                    android:paddingBottom="14dp">
+
+                    <ImageView
+                        android:id="@+id/iv_web_service_icon"
+                        android:layout_width="36dp"
+                        android:layout_height="36dp"
+                        android:background="@drawable/bg_mic_green"
+                        android:contentDescription="@string/web_service"
+                        android:padding="8dp"
+                        android:src="@drawable/ic_cfg_web"
+                        app:tint="@color/accent" />
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="14dp"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/web_service"
+                            android:textColor="@color/primaryText"
+                            android:textSize="14sp" />
+
+                        <TextView
+                            android:id="@+id/tv_web_service_summary"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:ellipsize="middle"
+                            android:singleLine="true"
+                            android:text="@string/web_service_desc"
+                            android:textColor="@color/tv_text_summary"
+                            android:textSize="11sp" />
+                    </LinearLayout>
+
+                    <androidx.appcompat.widget.SwitchCompat
+                        android:id="@+id/sw_web_service"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="8dp"
+                        android:clickable="false"
+                        android:focusable="false"
+                        android:paddingStart="0dp"
+                        android:paddingEnd="0dp" />
+                </LinearLayout>
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:layout_marginStart="16dp"
+                    android:background="@color/bg_divider_line" />
+
+                <LinearLayout
                     android:id="@+id/ll_book_source"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -482,72 +548,6 @@
                         android:textColor="@color/tv_text_summary"
                         android:textSize="18sp"
                         tools:ignore="RtlHardcoded" />
-                </LinearLayout>
-
-                <View
-                    android:layout_width="match_parent"
-                    android:layout_height="1dp"
-                    android:layout_marginStart="16dp"
-                    android:background="@color/bg_divider_line" />
-
-                <LinearLayout
-                    android:id="@+id/ll_web_service"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:foreground="?attr/selectableItemBackground"
-                    android:foregroundGravity="fill"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal"
-                    android:paddingLeft="16dp"
-                    android:paddingTop="14dp"
-                    android:paddingRight="16dp"
-                    android:paddingBottom="14dp">
-
-                    <ImageView
-                        android:id="@+id/iv_web_service_icon"
-                        android:layout_width="36dp"
-                        android:layout_height="36dp"
-                        android:background="@drawable/bg_mic_green"
-                        android:contentDescription="@string/web_service"
-                        android:padding="8dp"
-                        android:src="@drawable/ic_cfg_web"
-                        app:tint="@color/accent" />
-
-                    <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_marginStart="14dp"
-                        android:layout_weight="1"
-                        android:orientation="vertical">
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="@string/web_service"
-                            android:textColor="@color/primaryText"
-                            android:textSize="14sp" />
-
-                        <TextView
-                            android:id="@+id/tv_web_service_summary"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="2dp"
-                            android:ellipsize="middle"
-                            android:singleLine="true"
-                            android:text="@string/web_service_desc"
-                            android:textColor="@color/tv_text_summary"
-                            android:textSize="11sp" />
-                    </LinearLayout>
-
-                    <androidx.appcompat.widget.SwitchCompat
-                        android:id="@+id/sw_web_service"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginStart="8dp"
-                        android:clickable="false"
-                        android:focusable="false"
-                        android:paddingStart="0dp"
-                        android:paddingEnd="0dp" />
                 </LinearLayout>
 
             </LinearLayout>
