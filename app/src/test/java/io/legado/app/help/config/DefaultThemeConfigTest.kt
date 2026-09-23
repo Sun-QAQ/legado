@@ -64,6 +64,20 @@ class DefaultThemeConfigTest {
         assertEquals(merged.size, merged.map { it.themeName }.distinct().size)
     }
 
+    @Test
+    fun `升级旧默认预设且重复合并不改变结果`() {
+        val defaults = readDefaultThemes()
+        val updatedDefault = defaults.first { it.themeName == "默认" }
+        val legacyDefault = updatedDefault.copy(accentColor = "#E53935")
+        val custom = legacyDefault.copy(themeName = "我保存的红色主题")
+
+        val merged = mergeDefaultThemeConfigs(listOf(legacyDefault, custom), defaults)
+
+        assertEquals(updatedDefault, merged.first { it.themeName == "默认" })
+        assertTrue(merged.contains(custom))
+        assertEquals(merged, mergeDefaultThemeConfigs(merged, defaults))
+    }
+
     private fun readDefaultThemes(): List<ThemeConfig.Config> {
         val file = sequenceOf(
             File("src/main/assets/defaultData/themeConfig.json"),

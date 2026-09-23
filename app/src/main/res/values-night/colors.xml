@@ -3,8 +3,8 @@
     <!-- 预览/启动兜底与主题设置默认值一致，界面运行时从 ThemeStore 着色。 -->
     <color name="primary">#546E7A</color>
     <color name="primaryDark">#37474F</color>
-    <color name="accent">#D84315</color>
-    <color name="accent_activated">#C4B4AE</color>
+    <color name="accent">@color/default_accent_night</color>
+    <color name="accent_activated">@color/default_accent_night</color>
 
     <color name="disabled">@color/md_dark_disabled</color>
 

@@ -215,7 +215,7 @@ object ThemeConfig {
         val primary =
             context.getPrefInt(PreferKey.cPrimary, context.getCompatColor(R.color.md_brown_500))
         val accent =
-            context.getPrefInt(PreferKey.cAccent, context.getCompatColor(R.color.md_red_600))
+            context.getPrefInt(PreferKey.cAccent, context.getCompatColor(R.color.default_accent_day))
         val background =
             context.getPrefInt(PreferKey.cBackground, context.getCompatColor(R.color.md_grey_100))
         val bBackground =
@@ -240,7 +240,7 @@ object ThemeConfig {
         val accent =
             context.getPrefInt(
                 PreferKey.cNAccent,
-                context.getCompatColor(R.color.md_deep_orange_800)
+                context.getCompatColor(R.color.default_accent_night)
             )
         val background =
             context.getPrefInt(PreferKey.cNBackground, context.getCompatColor(R.color.md_grey_900))
@@ -275,7 +275,7 @@ object ThemeConfig {
                 val primary =
                     getPrefInt(PreferKey.cNPrimary, getCompatColor(R.color.md_blue_grey_600))
                 val accent =
-                    getPrefInt(PreferKey.cNAccent, getCompatColor(R.color.md_deep_orange_800))
+                    getPrefInt(PreferKey.cNAccent, getCompatColor(R.color.default_accent_night))
                 var background =
                     getPrefInt(PreferKey.cNBackground, getCompatColor(R.color.md_grey_900))
                 if (ColorUtils.isColorLight(background)) {
@@ -296,7 +296,7 @@ object ThemeConfig {
                 val primary =
                     getPrefInt(PreferKey.cPrimary, getCompatColor(R.color.md_brown_500))
                 val accent =
-                    getPrefInt(PreferKey.cAccent, getCompatColor(R.color.md_red_600))
+                    getPrefInt(PreferKey.cAccent, getCompatColor(R.color.default_accent_day))
                 var background =
                     getPrefInt(PreferKey.cBackground, getCompatColor(R.color.md_grey_100))
                 if (!ColorUtils.isColorLight(background)) {
@@ -360,7 +360,7 @@ object ThemeConfig {
     }
 
     private const val DEFAULT_THEME_VERSION_KEY = "defaultThemeVersion"
-    private const val DEFAULT_THEME_VERSION = 1
+    private const val DEFAULT_THEME_VERSION = 2
 
 }
 
@@ -368,7 +368,19 @@ internal fun mergeDefaultThemeConfigs(
     savedConfigs: List<ThemeConfig.Config>,
     defaultConfigs: List<ThemeConfig.Config>
 ): List<ThemeConfig.Config> = buildList {
-    addAll(savedConfigs)
+    val legacyDefault = ThemeConfig.Config(
+        themeName = "默认",
+        isNightTheme = false,
+        primaryColor = "#795548",
+        accentColor = "#E53935",
+        backgroundColor = "#F5F5F5",
+        bottomBackground = "#EEEEEE"
+    )
+    val updatedDefault = defaultConfigs.firstOrNull { it.themeName == legacyDefault.themeName }
+    addAll(savedConfigs.map { config ->
+        // 仅更新未修改过的内置默认预设，保留同名自定义主题。
+        if (config == legacyDefault && updatedDefault != null) updatedDefault else config
+    })
     val names = savedConfigs.mapTo(HashSet()) { it.themeName }
     defaultConfigs.forEach { config ->
         if (names.add(config.themeName)) {

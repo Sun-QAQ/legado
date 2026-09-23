@@ -76,7 +76,7 @@
             app:iconSpaceReserved="false" />
 
         <io.legado.app.lib.prefs.ColorPreference
-            android:defaultValue="@color/md_red_600"
+            android:defaultValue="@color/default_accent_day"
             android:key="colorAccent"
             android:summary="@string/day_color_accent"
             android:title="@string/accent"
@@ -132,7 +132,7 @@
             app:iconSpaceReserved="false" />
 
         <io.legado.app.lib.prefs.ColorPreference
-            android:defaultValue="@color/md_deep_orange_800"
+            android:defaultValue="@color/default_accent_night"
             android:key="colorAccentNight"
             android:summary="@string/night_accent"
             android:title="@string/accent"
