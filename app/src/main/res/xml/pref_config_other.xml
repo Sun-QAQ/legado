@@ -43,7 +43,7 @@
             app:iconSpaceReserved="false" />
 
         <io.legado.app.lib.prefs.SwitchPreference
-            android:defaultValue="false"
+            android:defaultValue="true"
             android:key="showAi"
             android:title="@string/show_ai"
             app:iconSpaceReserved="false" />
