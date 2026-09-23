@@ -96,6 +96,7 @@ class MyFragment() : BaseFragment(R.layout.fragment_my_config), MainFragmentInte
         initProfile()
         initStats()
         initShortcuts()
+        initWebService()
     }
 
     private fun initProfile() {
@@ -240,6 +241,37 @@ class MyFragment() : BaseFragment(R.layout.fragment_my_config), MainFragmentInte
         }
         binding.llReplace.setOnClickListener { startActivity<ReplaceRuleActivity>() }
         binding.llReadRecord.setOnClickListener { startActivity<ReadRecordActivity>() }
+    }
+
+    /**
+     * Web 服务开关，与"全部设置"中的 webService 共用同一个偏好项
+     */
+    private fun initWebService() {
+        binding.swWebService.isChecked = WebService.isRun
+        updateWebServiceSummary()
+        binding.ivWebServiceIcon.imageTintList = ColorStateList.valueOf(requireContext().accentColor)
+        binding.llWebService.setOnClickListener {
+            val enable = !binding.swWebService.isChecked
+            binding.swWebService.isChecked = enable
+            requireContext().putPrefBoolean(PreferKey.webService, enable)
+            if (enable) {
+                WebService.start(requireContext())
+            } else {
+                WebService.stop(requireContext())
+            }
+        }
+        observeEventSticky<String>(EventBus.WEB_SERVICE) {
+            binding.swWebService.isChecked = WebService.isRun
+            updateWebServiceSummary()
+        }
+    }
+
+    private fun updateWebServiceSummary() {
+        binding.tvWebServiceSummary.text = if (WebService.isRun) {
+            WebService.hostAddress
+        } else {
+            getString(R.string.web_service_desc)
+        }
     }
 
     override fun onCompatCreateOptionsMenu(menu: Menu) {
