@@ -68,7 +68,7 @@
         app:layout="@layout/view_preference_category">
 
         <io.legado.app.lib.prefs.ColorPreference
-            android:defaultValue="@color/md_brown_500"
+            android:defaultValue="@color/default_primary_day"
             android:key="colorPrimary"
             android:summary="@string/day_color_primary"
             android:title="@string/primary"

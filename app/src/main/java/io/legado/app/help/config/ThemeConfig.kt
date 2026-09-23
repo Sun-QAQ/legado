@@ -34,6 +34,10 @@ import io.legado.app.utils.stackBlur
 import splitties.init.appCtx
 import java.io.File
 
+// 默认主题曾使用的主色与强调色，用于识别仍停留在旧默认配色上的用户。
+private const val LEGACY_DEFAULT_PRIMARY_COLOR = "#795548"
+private const val LEGACY_DEFAULT_ACCENT_DAY_COLOR = "#64B5F6"
+
 @Keep
 object ThemeConfig {
     const val configFileName = "themeConfig.json"
@@ -213,7 +217,7 @@ object ThemeConfig {
 
     fun saveDayTheme(context: Context, name: String) {
         val primary =
-            context.getPrefInt(PreferKey.cPrimary, context.getCompatColor(R.color.md_brown_500))
+            context.getPrefInt(PreferKey.cPrimary, context.getCompatColor(R.color.default_primary_day))
         val accent =
             context.getPrefInt(PreferKey.cAccent, context.getCompatColor(R.color.default_accent_day))
         val background =
@@ -262,6 +266,7 @@ object ThemeConfig {
      */
     fun applyTheme(context: Context) = with(context) {
         migrateDefaultAccent(this)
+        migrateDefaultThemeColors(this)
         when {
             AppConfig.isEInkMode -> {
                 ThemeStore.editTheme(this)
@@ -295,7 +300,7 @@ object ThemeConfig {
 
             else -> {
                 val primary =
-                    getPrefInt(PreferKey.cPrimary, getCompatColor(R.color.md_brown_500))
+                    getPrefInt(PreferKey.cPrimary, getCompatColor(R.color.default_primary_day))
                 val accent =
                     getPrefInt(PreferKey.cAccent, getCompatColor(R.color.default_accent_day))
                 var background =
@@ -346,6 +351,25 @@ object ThemeConfig {
         }
     }
 
+    /**
+     * 默认配色升级：主色由棕色换成与强调色相配的蓝色，强调色也调浅一档。
+     * 仅替换仍是旧默认值的项，保留用户自定义配色。
+     */
+    private fun migrateDefaultThemeColors(context: Context) = with(context) {
+        val migrationKey = "blueDefaultThemeColorsApplied"
+        if (LocalConfig.getBoolean(migrationKey, false)) return@with
+        // 先标记，避免偏好变更监听再次应用主题时重复迁移。
+        LocalConfig.edit().putBoolean(migrationKey, true).apply()
+        val oldPrimary = LEGACY_DEFAULT_PRIMARY_COLOR.toColorInt()
+        if (getPrefInt(PreferKey.cPrimary, oldPrimary) == oldPrimary) {
+            putPrefInt(PreferKey.cPrimary, getCompatColor(R.color.default_primary_day))
+        }
+        val oldAccent = LEGACY_DEFAULT_ACCENT_DAY_COLOR.toColorInt()
+        if (getPrefInt(PreferKey.cAccent, oldAccent) == oldAccent) {
+            putPrefInt(PreferKey.cAccent, getCompatColor(R.color.default_accent_day))
+        }
+    }
+
     fun clearBg() {
         val bgImagePath = appCtx.getPrefString(PreferKey.bgImage)
         appCtx.externalFiles.getFile(PreferKey.bgImage).listFiles()?.forEach {
@@ -391,7 +415,7 @@ object ThemeConfig {
     }
 
     private const val DEFAULT_THEME_VERSION_KEY = "defaultThemeVersion"
-    private const val DEFAULT_THEME_VERSION = 2
+    private const val DEFAULT_THEME_VERSION = 3
 
 }
 
@@ -402,15 +426,17 @@ internal fun mergeDefaultThemeConfigs(
     val legacyDefault = ThemeConfig.Config(
         themeName = "默认",
         isNightTheme = false,
-        primaryColor = "#795548",
+        primaryColor = LEGACY_DEFAULT_PRIMARY_COLOR,
         accentColor = "#E53935",
         backgroundColor = "#F5F5F5",
         bottomBackground = "#EEEEEE"
     )
+    val legacyLightBlueDefault = legacyDefault.copy(accentColor = LEGACY_DEFAULT_ACCENT_DAY_COLOR)
+    val legacyDefaults = listOf(legacyDefault, legacyLightBlueDefault)
     val updatedDefault = defaultConfigs.firstOrNull { it.themeName == legacyDefault.themeName }
     addAll(savedConfigs.map { config ->
         // 仅更新未修改过的内置默认预设，保留同名自定义主题。
-        if (config == legacyDefault && updatedDefault != null) updatedDefault else config
+        if (config in legacyDefaults && updatedDefault != null) updatedDefault else config
     })
     val names = savedConfigs.mapTo(HashSet()) { it.themeName }
     defaultConfigs.forEach { config ->

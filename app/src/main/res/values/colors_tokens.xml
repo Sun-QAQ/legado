@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="default_accent_day">#64B5F6</color>
+    <color name="default_primary_day">#1976D2</color>
+    <color name="default_accent_day">#90CAF9</color>
     <color name="default_accent_night">#90CAF9</color>
     <!-- 布局预览兜底；运行时由 ThemePalette 根据主题设置计算。 -->
     <color name="color_primary_container">@color/md_grey_200</color>
