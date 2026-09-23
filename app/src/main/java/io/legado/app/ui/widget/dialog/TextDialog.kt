@@ -1,6 +1,5 @@
 package io.legado.app.ui.widget.dialog
 
-import android.graphics.Color
 import android.os.Build
 import android.os.Bundle
 import android.view.View
@@ -11,7 +10,7 @@ import io.legado.app.base.BaseDialogFragment
 import io.legado.app.databinding.DialogTextViewBinding
 import io.legado.app.help.IntentData
 import io.legado.app.lib.theme.backgroundColor
-import io.legado.app.lib.theme.filletBackground
+import io.legado.app.utils.applyDialogRoundedBackground
 import io.legado.app.utils.applyTint
 import io.legado.app.utils.dpToPx
 import io.legado.app.utils.setHtml
@@ -57,14 +56,14 @@ class TextDialog() : BaseDialogFragment(R.layout.dialog_text_view) {
 
     override fun onStart() {
         super.onStart()
-        dialog?.window?.setBackgroundDrawable(requireContext().filletBackground)
+        dialog?.window?.setBackgroundDrawableResource(R.color.transparent)
         val screenWidth = requireActivity().windowManager.windowSize.widthPixels
         setLayout(screenWidth - 24.dpToPx(), 0.9f)
     }
 
     override fun onFragmentCreated(view: View, savedInstanceState: Bundle?) {
-        // 圆角由 window 背景绘制，内容视图需保持透明，两侧留出与圆角背景一致的空隙
-        view.setBackgroundColor(Color.TRANSPARENT)
+        // 圆角背景绘制在内容视图上并裁剪子视图，避免标题栏等背景盖住圆角
+        view.applyDialogRoundedBackground()
         binding.toolBar.setBackgroundColor(backgroundColor)
         binding.toolBar.inflateMenu(R.menu.dialog_text)
         binding.toolBar.menu.applyTint(requireContext())

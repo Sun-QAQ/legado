@@ -1,6 +1,7 @@
 package io.legado.app.utils
 
 import android.app.Dialog
+import android.view.View
 import android.view.WindowManager
 import androidx.appcompat.app.AlertDialog
 import androidx.core.view.forEach
@@ -80,4 +81,13 @@ fun DialogFragment.setLayout(width: Int, height: Int) {
 
 fun Dialog.setLayout(width: Int, height: Int) {
     window?.setLayout(width, height)
+}
+
+/**
+ * 让对话框内容视图使用主题圆角背景并裁剪子视图。
+ * 需配合透明的窗口背景使用，窗口外的空隙才会露出圆角。
+ */
+fun View.applyDialogRoundedBackground() {
+    background = context.filletBackground
+    clipToOutline = true
 }
