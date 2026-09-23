@@ -1,9 +1,9 @@
 package io.legado.app.ui.widget.dialog
 
+import android.graphics.Color
 import android.os.Build
 import android.os.Bundle
 import android.view.View
-import android.view.ViewGroup
 import android.view.textclassifier.TextClassifier
 import androidx.lifecycle.lifecycleScope
 import io.legado.app.R
@@ -11,9 +11,12 @@ import io.legado.app.base.BaseDialogFragment
 import io.legado.app.databinding.DialogTextViewBinding
 import io.legado.app.help.IntentData
 import io.legado.app.lib.theme.backgroundColor
+import io.legado.app.lib.theme.filletBackground
 import io.legado.app.utils.applyTint
+import io.legado.app.utils.dpToPx
 import io.legado.app.utils.setHtml
 import io.legado.app.utils.setLayout
+import io.legado.app.utils.windowSize
 import io.legado.app.utils.viewbindingdelegate.viewBinding
 import io.noties.markwon.Markwon
 import io.noties.markwon.ext.tables.TablePlugin
@@ -54,10 +57,14 @@ class TextDialog() : BaseDialogFragment(R.layout.dialog_text_view) {
 
     override fun onStart() {
         super.onStart()
-        setLayout(ViewGroup.LayoutParams.MATCH_PARENT, 0.9f)
+        dialog?.window?.setBackgroundDrawable(requireContext().filletBackground)
+        val screenWidth = requireActivity().windowManager.windowSize.widthPixels
+        setLayout(screenWidth - 24.dpToPx(), 0.9f)
     }
 
     override fun onFragmentCreated(view: View, savedInstanceState: Bundle?) {
+        // 圆角由 window 背景绘制，内容视图需保持透明，两侧留出与圆角背景一致的空隙
+        view.setBackgroundColor(Color.TRANSPARENT)
         binding.toolBar.setBackgroundColor(backgroundColor)
         binding.toolBar.inflateMenu(R.menu.dialog_text)
         binding.toolBar.menu.applyTint(requireContext())
