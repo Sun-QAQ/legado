@@ -15,6 +15,11 @@ import io.legado.app.R
 import io.legado.app.base.BaseDialogFragment
 import io.legado.app.constant.AppLog
 import io.legado.app.data.entities.BaseSource
+import io.legado.app.data.entities.BookSource
+import io.legado.app.help.source.NgJsSource
+import io.legado.app.model.webBook.NgJsRuntime
+import com.google.gson.JsonParser
+import io.legado.app.utils.fromJsonArray
 import io.legado.app.data.entities.rule.RowUi
 import io.legado.app.databinding.DialogLoginBinding
 import io.legado.app.databinding.ItemFilletTextBinding
@@ -48,6 +53,7 @@ class SourceLoginDialog : BaseDialogFragment(R.layout.dialog_login, true) {
 
     private val binding by viewBinding(DialogLoginBinding::bind)
     private val viewModel by activityViewModels<SourceLoginViewModel>()
+    private var ngState: com.google.gson.JsonElement? = null
 
     override fun onStart() {
         super.onStart()
@@ -56,6 +62,10 @@ class SourceLoginDialog : BaseDialogFragment(R.layout.dialog_login, true) {
 
     override fun onFragmentCreated(view: View, savedInstanceState: Bundle?) {
         val source = viewModel.source ?: return
+        if (source is BookSource && NgJsSource.isNg(source)) {
+            initNgLogin(source)
+            return
+        }
         // 工具栏保持透明，让圆角卡片背景透出，避免直角覆盖顶部圆角
         binding.toolBar.title = getString(R.string.login_source, source.getTag())
         val loginInfo = source.getLoginInfoMap()
@@ -130,6 +140,70 @@ class SourceLoginDialog : BaseDialogFragment(R.layout.dialog_login, true) {
                 R.id.menu_log -> showDialogFragment<AppLogDialog>()
             }
             return@setOnMenuItemClickListener true
+        }
+    }
+
+    private fun initNgLogin(source: BookSource) {
+        binding.toolBar.title = getString(R.string.login_source, source.getTag())
+        binding.toolBar.inflateMenu(R.menu.source_login)
+        binding.toolBar.menu.applyTint(requireContext())
+        binding.toolBar.setOnMenuItemClickListener {
+            when (it.itemId) {
+                R.id.menu_ok -> dismiss() // NG 登录状态由脚本管理，关闭时不能清除设备信息。
+                R.id.menu_log -> showDialogFragment<AppLogDialog>()
+                R.id.menu_del_login_header -> source.removeLoginHeader()
+                R.id.menu_show_login_header -> alert {
+                    setTitle(R.string.login_header)
+                    setMessage(source.getLoginHeader().orEmpty())
+                }
+            }
+            true
+        }
+        refreshNgLogin(source)
+    }
+
+    private fun refreshNgLogin(source: BookSource, action: String? = null, data: Any? = null) {
+        binding.flexbox.isEnabled = false
+        lifecycleScope.launch {
+            runCatching {
+                val rows = withContext(IO) {
+                    if (action != null) {
+                        val result = JsonParser.parseString(NgJsRuntime.call(source, "loginAction", action, data, ngState))
+                        if (result.isJsonObject) ngState = result.asJsonObject["state"] ?: ngState
+                    }
+                    val ui = JsonParser.parseString(NgJsRuntime.call(source, "loginUi", ngState))
+                    val rowsJson = if (ui.isJsonArray) ui else ui.asJsonObject["rows"]
+                    GSON.fromJsonArray<RowUi>(rowsJson.toString()).getOrThrow()
+                }
+                binding.flexbox.removeAllViews()
+                rows.forEachIndexed { index, row ->
+                    if (row.type == RowUi.Type.button) {
+                        val item = ItemFilletTextBinding.inflate(layoutInflater, binding.root, false)
+                        row.style().apply(item.root)
+                        item.textView.text = row.name
+                        item.textView.setPadding(16.dpToPx())
+                        applyPrimaryColor(item.textView)
+                        item.root.setOnClickListener {
+                            if (binding.flexbox.isEnabled) {
+                                refreshNgLogin(source, row.action, getLoginData(rows))
+                            }
+                        }
+                        binding.flexbox.addView(item.root)
+                    } else if (row.type == RowUi.Type.text || row.type == RowUi.Type.password) {
+                        val item = ItemSourceEditBinding.inflate(layoutInflater, binding.root, false)
+                        item.root.id = index + 1000
+                        item.textInputLayout.hint = row.name
+                        if (row.type == RowUi.Type.password) item.editText.inputType =
+                            InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
+                        binding.flexbox.addView(item.root)
+                    }
+                }
+            }.onFailure {
+                ensureActive()
+                AppLog.put("NG JS 登录失败", it)
+                context?.toastOnUi(it.localizedMessage)
+            }
+            binding.flexbox.isEnabled = true
         }
     }
 

@@ -9,6 +9,7 @@ import org.mozilla.javascript.Scriptable
 import kotlin.coroutines.CoroutineContext
 
 fun BaseSource.getShareScope(coroutineContext: CoroutineContext? = null): Scriptable? {
+    if (NgJsSource.isNg(this)) return null
     return SharedJsScope.getScope(jsLib, coroutineContext)
 }
 

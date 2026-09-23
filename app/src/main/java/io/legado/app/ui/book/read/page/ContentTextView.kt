@@ -14,6 +14,13 @@ import android.view.View
 import android.view.ViewConfiguration
 import android.widget.PopupWindow
 import android.widget.TextView
+import androidx.lifecycle.lifecycleScope
+import io.legado.app.help.source.NgImage
+import io.legado.app.help.source.NgJsSource
+import io.legado.app.model.webBook.NgJsRuntime
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.launch
 import io.legado.app.R
 import io.legado.app.data.entities.Bookmark
 import io.legado.app.help.config.AppConfig
@@ -291,9 +298,21 @@ class ContentTextView(context: Context, attrs: AttributeSet?) : View(context, at
                     handled = true
                 }
 
-                is ImageColumn -> if (AppConfig.previewImageByClick) {
-                    activity?.showDialogFragment(PhotoDialog(column.src))
-                    handled = true
+                is ImageColumn -> {
+                    val source = ReadBook.bookSource
+                    val action = if (NgJsSource.isNg(source)) NgImage.click(column.src) else null
+                    if (source != null && !action.isNullOrBlank()) {
+                        activity?.lifecycleScope?.launch(Dispatchers.IO) {
+                            runCatching { NgJsRuntime.evaluate(source, action) }.onFailure {
+                                ensureActive()
+                                context.toastOnUi(it.localizedMessage)
+                            }
+                        }
+                        handled = true
+                    } else if (AppConfig.previewImageByClick) {
+                        activity?.showDialogFragment(PhotoDialog(column.src))
+                        handled = true
+                    }
                 }
 
                 is TextColumn -> column.noteContent?.let {

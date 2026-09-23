@@ -43,6 +43,10 @@ class FileAssociationViewModel(application: Application) : BaseAssociationViewMo
     }
 
     private fun dispatch(fileDoc: FileDoc) {
+        if (fileDoc.name.endsWith(".js", ignoreCase = true)) {
+            successLive.postValue("bookSource" to fileDoc.uri.toString())
+            return
+        }
         kotlin.runCatching {
             if (fileDoc.openInputStream().getOrNull().isJson()) {
                 importJson(fileDoc.uri)

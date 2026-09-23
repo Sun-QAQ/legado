@@ -12,6 +12,7 @@ import io.legado.app.help.book.removeAllBookType
 import io.legado.app.help.coroutine.Coroutine
 import io.legado.app.help.http.StrResponse
 import io.legado.app.help.source.getBookType
+import io.legado.app.help.source.NgJsSource
 import io.legado.app.model.Debug
 import io.legado.app.model.analyzeRule.AnalyzeRule
 import io.legado.app.model.analyzeRule.AnalyzeRule.Companion.setCoroutineContext
@@ -52,6 +53,9 @@ object WebBook {
         filter: ((name: String, author: String) -> Boolean)? = null,
         shouldBreak: ((size: Int) -> Boolean)? = null
     ): ArrayList<SearchBook> {
+        if (NgJsSource.isNg(bookSource)) {
+            return NgJsBook.search(bookSource, key, page ?: 1, filter, shouldBreak)
+        }
         val searchUrl = bookSource.searchUrl
         if (searchUrl.isNullOrBlank()) {
             throw NoStackTraceException("搜索url不能为空")
@@ -107,6 +111,9 @@ object WebBook {
         url: String,
         page: Int? = 1,
     ): ArrayList<SearchBook> {
+        if (NgJsSource.isNg(bookSource)) {
+            return NgJsBook.explore(bookSource, url, page ?: 1)
+        }
         val ruleData = RuleData()
         val analyzeUrl = AnalyzeUrl(
             mUrl = url,
@@ -156,6 +163,12 @@ object WebBook {
     ): Book {
         book.removeAllBookType()
         book.addType(bookSource.getBookType())
+        if (NgJsSource.isNg(bookSource)) {
+            val body = NgJsRuntime.call(bookSource, "getBookInfo", book)
+            NgJsBook.requireObject(body, "getBookInfo")
+            BookInfo.analyzeBookInfo(bookSource, book, book.bookUrl, book.bookUrl, body, canReName)
+            return book
+        }
         if (!book.infoHtml.isNullOrEmpty()) {
             BookInfo.analyzeBookInfo(
                 bookSource = bookSource,
@@ -233,6 +246,13 @@ object WebBook {
             if (runPerJs) {
                 runPreUpdateJs(bookSource, book).getOrThrow()
             }
+            if (NgJsSource.isNg(bookSource)) {
+                val body = NgJsRuntime.call(bookSource, "getChapters", book)
+                NgJsBook.requireList(body, "getChapters", "title", "url")
+                return@runCatching BookChapterList.analyzeChapterList(
+                    bookSource, book, book.tocUrl, book.tocUrl, body
+                )
+            }
             if (book.bookUrl == book.tocUrl && !book.tocHtml.isNullOrEmpty()) {
                 BookChapterList.analyzeChapterList(
                     bookSource = bookSource,
@@ -303,6 +323,13 @@ object WebBook {
         nextChapterUrl: String? = null,
         needSave: Boolean = true
     ): String {
+        if (NgJsSource.isNg(bookSource)) {
+            val body = NgJsBook.content(bookSource, bookChapter, book, nextChapterUrl)
+            return BookContent.analyzeContent(
+                bookSource, book, bookChapter, bookChapter.getAbsoluteURL(),
+                bookChapter.getAbsoluteURL(), body, nextChapterUrl, needSave
+            )
+        }
         if (bookSource.getContentRule().content.isNullOrEmpty()) {
             Debug.log(bookSource.bookSourceUrl, "⇒正文规则为空,使用章节链接:${bookChapter.url}")
             return bookChapter.url

@@ -388,6 +388,7 @@ android:icon="@mipmap/ic_launcher"
             android:name=".ui.association.OpenUrlConfirmActivity"
             android:configChanges="locale|keyboardHidden|orientation|screenSize|smallestScreenSize|screenLayout"
             android:theme="@style/AppTheme.Transparent" />
+        <activity android:name=".ui.browser.NgSourceBrowserActivity" android:exported="false" />
         <!-- 打开文件 -->
         <activity
             android:name=".ui.association.FileAssociationActivity"
@@ -407,6 +408,8 @@ android:icon="@mipmap/ic_launcher"
                 <data android:scheme="file" />
                 <!-- text -->
                 <data android:mimeType="text/plain" />
+                <data android:mimeType="application/javascript" />
+                <data android:mimeType="text/javascript" />
                 <!-- json -->
                 <data android:mimeType="application/json" />
                 <!-- EPUB -->
@@ -440,6 +443,8 @@ android:icon="@mipmap/ic_launcher"
                 <data android:pathAdvancedPattern=".*\\.[tT][xX][tT]" />
                 <data android:pathPattern=".*\\.txt" />
                 <data android:pathPattern=".*\\.TXT" />
+                <data android:pathPattern=".*\\.js" />
+                <data android:pathPattern=".*\\.JS" />
                 <!--JSON-->
                 <data android:pathAdvancedPattern=".*\\.[jJ][sS][oO][nN]" />
                 <data android:pathPattern=".*\\.json" />

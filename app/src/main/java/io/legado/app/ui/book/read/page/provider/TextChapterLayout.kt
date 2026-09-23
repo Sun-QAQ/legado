@@ -235,7 +235,9 @@ class TextChapterLayout(
             currentCoroutineContext().ensureActive()
             val noteList = LinkedList<String>()
             val contentWithNotes = EpubNote.extract(content, noteList)
-            if (isTextImageStyle) {
+            if (isTextImageStyle ||
+                (io.legado.app.help.source.NgJsSource.isNg(ReadBook.bookSource) &&
+                    io.legado.app.help.source.NgImage.hasInlineImage(contentWithNotes))) {
                 //图片样式为文字嵌入类型
                 var text = contentWithNotes.replace(ChapterProvider.srcReplaceChar, "▣")
                 val srcList = LinkedList<String>()

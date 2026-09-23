@@ -18,6 +18,7 @@ import io.legado.app.help.config.AppConfig
 import io.legado.app.help.http.decompressed
 import io.legado.app.help.http.newCallResponseBody
 import io.legado.app.help.http.okHttpClient
+import io.legado.app.help.source.BookSourceParser
 import io.legado.app.help.source.SourceHelp
 import io.legado.app.utils.GSON
 import io.legado.app.utils.fromJsonArray
@@ -166,17 +167,11 @@ class ImportBookSourceViewModel(app: Application) : BaseViewModel(app) {
                 mText.isUri() -> {
                     val uri = Uri.parse(mText)
                     uri.inputStream(context).getOrThrow().use { inputS ->
-                        GSON.fromJsonArray<BookSource>(inputS).getOrThrow().let {
-                            val source = it.firstOrNull() ?: return@let
-                            if (source.bookSourceUrl.isEmpty()) {
-                                throw NoStackTraceException("不是书源")
-                            }
-                            allSources.addAll(it)
-                        }
+                        allSources.addAll(BookSourceParser.parse(inputS.bufferedReader().readText()))
                     }
                 }
 
-                else -> throw NoStackTraceException(context.getString(R.string.wrong_format))
+                else -> allSources.addAll(BookSourceParser.parse(mText))
             }
         }.onError {
             errorLiveData.postValue("ImportError:${it.localizedMessage}")
@@ -195,13 +190,7 @@ class ImportBookSourceViewModel(app: Application) : BaseViewModel(app) {
                 url(url)
             }
         }.decompressed().byteStream().use {
-            GSON.fromJsonArray<BookSource>(it).getOrThrow().let { list ->
-                val source = list.firstOrNull() ?: return@let
-                if (source.bookSourceUrl.isEmpty()) {
-                    throw NoStackTraceException("不是书源")
-                }
-                allSources.addAll(list)
-            }
+            allSources.addAll(BookSourceParser.parse(it.bufferedReader().readText()))
         }
     }
 

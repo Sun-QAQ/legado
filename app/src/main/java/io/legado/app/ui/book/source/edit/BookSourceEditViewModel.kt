@@ -12,6 +12,7 @@ import io.legado.app.help.config.SourceConfig
 import io.legado.app.help.http.CookieStore
 import io.legado.app.help.http.newCallStrResponse
 import io.legado.app.help.http.okHttpClient
+import io.legado.app.help.source.NgJsSource
 import io.legado.app.help.source.SourceHelp
 import io.legado.app.help.source.clearExploreKindsCache
 import io.legado.app.help.storage.ImportOldData
@@ -133,7 +134,7 @@ class BookSourceEditViewModel(application: Application) : BaseViewModel(applicat
                 }
             }
 
-            else -> throw NoStackTraceException("格式不对")
+            else -> NgJsSource.parse(text)
         }
     }
 
