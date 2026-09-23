@@ -179,7 +179,6 @@ class SourceLoginDialog : BaseDialogFragment(R.layout.dialog_login, true) {
                 rows.forEachIndexed { index, row ->
                     if (row.type == RowUi.Type.button) {
                         val item = ItemFilletTextBinding.inflate(layoutInflater, binding.root, false)
-                        row.style().apply(item.root)
                         item.textView.text = row.name
                         item.textView.setPadding(16.dpToPx())
                         applyPrimaryColor(item.textView)
@@ -189,6 +188,7 @@ class SourceLoginDialog : BaseDialogFragment(R.layout.dialog_login, true) {
                             }
                         }
                         binding.flexbox.addView(item.root)
+                        row.style().apply(item.root)
                     } else if (row.type == RowUi.Type.text || row.type == RowUi.Type.password) {
                         val item = ItemSourceEditBinding.inflate(layoutInflater, binding.root, false)
                         item.root.id = index + 1000
