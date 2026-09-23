@@ -261,6 +261,7 @@ object ThemeConfig {
      * 更新主题
      */
     fun applyTheme(context: Context) = with(context) {
+        migrateDefaultAccent(this)
         when {
             AppConfig.isEInkMode -> {
                 ThemeStore.editTheme(this)
@@ -312,6 +313,36 @@ object ThemeConfig {
                     .bottomBackground(ColorUtils.withAlpha(bBackground, 1f))
                     .apply()
             }
+        }
+    }
+
+    private fun migrateDefaultAccent(context: Context) = with(context) {
+        val migrationKey = "lightBlueDefaultAccentApplied"
+        if (LocalConfig.getBoolean(migrationKey, false)) return@with
+        // 先标记，避免偏好变更监听再次应用主题时重复迁移。
+        LocalConfig.edit().putBoolean(migrationKey, true).apply()
+        val dayDefaults = mapOf(
+            PreferKey.cPrimary to R.color.md_brown_500,
+            PreferKey.cAccent to R.color.md_red_600,
+            PreferKey.cBackground to R.color.md_grey_100,
+            PreferKey.cBBackground to R.color.md_grey_200
+        )
+        val nightDefaults = mapOf(
+            PreferKey.cNPrimary to R.color.md_blue_grey_600,
+            PreferKey.cNAccent to R.color.md_deep_orange_800,
+            PreferKey.cNBackground to R.color.md_grey_900,
+            PreferKey.cNBBackground to R.color.md_grey_850
+        )
+        // 四项配色全部匹配旧默认值才升级，保留自定义主题。
+        if (dayDefaults.all { (key, color) ->
+                getPrefInt(key, getCompatColor(color)) == getCompatColor(color)
+            }) {
+            putPrefInt(PreferKey.cAccent, getCompatColor(R.color.default_accent_day))
+        }
+        if (nightDefaults.all { (key, color) ->
+                getPrefInt(key, getCompatColor(color)) == getCompatColor(color)
+            }) {
+            putPrefInt(PreferKey.cNAccent, getCompatColor(R.color.default_accent_night))
         }
     }
 
