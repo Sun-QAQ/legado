@@ -11,7 +11,7 @@
         android:layout_height="match_parent"
         tools:ignore="SpeakableTextPresentCheck" />
 
-    <FrameLayout
+    <io.legado.app.ui.widget.BottomNavGestureFrameLayout
         android:id="@+id/bottom_navigation_container"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -34,6 +34,6 @@
             app:labelVisibilityMode="unlabeled"
             app:menu="@menu/main_bnv" />
 
-    </FrameLayout>
+    </io.legado.app.ui.widget.BottomNavGestureFrameLayout>
 
 </FrameLayout>

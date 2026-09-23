@@ -196,6 +196,8 @@ class MainActivity : VMBaseActivity<ActivityMainBinding, MainViewModel>(),
         viewPagerMain.adapter = adapter
         viewPagerMain.addOnPageChangeListener(PageChangeCallback())
         bottomNavigationContainer.elevation = elevation
+        //导航栏浮在页面上，垂直滑动透传给页面，避免底部出现滑不动的死区
+        bottomNavigationContainer.gestureTarget = viewPagerMain
         bottomNavigationView.setOnNavigationItemSelectedListener(this@MainActivity)
         bottomNavigationView.setOnNavigationItemReselectedListener(this@MainActivity)
         applyBottomNavigationTheme()
