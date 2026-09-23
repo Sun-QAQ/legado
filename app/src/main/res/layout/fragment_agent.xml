@@ -41,9 +41,9 @@
         android:gravity="center_vertical"
         android:orientation="horizontal"
         android:paddingLeft="14dp"
-        android:paddingTop="8dp"
+        android:paddingTop="4dp"
         android:paddingRight="8dp"
-        android:paddingBottom="8dp"
+        android:paddingBottom="4dp"
         app:layout_constraintBottom_toBottomOf="parent">
 
         <io.legado.app.lib.theme.view.ThemeEditText
@@ -60,12 +60,12 @@
 
         <androidx.appcompat.widget.AppCompatImageButton
             android:id="@+id/btn_send"
-            android:layout_width="42dp"
-            android:layout_height="42dp"
+            android:layout_width="38dp"
+            android:layout_height="38dp"
             android:layout_marginLeft="8dp"
             android:background="@drawable/bg_btn_send"
             android:contentDescription="@string/agent_send"
-            android:padding="11dp"
+            android:padding="10dp"
             android:src="@drawable/ic_send"
             android:tint="@color/white"
             tools:ignore="RtlSymmetry" />
