@@ -168,7 +168,16 @@ class SourceLoginDialog : BaseDialogFragment(R.layout.dialog_login, true) {
             runCatching {
                 val rows = withContext(IO) {
                     if (action != null) {
-                        val result = JsonParser.parseString(NgJsRuntime.call(source, "loginAction", action, data, ngState))
+                        val result = JsonParser.parseString(
+                            NgJsRuntime.call(
+                                source,
+                                "loginAction",
+                                action,
+                                data,
+                                ngState,
+                                bypassRateLimit = true
+                            )
+                        )
                         if (result.isJsonObject) ngState = result.asJsonObject["state"] ?: ngState
                     }
                     val ui = JsonParser.parseString(NgJsRuntime.call(source, "loginUi", ngState))

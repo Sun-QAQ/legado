@@ -26,7 +26,12 @@ object NgJsRuntime {
         appCtx.assets.open("js/crypto-js.js").bufferedReader().use { it.readText() }
     }
 
-    suspend fun call(source: BookSource, function: String, vararg args: Any?): String {
+    suspend fun call(
+        source: BookSource,
+        function: String,
+        vararg args: Any?,
+        bypassRateLimit: Boolean = false
+    ): String {
         require(function.matches(Regex("[A-Za-z_$][A-Za-z0-9_$]*")))
         val arguments = GSON.toJson(args)
         return evaluate(source, """
@@ -36,14 +41,18 @@ object NgJsRuntime {
                 if (value && typeof value.then === 'function') throw new Error('暂不支持异步 NG JS 函数');
                 return JSON.stringify(value == null ? null : value);
             }).call(this)
-        """.trimIndent())
+        """.trimIndent(), bypassRateLimit)
     }
 
-    suspend fun evaluate(source: BookSource, expression: String): String = withTimeout(60_000) {
+    suspend fun evaluate(
+        source: BookSource,
+        expression: String,
+        bypassRateLimit: Boolean = false
+    ): String = withTimeout(60_000) {
         require(NgJsSource.isNg(source)) { "不是 NG JS 书源" }
         val bindings = ScriptBindings().apply {
             put("source", source)
-            put("java", NgJsBridge(source))
+            put("java", NgJsBridge(source, bypassRateLimit))
             put("cookie", CookieStore)
             put("cache", CacheManager)
             put("baseUrl", source.bookSourceUrl)
