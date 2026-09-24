@@ -17,6 +17,7 @@ import io.legado.app.databinding.ItemAppLogBinding
 import io.legado.app.lib.theme.backgroundColor
 import io.legado.app.ui.widget.dialog.TextDialog
 import io.legado.app.utils.LogUtils
+import io.legado.app.utils.applyDialogRoundedBackground
 import io.legado.app.utils.setLayout
 import io.legado.app.utils.showDialogFragment
 import io.legado.app.utils.viewbindingdelegate.viewBinding
@@ -33,10 +34,12 @@ class AppLogDialog : BaseDialogFragment(R.layout.dialog_recycler_view),
 
     override fun onStart() {
         super.onStart()
+        dialog?.window?.setBackgroundDrawableResource(R.color.transparent)
         setLayout(0.9f, ViewGroup.LayoutParams.WRAP_CONTENT)
     }
 
     override fun onFragmentCreated(view: View, savedInstanceState: Bundle?) {
+        view.applyDialogRoundedBackground()
         binding.run {
             toolBar.setBackgroundColor(backgroundColor)
             toolBar.setTitle(R.string.log)
