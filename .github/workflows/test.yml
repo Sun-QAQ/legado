@@ -3,7 +3,7 @@ name: Auto Build and Release
 on:
   push:
     branches:
-      - master
+      - SunQ
   pull_request:
     paths-ignore:
       - '**/modules/web/**'
@@ -149,7 +149,7 @@ jobs:
 
   prerelease:
     needs: [ prepare, build ]
-    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/master'
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/SunQ'
     runs-on: ubuntu-latest
     env: 
       VERSION: ${{ needs.prepare.outputs.version }}
