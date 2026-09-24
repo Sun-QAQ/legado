@@ -1,12 +1,15 @@
 package io.legado.app.ui.book.source.edit
 
 import android.content.Intent
+import android.graphics.Rect
 import android.os.Bundle
 import android.view.Menu
 import android.view.MenuItem
+import android.view.View
 import android.widget.EditText
 import androidx.activity.viewModels
 import androidx.lifecycle.lifecycleScope
+import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.tabs.TabLayout
 import com.google.zxing.qrcode.decoder.ErrorCorrectionLevel
 import io.legado.app.R
@@ -188,6 +191,18 @@ class BookSourceEditActivity :
         binding.recyclerView.setEdgeEffectColor(primaryColor)
         binding.recyclerView.layoutManager = NoChildScrollLinearLayoutManager(this)
         binding.recyclerView.adapter = adapter
+        binding.recyclerView.addItemDecoration(object : RecyclerView.ItemDecoration() {
+            override fun getItemOffsets(
+                outRect: Rect,
+                view: View,
+                parent: RecyclerView,
+                state: RecyclerView.State
+            ) {
+                if (parent.getChildAdapterPosition(view) == state.itemCount - 1) {
+                    outRect.bottom = 16.dpToPx()
+                }
+            }
+        })
         binding.tabLayout.setBackgroundColor(backgroundColor)
         binding.tabLayout.setSelectedTabIndicatorColor(accentColor)
         binding.tabLayout.setTabTextColors(
@@ -211,7 +226,7 @@ class BookSourceEditActivity :
         binding.recyclerView.setOnApplyWindowInsetsListenerCompat { view, windowInsets ->
             val navigationBarHeight = windowInsets.navigationBarHeight
             val imeHeight = windowInsets.imeHeight
-            view.bottomPadding = if (imeHeight == 0) navigationBarHeight + 16.dpToPx() else 0
+            view.bottomPadding = if (imeHeight == 0) navigationBarHeight else 0
             softKeyboardTool.initialPadding = imeHeight
             windowInsets
         }
