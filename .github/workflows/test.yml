@@ -1,9 +1,6 @@
 name: Auto Build and Release
 
 on:
-  push:
-    branches:
-      - SunQ
   pull_request:
     paths-ignore:
       - '**/modules/web/**'
