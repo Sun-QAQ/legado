@@ -11,7 +11,8 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_gravity="center"
-        android:background="@drawable/shape_card_view"
+        android:background="@drawable/bg_card_rounded"
+        android:clipToOutline="true"
         android:orientation="vertical"
         tools:ignore="UselessParent">
 
