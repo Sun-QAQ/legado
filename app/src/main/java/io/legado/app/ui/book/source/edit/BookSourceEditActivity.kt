@@ -40,6 +40,7 @@ import io.legado.app.ui.widget.keyboard.KeyboardToolPop
 import io.legado.app.ui.widget.recycler.NoChildScrollLinearLayoutManager
 import io.legado.app.ui.widget.text.EditEntity
 import io.legado.app.utils.GSON
+import io.legado.app.utils.dpToPx
 import io.legado.app.utils.imeHeight
 import io.legado.app.utils.isContentScheme
 import io.legado.app.utils.launch
@@ -210,7 +211,7 @@ class BookSourceEditActivity :
         binding.recyclerView.setOnApplyWindowInsetsListenerCompat { view, windowInsets ->
             val navigationBarHeight = windowInsets.navigationBarHeight
             val imeHeight = windowInsets.imeHeight
-            view.bottomPadding = if (imeHeight == 0) navigationBarHeight else 0
+            view.bottomPadding = if (imeHeight == 0) navigationBarHeight + 16.dpToPx() else 0
             softKeyboardTool.initialPadding = imeHeight
             windowInsets
         }
