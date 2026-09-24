@@ -1,24 +1,19 @@
-name: Test Build
+name: Auto Build and Release
 
 on:
   push:
     branches:
       - master
-    paths:
-      - '**'
-      # - '!**/assets/**'
-      # - '!**.md'
-      - '!**/ISSUE_TEMPLATE/**'
-      - '!**/modules/web/**'
   pull_request:
     paths-ignore:
       - '**/modules/web/**'
-  workflow_run:
-    workflows: [Build Web]
-    branches: [master]
-    types:
-      - completed
   workflow_dispatch:
+
+# Creating and moving the beta tag, then publishing its Release, requires this
+# permission.  Declaring it here also makes the workflow work in forks where
+# the repository default token permission is read-only.
+permissions:
+  contents: write
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -28,7 +23,6 @@ jobs:
 
   prepare:
     runs-on: ubuntu-latest
-    if: ${{ !startsWith(github.event.head_commit.message, 'Merge pull request') }}
     outputs:
       version: ${{ steps.set-ver.outputs.version }}
       versionL: ${{ steps.set-ver.outputs.versionL }}
@@ -155,7 +149,7 @@ jobs:
 
   prerelease:
     needs: [ prepare, build ]
-    if: github.event_name != 'pull_request' && github.repository == 'gedoor/legado'
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/master'
     runs-on: ubuntu-latest
     env: 
       VERSION: ${{ needs.prepare.outputs.version }}
