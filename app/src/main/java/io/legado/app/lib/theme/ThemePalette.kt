@@ -17,6 +17,7 @@ class ThemePalette(context: Context) {
     val surface = ColorUtils.blendARGB(background, Color.WHITE, if (light) 0.5f else 0.04f)
     val divider = ColorUtils.blendARGB(background, text, 0.12f)
     val accentContainer = ColorUtils.blendARGB(background, accent, 0.15f)
+    val accentContainerPressed = ColorUtils.blendARGB(background, accent, 0.26f)
 
     fun color(id: Int): Int? = when (id) {
         R.color.primary -> primary

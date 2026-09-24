@@ -22,11 +22,12 @@ object ThemeDrawables {
             R.drawable.bg_search_pill, R.drawable.bg_source_card,
             R.drawable.bg_stat_card, R.drawable.shape_card_view,
             R.drawable.shape_fillet_btn, R.drawable.shape_fillet_btn_press,
-            R.drawable.shape_explore_action, R.drawable.shape_explore_category -> palette.surface
+            R.drawable.shape_explore_action -> palette.surface
             R.drawable.bg_mic_primary, R.drawable.bg_mic_green, R.drawable.bg_mic_orange,
             R.drawable.bg_mic_blue, R.drawable.bg_mic_pink,
             R.drawable.bg_explore_empty_visual, R.drawable.bg_source_avatar,
-            R.drawable.shape_explore_action_press, R.drawable.shape_explore_category_press -> palette.accentContainer
+            R.drawable.shape_explore_action_press, R.drawable.shape_explore_category -> palette.accentContainer
+            R.drawable.shape_explore_category_press -> palette.accentContainerPressed
             R.drawable.bg_sheet_handle, R.drawable.ic_divider,
             R.drawable.recyclerview_divider_horizontal, R.drawable.recyclerview_divider_vertical -> palette.divider
             R.drawable.bg_img_border -> palette.background
