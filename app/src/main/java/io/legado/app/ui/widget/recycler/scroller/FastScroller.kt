@@ -497,6 +497,9 @@ class FastScroller : LinearLayout {
 
     private fun layout(context: Context, attrs: AttributeSet?) {
         View.inflate(context, R.layout.view_fastscroller, this)
+        // FastScroller receives RecyclerView's attributes for custom style values.
+        // Do not inherit its content padding, otherwise the track is shortened.
+        setPadding(0, 0, 0, 0)
         clipChildren = false
         orientation = HORIZONTAL
         mBubbleView = findViewById(R.id.fastscroll_bubble)
