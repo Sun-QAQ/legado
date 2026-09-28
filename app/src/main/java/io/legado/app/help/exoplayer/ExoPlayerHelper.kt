@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.net.Uri
 import androidx.media3.common.MediaItem
+import androidx.media3.common.MimeTypes
 import androidx.media3.database.StandaloneDatabaseProvider
 import androidx.media3.datasource.FileDataSource
 import androidx.media3.datasource.ResolvingDataSource
@@ -39,8 +40,23 @@ object ExoPlayerHelper {
 
     fun createMediaItem(url: String, headers: Map<String, String>): MediaItem {
         val formatUrl = url + SPLIT_TAG + GSON.toJson(headers, mapType)
-        return MediaItem.Builder().setUri(formatUrl).build()
+        return MediaItem.Builder()
+            .setUri(formatUrl)
+            // headers 拼接会污染 URI 后缀, 需根据原始 URL 显式设置 mimeType,
+            // 否则 m3u8/mpd 会被当作渐进式流用提取器解析而失败
+            .setMimeType(inferMimeType(url))
+            .build()
     }
+
+    private fun inferMimeType(url: String): String? {
+        val path = url.substringBefore(',').substringBefore('?').lowercase()
+        return when {
+            path.endsWith(".m3u8") -> MimeTypes.APPLICATION_M3U8
+            path.endsWith(".mpd") -> MimeTypes.APPLICATION_MPD
+            else -> null
+        }
+    }
+
 
     fun createHttpExoPlayer(context: Context): ExoPlayer {
         return ExoPlayer.Builder(context).setLoadControl(
