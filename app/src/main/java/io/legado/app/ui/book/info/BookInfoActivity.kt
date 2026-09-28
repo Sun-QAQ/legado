@@ -167,7 +167,7 @@ class BookInfoActivity :
         binding.titleBar.setBackgroundResource(R.color.transparent)
         binding.refreshLayout?.setColorSchemeColors(accentColor)
         binding.tvToc.text = getString(R.string.toc_s, getString(R.string.loading))
-        binding.rvEpisodes.apply {
+        binding.rvEpisodes?.apply {
             layoutManager = GridLayoutManager(this@BookInfoActivity, 3)
             adapter = episodeAdapter
         }
@@ -349,7 +349,7 @@ class BookInfoActivity :
         tvIntro.text = book.getDisplayIntro()
         llToc?.visible(!book.isWebFile)
         tvTocView.visible(!book.isVideo)
-        rvEpisodes.visible(book.isVideo && episodeAdapter.itemCount > 0)
+        rvEpisodes?.visible(book.isVideo && episodeAdapter.itemCount > 0)
         upTvBookshelf()
         upKinds(book)
         upGroup(book.group)
@@ -393,7 +393,7 @@ class BookInfoActivity :
                 binding.tvToc.text = getString(labelRes, getString(R.string.loading))
                 if (isVideo) {
                     episodeAdapter.setItems(emptyList())
-                    binding.rvEpisodes.gone()
+                    binding.rvEpisodes?.gone()
                 }
             }
 
@@ -404,7 +404,7 @@ class BookInfoActivity :
                 )
                 if (isVideo) {
                     episodeAdapter.setItems(emptyList())
-                    binding.rvEpisodes.gone()
+                    binding.rvEpisodes?.gone()
                 }
             }
 
@@ -415,7 +415,7 @@ class BookInfoActivity :
                 }
                 if (isVideo) {
                     episodeAdapter.setItems(chapterList)
-                    binding.rvEpisodes.visible()
+                    binding.rvEpisodes?.visible()
                 }
             }
         }
