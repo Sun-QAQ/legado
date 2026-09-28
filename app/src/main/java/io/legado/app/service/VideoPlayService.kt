@@ -237,8 +237,13 @@ class VideoPlayService : BaseService(),
             VideoPlay.status = Status.STOP
             postEvent(EventBus.AUDIO_STATE, Status.STOP)
             upPlayProgressJob?.cancel()
+            // 传入章节/书源地址作为 baseUrl, 使书源返回的相对地址能被补全为绝对地址
+            val baseUrl = VideoPlay.durChapter?.url
+                ?: VideoPlay.bookSource?.bookSourceUrl
+                ?: ""
             val analyzeUrl = AnalyzeUrl(
                 url,
+                baseUrl = baseUrl,
                 source = VideoPlay.bookSource,
                 ruleData = VideoPlay.book,
                 chapter = VideoPlay.durChapter,
@@ -390,7 +395,7 @@ class VideoPlayService : BaseService(),
         VideoPlay.status = Status.STOP
         postEvent(EventBus.AUDIO_STATE, Status.STOP)
         VideoPlay.upLoading(false)
-        val errorMsg = "视频播放出错\n${error.errorCodeName} ${error.errorCode}"
+        val errorMsg = "视频播放出错\nurl=$url\n${error.errorCodeName} ${error.errorCode}"
         AppLog.put(errorMsg, error)
         toastOnUi(errorMsg)
     }
