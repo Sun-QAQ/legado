@@ -149,6 +149,10 @@
     <string name="audio_play_t">Playing</string>
     <string name="audio_play_s">Click to open the Playing</string>
     <string name="audio_pause">Pause</string>
+    <string name="video_play">Play Video</string>
+    <string name="video_play_t">Playing Video</string>
+    <string name="video_play_s">Click to open the Playing</string>
+    <string name="video_pause">Pause</string>
     <string name="text_return">Back</string>
     <string name="refresh">Refresh</string>
     <string name="start">Start</string>
@@ -566,6 +570,7 @@
     <string name="skip_next">Next</string>
     <string name="music">Music</string>
     <string name="audio">Audio</string>
+    <string name="video">Video</string>
     <string name="is_enable">Enable</string>
     <string name="enable_js">Enable js</string>
     <string name="load_with_base_url">Load BaseUrl</string>

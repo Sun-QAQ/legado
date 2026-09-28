@@ -161,6 +161,12 @@ android:icon="@mipmap/ic_launcher"
         <activity
             android:name="io.legado.app.ui.book.audio.AudioPlayActivity"
             android:launchMode="singleTask" />
+        <!-- 视频播放界面 -->
+        <activity
+            android:name="io.legado.app.ui.book.video.VideoPlayActivity"
+            android:configChanges="orientation|screenSize|keyboardHidden|keyboard|smallestScreenSize|screenLayout"
+            android:launchMode="singleTask"
+            android:screenOrientation="fullSensor" />
         <!-- 授权界面 -->
         <activity
             android:name="io.legado.app.lib.permission.PermissionActivity"
@@ -516,6 +522,9 @@ android:icon="@mipmap/ic_launcher"
             android:foregroundServiceType="mediaPlayback" />
         <service
             android:name=".service.AudioPlayService"
+            android:foregroundServiceType="mediaPlayback" />
+        <service
+            android:name=".service.VideoPlayService"
             android:foregroundServiceType="mediaPlayback" />
         <service
             android:name=".service.DownloadService"
