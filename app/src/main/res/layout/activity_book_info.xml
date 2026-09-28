@@ -400,6 +400,16 @@
 
                             </LinearLayout>
 
+                            <androidx.recyclerview.widget.RecyclerView
+                                android:id="@+id/rv_episodes"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="4dp"
+                                android:layout_marginBottom="8dp"
+                                android:nestedScrollingEnabled="false"
+                                android:overScrollMode="never"
+                                android:visibility="gone" />
+
                         </LinearLayout>
 
                         <!-- 简介卡片 -->

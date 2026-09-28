@@ -42,6 +42,9 @@ val Book.isAudio: Boolean
 val Book.isImage: Boolean
     get() = isType(BookType.image)
 
+val Book.isVideo: Boolean
+    get() = isType(BookType.video)
+
 val Book.isLocal: Boolean
     get() {
         if (type == 0) {
@@ -230,6 +233,7 @@ fun Book.upType() {
             BookSourceType.image -> BookType.image
             BookSourceType.audio -> BookType.audio
             BookSourceType.file -> BookType.webFile
+            BookSourceType.video -> BookType.video
             else -> BookType.text
         }
         if (origin == BookType.localTag || origin.startsWith(BookType.webDavTag)) {

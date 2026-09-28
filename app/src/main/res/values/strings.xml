@@ -596,6 +596,7 @@
     <string name="group">Group</string>
     <string name="group_s">Group: %s</string>
     <string name="toc_s">Chapters: %s</string>
+    <string name="episode_s">Episodes: %s</string>
     <string name="enable_explore">Enable Discovery</string>
     <string name="disable_explore">Disable Discovery</string>
     <string name="enable_selection">Enable selected</string>

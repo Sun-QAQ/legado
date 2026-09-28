@@ -13,6 +13,7 @@ import android.widget.LinearLayout
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.lifecycle.lifecycleScope
+import androidx.recyclerview.widget.GridLayoutManager
 import io.legado.app.R
 import io.legado.app.base.VMBaseActivity
 import io.legado.app.constant.BookType
@@ -30,6 +31,7 @@ import io.legado.app.help.book.isAudio
 import io.legado.app.help.book.isImage
 import io.legado.app.help.book.isLocal
 import io.legado.app.help.book.isLocalTxt
+import io.legado.app.help.book.isVideo
 import io.legado.app.help.book.isWebFile
 import io.legado.app.help.book.removeType
 import io.legado.app.help.config.AppConfig
@@ -149,6 +151,13 @@ class BookInfoActivity :
     private val waitDialog by lazy { WaitDialog(this) }
     private var editMenuItem: MenuItem? = null
     private val book get() = viewModel.getBook(false)
+    private val episodeAdapter by lazy {
+        EpisodeAdapter(
+            context = this,
+            durChapterIndex = { book?.durChapterIndex ?: -1 },
+            onEpisodeClick = ::openEpisode,
+        )
+    }
 
     override val binding by viewBinding(ActivityBookInfoBinding::inflate)
     override val viewModel by viewModels<BookInfoViewModel>()
@@ -158,6 +167,10 @@ class BookInfoActivity :
         binding.titleBar.setBackgroundResource(R.color.transparent)
         binding.refreshLayout?.setColorSchemeColors(accentColor)
         binding.tvToc.text = getString(R.string.toc_s, getString(R.string.loading))
+        binding.rvEpisodes.apply {
+            layoutManager = GridLayoutManager(this@BookInfoActivity, 3)
+            adapter = episodeAdapter
+        }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N_MR1) {
             binding.tvIntro.revealOnFocusHint = false
         }
@@ -335,6 +348,8 @@ class BookInfoActivity :
         tvLasted.text = getString(R.string.lasted_show, book.latestChapterTitle)
         tvIntro.text = book.getDisplayIntro()
         llToc?.visible(!book.isWebFile)
+        tvTocView.visible(!book.isVideo)
+        rvEpisodes.visible(book.isVideo && episodeAdapter.itemCount > 0)
         upTvBookshelf()
         upKinds(book)
         upGroup(book.group)
@@ -371,22 +386,36 @@ class BookInfoActivity :
     }
 
     private fun upLoading(isLoading: Boolean, chapterList: List<BookChapter>? = null) {
+        val isVideo = book?.isVideo == true
+        val labelRes = if (isVideo) R.string.episode_s else R.string.toc_s
         when {
             isLoading -> {
-                binding.tvToc.text = getString(R.string.toc_s, getString(R.string.loading))
+                binding.tvToc.text = getString(labelRes, getString(R.string.loading))
+                if (isVideo) {
+                    episodeAdapter.setItems(emptyList())
+                    binding.rvEpisodes.gone()
+                }
             }
 
             chapterList.isNullOrEmpty() -> {
                 binding.tvToc.text = getString(
-                    R.string.toc_s,
+                    labelRes,
                     getString(R.string.error_load_toc)
                 )
+                if (isVideo) {
+                    episodeAdapter.setItems(emptyList())
+                    binding.rvEpisodes.gone()
+                }
             }
 
             else -> {
                 book?.let {
-                    binding.tvToc.text = getString(R.string.toc_s, it.durChapterTitle)
+                    binding.tvToc.text = getString(labelRes, it.durChapterTitle)
                     binding.tvLasted.text = getString(R.string.lasted_show, it.latestChapterTitle)
+                }
+                if (isVideo) {
+                    episodeAdapter.setItems(chapterList)
+                    binding.rvEpisodes.visible()
                 }
             }
         }
@@ -620,6 +649,15 @@ class BookInfoActivity :
     private fun openChapterList() {
         viewModel.getBook()?.let {
             tocActivityResult.launch(it.bookUrl)
+        }
+    }
+
+    private fun openEpisode(chapter: BookChapter) {
+        viewModel.getBook()?.let { book ->
+            book.durChapterIndex = chapter.index
+            book.durChapterPos = 0
+            chapterChanged = true
+            readBook(book)
         }
     }
 
