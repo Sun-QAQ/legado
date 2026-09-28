@@ -8,6 +8,7 @@ import io.legado.app.base.BaseViewModel
 import io.legado.app.constant.AppLog
 import io.legado.app.constant.BookType
 import io.legado.app.constant.EventBus
+import io.legado.app.constant.Status
 import io.legado.app.data.appDb
 import io.legado.app.data.entities.Book
 import io.legado.app.data.entities.BookChapter
@@ -17,6 +18,7 @@ import io.legado.app.help.book.removeType
 import io.legado.app.help.book.simulatedTotalChapterNum
 import io.legado.app.model.VideoPlay
 import io.legado.app.model.webBook.WebBook
+import io.legado.app.service.VideoPlayService
 import io.legado.app.utils.postEvent
 import io.legado.app.utils.toastOnUi
 
@@ -49,6 +51,16 @@ class VideoPlayViewModel(application: Application) : BaseViewModel(application) 
         }
         if (VideoPlay.chapterSize == 0 && !loadChapterList(book)) {
             return
+        }
+        upPlay()
+    }
+
+    /**
+     * 进入界面自动播放, 正在播放时跳过
+     */
+    private fun upPlay() {
+        if (!VideoPlayService.isRun || VideoPlay.status == Status.STOP) {
+            VideoPlay.loadOrUpPlayUrl()
         }
     }
 

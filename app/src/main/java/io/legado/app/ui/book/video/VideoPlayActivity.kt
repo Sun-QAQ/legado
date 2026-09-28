@@ -65,6 +65,7 @@ class VideoPlayActivity :
     override val viewModel by viewModels<VideoPlayViewModel>()
     private val timerSliderPopup by lazy { TimerSliderPopup(this) }
     private var playMode = VideoPlay.PlayMode.LIST_END_STOP
+    private var pausedByLifecycle = false
 
     private var videoPlayService: VideoPlayService? = null
     private val connection = object : ServiceConnection {
@@ -284,8 +285,17 @@ class VideoPlayActivity :
         super.onPause()
         binding.playerView.player?.let {
             if (it.playWhenReady) {
+                pausedByLifecycle = true
                 it.pause()
             }
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (pausedByLifecycle) {
+            pausedByLifecycle = false
+            binding.playerView.player?.play()
         }
     }
 
