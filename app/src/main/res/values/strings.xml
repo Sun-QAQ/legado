@@ -571,6 +571,7 @@
     <string name="music">Music</string>
     <string name="audio">Audio</string>
     <string name="video">Video</string>
+    <string name="episode_list">Episode List</string>
     <string name="is_enable">Enable</string>
     <string name="enable_js">Enable js</string>
     <string name="load_with_base_url">Load BaseUrl</string>

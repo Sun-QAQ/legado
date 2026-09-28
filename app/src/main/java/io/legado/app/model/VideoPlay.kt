@@ -27,6 +27,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.cancelChildren
 import splitties.init.appCtx
+import java.util.regex.Pattern
 
 @SuppressLint("StaticFieldLeak")
 @Suppress("unused")
@@ -179,10 +180,26 @@ object VideoPlay : CoroutineScope by MainScope() {
      */
     private fun contentLoadFinish(chapter: BookChapter, content: String) {
         if (chapter.index == book?.durChapterIndex) {
-            durPlayUrl = content
+            durPlayUrl = extractPlayUrl(content)
             upPlayUrl()
         }
     }
+
+    /**
+     * 从书源正文内容中提取媒体直链
+     * 部分书源正文规则返回带修饰文本的内容, 需提取出合法的 URL
+     */
+    private fun extractPlayUrl(content: String): String {
+        val trimmed = content.trim()
+        if (playUrlPattern.matcher(trimmed).matches()) {
+            return trimmed
+        }
+        val matcher = playUrlPattern.matcher(trimmed)
+        return if (matcher.find()) matcher.group() else trimmed
+    }
+
+    private val playUrlPattern = Pattern.compile("https?://\\S+")
+
 
     private fun upPlayUrl() {
         if (isPlayToEnd()) {

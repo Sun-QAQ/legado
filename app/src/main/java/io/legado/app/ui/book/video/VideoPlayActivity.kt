@@ -35,7 +35,6 @@ import io.legado.app.ui.about.AppLogDialog
 import io.legado.app.ui.book.audio.TimerSliderPopup
 import io.legado.app.ui.book.changesource.ChangeBookSourceDialog
 import io.legado.app.ui.book.source.edit.BookSourceEditActivity
-import io.legado.app.ui.book.toc.TocActivityResult
 import io.legado.app.ui.login.SourceLoginActivity
 import io.legado.app.utils.StartActivityContract
 import io.legado.app.utils.dpToPx
@@ -81,15 +80,6 @@ class VideoPlayActivity :
         }
     }
 
-    private val tocActivityResult = registerForActivityResult(TocActivityResult()) {
-        it?.let {
-            if (it.first != VideoPlay.book?.durChapterIndex
-                || it.second == 0
-            ) {
-                VideoPlay.skipTo(it.first)
-            }
-        }
-    }
     private val sourceEditResult =
         registerForActivityResult(StartActivityContract(BookSourceEditActivity::class.java)) {
             if (it.resultCode == RESULT_OK) {
@@ -179,8 +169,8 @@ class VideoPlayActivity :
             VideoPlay.adjustSpeed(-0.1f)
         }
         binding.ivChapter.setOnClickListener {
-            VideoPlay.book?.let {
-                tocActivityResult.launch(it.bookUrl)
+            if (VideoPlay.book != null) {
+                EpisodeListDialog().show(supportFragmentManager, "episodeList")
             }
         }
         binding.ivTimer.setOnClickListener {
