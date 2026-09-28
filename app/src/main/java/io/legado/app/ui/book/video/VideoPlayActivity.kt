@@ -5,13 +5,11 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
-import android.os.Build
 import android.os.Bundle
 import android.os.IBinder
 import android.view.Gravity
 import android.view.Menu
 import android.view.MenuItem
-import android.widget.SeekBar
 import androidx.activity.viewModels
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
@@ -39,18 +37,14 @@ import io.legado.app.ui.book.changesource.ChangeBookSourceDialog
 import io.legado.app.ui.book.source.edit.BookSourceEditActivity
 import io.legado.app.ui.book.toc.TocActivityResult
 import io.legado.app.ui.login.SourceLoginActivity
-import io.legado.app.ui.widget.seekbar.SeekBarChangeListener
 import io.legado.app.utils.StartActivityContract
-import io.legado.app.utils.applyNavigationBarPadding
 import io.legado.app.utils.dpToPx
-import io.legado.app.utils.invisible
 import io.legado.app.utils.observeEvent
 import io.legado.app.utils.observeEventSticky
 import io.legado.app.utils.sendToClip
 import io.legado.app.utils.showDialogFragment
 import io.legado.app.utils.startActivity
 import io.legado.app.utils.startActivityForBook
-import io.legado.app.utils.toDurationTime
 import io.legado.app.utils.viewbindingdelegate.viewBinding
 import io.legado.app.utils.visible
 import kotlinx.coroutines.Dispatchers.IO
@@ -62,7 +56,6 @@ import java.util.Locale
 /**
  * 视频播放
  */
-@SuppressLint("ObsoleteSdkInt")
 class VideoPlayActivity :
     VMBaseActivity<ActivityVideoPlayBinding, VideoPlayViewModel>(toolBarTheme = Theme.Dark),
     ChangeBookSourceDialog.CallBack,
@@ -71,19 +64,18 @@ class VideoPlayActivity :
     override val binding by viewBinding(ActivityVideoPlayBinding::inflate)
     override val viewModel by viewModels<VideoPlayViewModel>()
     private val timerSliderPopup by lazy { TimerSliderPopup(this) }
-    private var adjustProgress = false
     private var playMode = VideoPlay.PlayMode.LIST_END_STOP
 
     private var videoPlayService: VideoPlayService? = null
     private val connection = object : ServiceConnection {
         override fun onServiceConnected(name: ComponentName, service: IBinder) {
             videoPlayService = (service as VideoPlayService.LocalBinder).getService()
-            // 将视频画面绑定到 service 持有的 ExoPlayer
-            videoPlayService?.exoPlayer?.setVideoTextureView(binding.textureView)
+            // 视频画面与控制条交由 PlayerView, 播放器实例由 service 持有
+            binding.playerView.player = videoPlayService?.exoPlayer
         }
 
         override fun onServiceDisconnected(name: ComponentName) {
-            videoPlayService?.exoPlayer?.clearVideoSurface()
+            binding.playerView.player = null
             videoPlayService = null
         }
     }
@@ -172,44 +164,27 @@ class VideoPlayActivity :
             updatePlayModeIcon()
         }
 
-        binding.fabPlayStop.setOnClickListener {
-            playButton()
-        }
-        binding.fabPlayStop.onLongClick {
-            VideoPlay.stop()
-        }
         binding.ivSkipNext.setOnClickListener {
             VideoPlay.next()
+        }
+        // 长按调节倍速
+        binding.ivSkipNext.onLongClick {
+            VideoPlay.adjustSpeed(0.1f)
         }
         binding.ivSkipPrevious.setOnClickListener {
             VideoPlay.prev()
         }
-        binding.playerProgress.setOnSeekBarChangeListener(object : SeekBarChangeListener {
-            override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) {
-                binding.tvDurTime.text = progress.toDurationTime()
-            }
-
-            override fun onStartTrackingTouch(seekBar: SeekBar) {
-                adjustProgress = true
-            }
-
-            override fun onStopTrackingTouch(seekBar: SeekBar) {
-                adjustProgress = false
-                VideoPlay.adjustProgress(seekBar.progress)
-            }
-        })
+        binding.ivSkipPrevious.onLongClick {
+            VideoPlay.adjustSpeed(-0.1f)
+        }
         binding.ivChapter.setOnClickListener {
             VideoPlay.book?.let {
                 tocActivityResult.launch(it.bookUrl)
             }
         }
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
-            binding.ivTimer.invisible()
-        }
         binding.ivTimer.setOnClickListener {
             timerSliderPopup.showAsDropDown(it, 0, (-100).dpToPx(), Gravity.TOP)
         }
-        binding.llPlayMenu.applyNavigationBarPadding()
     }
 
     private fun updatePlayModeIcon() {
@@ -282,28 +257,12 @@ class VideoPlayActivity :
         }
         observeEventSticky<Int>(EventBus.AUDIO_STATE) {
             VideoPlay.status = it
-            if (it == Status.PLAY) {
-                binding.fabPlayStop.setImageResource(R.drawable.ic_pause_24dp)
-            } else {
-                binding.fabPlayStop.setImageResource(R.drawable.ic_play_24dp)
-            }
         }
         observeEventSticky<String>(EventBus.AUDIO_SUB_TITLE) {
             binding.titleBar.subtitle = it
             binding.ivSkipPrevious.isEnabled = VideoPlay.durChapterIndex > 0
             binding.ivSkipNext.isEnabled =
                 VideoPlay.durChapterIndex < VideoPlay.simulatedChapterSize - 1
-        }
-        observeEventSticky<Int>(EventBus.AUDIO_SIZE) {
-            binding.playerProgress.max = it
-            binding.tvAllTime.text = it.toDurationTime()
-        }
-        observeEventSticky<Int>(EventBus.AUDIO_PROGRESS) {
-            if (!adjustProgress) binding.playerProgress.progress = it
-            binding.tvDurTime.text = it.toDurationTime()
-        }
-        observeEventSticky<Int>(EventBus.AUDIO_BUFFER_PROGRESS) {
-            binding.playerProgress.secondaryProgress = it
         }
         observeEventSticky<Float>(EventBus.AUDIO_SPEED) {
             binding.tvSpeed.text = String.format(Locale.ROOT, "%.1fX", it)
@@ -321,9 +280,18 @@ class VideoPlayActivity :
         }
     }
 
+    override fun onPause() {
+        super.onPause()
+        binding.playerView.player?.let {
+            if (it.playWhenReady) {
+                it.pause()
+            }
+        }
+    }
+
     override fun onDestroy() {
         super.onDestroy()
-        videoPlayService?.exoPlayer?.clearVideoSurface()
+        binding.playerView.player = null
         try {
             @Suppress("DEPRECATION")
             unbindService(connection)
