@@ -10,8 +10,10 @@ import android.os.IBinder
 import android.view.Gravity
 import android.view.Menu
 import android.view.MenuItem
+import android.view.View
 import androidx.activity.viewModels
 import androidx.core.content.ContextCompat
+import androidx.media3.ui.PlayerView
 import androidx.lifecycle.lifecycleScope
 import io.legado.app.R
 import io.legado.app.base.VMBaseActivity
@@ -38,6 +40,7 @@ import io.legado.app.ui.book.source.edit.BookSourceEditActivity
 import io.legado.app.ui.login.SourceLoginActivity
 import io.legado.app.utils.StartActivityContract
 import io.legado.app.utils.dpToPx
+import io.legado.app.utils.invisible
 import io.legado.app.utils.observeEvent
 import io.legado.app.utils.observeEventSticky
 import io.legado.app.utils.sendToClip
@@ -146,6 +149,15 @@ class VideoPlayActivity :
     }
 
     private fun initView() {
+        // 标题栏与剧集控制条跟随 PlayerView 控制器显隐(点击视频区域显示, 超时自动隐藏)
+        binding.playerView.setControllerVisibilityListener(
+            PlayerView.ControllerVisibilityListener { visibility ->
+                val show = visibility == View.VISIBLE
+                listOf(binding.titleBar, binding.llEpisodeMenu).forEach {
+                    if (show) it.visible() else it.invisible()
+                }
+            }
+        )
         binding.ivPlayMode.setOnClickListener {
             VideoPlay.changePlayMode()
         }
