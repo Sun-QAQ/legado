@@ -971,6 +971,7 @@
     <string name="read_record_today_at">今天 %1$s</string>
     <string name="read_record_yesterday">昨天</string>
     <string name="read_record_days_ago">%1$d 天前</string>
+    <string name="read_record_untitled_book">未命名书籍</string>
     <string name="un_select_all">全不选</string>
     <string name="import_str">导入</string>
     <string name="export_str">导出</string>

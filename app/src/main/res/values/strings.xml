@@ -985,6 +985,7 @@
     <string name="read_record_today_at">Today %1$s</string>
     <string name="read_record_yesterday">Yesterday</string>
     <string name="read_record_days_ago">%1$d days ago</string>
+    <string name="read_record_untitled_book">Untitled book</string>
     <string name="un_select_all">Unselect all</string>
     <string name="import_str">Import</string>
     <string name="export_str">Export</string>

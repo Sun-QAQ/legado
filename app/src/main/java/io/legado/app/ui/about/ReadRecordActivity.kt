@@ -59,9 +59,6 @@ class ReadRecordActivity : BaseActivity<ActivityReadRecordBinding>() {
         set(value) {
             LocalConfig.putInt("readRecordSort", value)
         }
-    private val searchView: SearchView by lazy {
-        binding.titleBar.findViewById(R.id.search_view)
-    }
     private val filterViews by lazy {
         mapOf(
             RecordFilter.ALL to binding.tvFilterAll,
@@ -81,6 +78,7 @@ class ReadRecordActivity : BaseActivity<ActivityReadRecordBinding>() {
 
     override fun onCompatCreateOptionsMenu(menu: Menu): Boolean {
         menuInflater.inflate(R.menu.book_read_record, menu)
+        initSearchView(menu.findItem(R.id.menu_search))
         return super.onCompatCreateOptionsMenu(menu)
     }
 
@@ -122,7 +120,6 @@ class ReadRecordActivity : BaseActivity<ActivityReadRecordBinding>() {
     }
 
     private fun initView() {
-        initSearchView()
         applyTheme()
         binding.recyclerView.apply {
             adapter = this@ReadRecordActivity.adapter
@@ -151,21 +148,28 @@ class ReadRecordActivity : BaseActivity<ActivityReadRecordBinding>() {
         updateFilterStyle()
     }
 
-    private fun initSearchView() {
-        searchView.applyTint(primaryTextColor)
-        searchView.isSubmitButtonEnabled = true
-        searchView.queryHint = getString(R.string.search)
-        searchView.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
-            override fun onQueryTextSubmit(query: String): Boolean {
-                searchView.clearFocus()
-                return false
+    private fun initSearchView(searchMenu: MenuItem) {
+        (searchMenu.actionView as? SearchView)?.apply {
+            applyTint(primaryTextColor)
+            maxWidth = resources.displayMetrics.widthPixels
+            isSubmitButtonEnabled = true
+            queryHint = getString(R.string.search)
+            setOnCloseListener {
+                initData("")
+                false
             }
+            setOnQueryTextListener(object : SearchView.OnQueryTextListener {
+                override fun onQueryTextSubmit(query: String): Boolean {
+                    clearFocus()
+                    return false
+                }
 
-            override fun onQueryTextChange(newText: String?): Boolean {
-                initData(newText.orEmpty())
-                return false
-            }
-        })
+                override fun onQueryTextChange(newText: String?): Boolean {
+                    initData(newText.orEmpty())
+                    return false
+                }
+            })
+        }
     }
 
     private fun applyTheme() {
@@ -207,7 +211,7 @@ class ReadRecordActivity : BaseActivity<ActivityReadRecordBinding>() {
                 val weekStart = System.currentTimeMillis() - TimeUnit.DAYS.toMillis(7)
                 appDb.readRecordDao.allTime to (appDb.readRecordDao.readTimeSince(weekStart) ?: 0L)
             }
-            binding.tvReadingTime.text = formatDuring(times.first)
+            binding.tvReadingTime.text = formatSummaryDuring(times.first)
             binding.tvWeekReadingTime.text = getString(
                 R.string.read_record_week_summary,
                 formatDuring(times.second),
@@ -305,9 +309,10 @@ class ReadRecordActivity : BaseActivity<ActivityReadRecordBinding>() {
                 root.background = roundedBackground(palette.surface, 16)
                 tvBookInitial.background = roundedBackground(palette.accentContainer, 12)
                 tvBookInitial.setTextColor(context.accentColor)
-                tvBookInitial.text = item.bookName.firstOrNull()?.toString().orEmpty()
+                val displayName = item.bookName.ifBlank { getString(R.string.read_record_untitled_book) }
+                tvBookInitial.text = displayName.firstOrNull()?.toString().orEmpty()
                 tvBookName.setTextColor(context.primaryTextColor)
-                tvBookName.text = item.bookName
+                tvBookName.text = displayName
                 tvReadingTimeTag.setTextColor(context.secondaryTextColor)
                 tvReadingTimeTag.text = getString(R.string.reading_time_tag) + formatDuring(item.readTime)
                 tvLastReadTime.setTextColor(context.secondaryTextColor)
@@ -362,5 +367,15 @@ class ReadRecordActivity : BaseActivity<ActivityReadRecordBinding>() {
         val m = if (minutes > 0) "${minutes}分钟" else ""
         val s = if (seconds > 0) "${seconds}秒" else ""
         return "$d$h$m$s".ifBlank { "0秒" }
+    }
+
+    private fun formatSummaryDuring(mss: Long): String {
+        val days = mss / TimeUnit.DAYS.toMillis(1)
+        val hours = mss % TimeUnit.DAYS.toMillis(1) / TimeUnit.HOURS.toMillis(1)
+        return when {
+            days > 0 -> "${days}天${hours}小时"
+            hours > 0 -> "${hours}小时${mss % TimeUnit.HOURS.toMillis(1) / TimeUnit.MINUTES.toMillis(1)}分钟"
+            else -> formatDuring(mss)
+        }
     }
 }

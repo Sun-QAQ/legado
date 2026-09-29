@@ -10,7 +10,6 @@
         android:id="@+id/title_bar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        app:contentLayout="@layout/view_search"
         app:title="@string/read_record" />
 
     <androidx.constraintlayout.widget.ConstraintLayout
@@ -34,23 +33,26 @@
 
         <TextView
             android:id="@+id/tv_reading_time"
-            android:layout_width="wrap_content"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
+            android:ellipsize="end"
             android:singleLine="true"
-            android:textSize="28sp"
+            android:textSize="26sp"
             android:textStyle="bold"
             app:layout_constraintLeft_toLeftOf="parent"
+            app:layout_constraintRight_toLeftOf="@id/tv_clear_all"
             app:layout_constraintTop_toBottomOf="@id/tv_summary_title"
             tools:text="128小时36分钟" />
 
         <TextView
             android:id="@+id/tv_week_reading_time"
-            android:layout_width="wrap_content"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginTop="6dp"
             android:singleLine="true"
             android:textSize="12sp"
             app:layout_constraintLeft_toLeftOf="parent"
+            app:layout_constraintRight_toLeftOf="@id/tv_clear_all"
             app:layout_constraintTop_toBottomOf="@id/tv_reading_time"
             tools:text="近 7 天阅读 6小时42分钟" />
 
