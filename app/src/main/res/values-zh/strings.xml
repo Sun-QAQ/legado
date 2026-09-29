@@ -972,6 +972,10 @@
     <string name="read_record_yesterday">昨天</string>
     <string name="read_record_days_ago">%1$d 天前</string>
     <string name="read_record_untitled_book">未命名书籍</string>
+    <string name="read_record_week_chart_title">近 7 天阅读</string>
+    <string name="read_record_week_chart_range">%1$s — %2$s</string>
+    <string name="read_record_week_chart_date">%1$d月%2$d日</string>
+    <string name="read_record_today_short">今</string>
     <string name="un_select_all">全不选</string>
     <string name="import_str">导入</string>
     <string name="export_str">导出</string>

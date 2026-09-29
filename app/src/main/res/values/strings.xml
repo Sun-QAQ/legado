@@ -986,6 +986,10 @@
     <string name="read_record_yesterday">Yesterday</string>
     <string name="read_record_days_ago">%1$d days ago</string>
     <string name="read_record_untitled_book">Untitled book</string>
+    <string name="read_record_week_chart_title">Past 7 days</string>
+    <string name="read_record_week_chart_range">%1$s — %2$s</string>
+    <string name="read_record_week_chart_date">%1$d/%2$d</string>
+    <string name="read_record_today_short">Today</string>
     <string name="un_select_all">Unselect all</string>
     <string name="import_str">Import</string>
     <string name="export_str">Export</string>

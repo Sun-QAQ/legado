@@ -6,6 +6,7 @@ import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
 import android.view.Menu
 import android.view.MenuItem
+import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import androidx.appcompat.widget.SearchView
@@ -40,15 +41,23 @@ import kotlinx.coroutines.Dispatchers.IO
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
+import java.time.LocalDate
+import java.time.format.TextStyle
 import java.util.Calendar
 import java.util.Locale
 import java.util.concurrent.TimeUnit
+import kotlin.math.roundToInt
 
 class ReadRecordActivity : BaseActivity<ActivityReadRecordBinding>() {
 
     private enum class RecordFilter {
         ALL, TODAY, WEEK, EARLIER
     }
+
+    private data class DailyReadTime(
+        val date: LocalDate,
+        val readTime: Long,
+    )
 
     private val adapter by lazy { RecordAdapter(this) }
     private val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
@@ -69,6 +78,28 @@ class ReadRecordActivity : BaseActivity<ActivityReadRecordBinding>() {
             RecordFilter.TODAY to binding.tvFilterToday,
             RecordFilter.WEEK to binding.tvFilterWeek,
             RecordFilter.EARLIER to binding.tvFilterEarlier,
+        )
+    }
+    private val weekBarViews: List<View> by lazy {
+        listOf(
+            binding.vWeekBar0,
+            binding.vWeekBar1,
+            binding.vWeekBar2,
+            binding.vWeekBar3,
+            binding.vWeekBar4,
+            binding.vWeekBar5,
+            binding.vWeekBar6,
+        )
+    }
+    private val weekDayViews: List<TextView> by lazy {
+        listOf(
+            binding.tvWeekDay0,
+            binding.tvWeekDay1,
+            binding.tvWeekDay2,
+            binding.tvWeekDay3,
+            binding.tvWeekDay4,
+            binding.tvWeekDay5,
+            binding.tvWeekDay6,
         )
     }
 
@@ -191,6 +222,10 @@ class ReadRecordActivity : BaseActivity<ActivityReadRecordBinding>() {
         binding.tvReadingTime.setTextColor(summaryText)
         binding.tvWeekReadingTime.setTextColor(ColorUtils.withAlpha(summaryText, 0.78f))
         binding.tvClearAll.setTextColor(ColorUtils.withAlpha(summaryText, 0.84f))
+        binding.weekChartCard.background = roundedBackground(palette.surface, 20)
+        binding.tvWeekChartTitle.setTextColor(palette.text)
+        binding.tvWeekChartRange.setTextColor(palette.secondaryText)
+        binding.tvWeekChartTotal.setTextColor(accent)
         binding.tvRecordSectionTitle.setTextColor(palette.text)
         binding.tvRecordCount.setTextColor(palette.secondaryText)
     }
@@ -211,16 +246,66 @@ class ReadRecordActivity : BaseActivity<ActivityReadRecordBinding>() {
 
     private fun initAllTime() {
         lifecycleScope.launch {
-            val times = withContext(IO) {
-                val weekStart = System.currentTimeMillis() - TimeUnit.DAYS.toMillis(7)
-                appDb.readRecordDao.allTime to (appDb.readRecordDao.readTimeSince(weekStart) ?: 0L)
+            val readSummary = withContext(IO) {
+                val today = LocalDate.now()
+                val startDate = today.minusDays(6)
+                val timesByDate = appDb.readStatDao
+                    .getStats(startDate.toEpochDay(), today.toEpochDay())
+                    .groupBy { it.date }
+                    .mapValues { (_, stats) -> stats.sumOf { it.readTime } }
+                val weekReadTimes = (0L..6L).map { offset ->
+                    val date = startDate.plusDays(offset)
+                    DailyReadTime(date, timesByDate[date.toEpochDay()] ?: 0L)
+                }
+                appDb.readRecordDao.allTime to weekReadTimes
             }
-            binding.tvReadingTime.text = formatHoursAndMinutes(times.first)
+            val weekTotal = readSummary.second.sumOf { it.readTime }
+            binding.tvReadingTime.text = formatHoursAndMinutes(readSummary.first)
             binding.tvWeekReadingTime.text = getString(
                 R.string.read_record_week_summary,
-                formatHoursAndMinutes(times.second),
+                formatHoursAndMinutes(weekTotal),
             )
+            updateWeekChart(readSummary.second)
         }
+    }
+
+    private fun updateWeekChart(readTimes: List<DailyReadTime>) {
+        if (readTimes.size != weekBarViews.size) return
+        val palette = ThemePalette(this)
+        val accent = accentColor
+        val today = LocalDate.now()
+        val maxReadTime = readTimes.maxOfOrNull { it.readTime }?.coerceAtLeast(1L) ?: 1L
+        binding.tvWeekChartRange.text = getString(
+            R.string.read_record_week_chart_range,
+            formatChartDate(readTimes.first().date),
+            formatChartDate(readTimes.last().date),
+        )
+        binding.tvWeekChartTotal.text = formatHoursAndMinutes(readTimes.sumOf { it.readTime })
+        readTimes.forEachIndexed { index, day ->
+            val isToday = day.date == today
+            val barHeight = (64.dpToPx() * day.readTime.toDouble() / maxReadTime)
+                .roundToInt()
+                .coerceAtLeast(6.dpToPx())
+            weekBarViews[index].apply {
+                layoutParams = layoutParams.apply { height = barHeight }
+                background = roundedBackground(
+                    if (isToday) accent else palette.accentContainer,
+                    7,
+                )
+            }
+            weekDayViews[index].apply {
+                text = if (isToday) {
+                    getString(R.string.read_record_today_short)
+                } else {
+                    day.date.dayOfWeek.getDisplayName(TextStyle.NARROW, Locale.getDefault())
+                }
+                setTextColor(if (isToday) accent else palette.secondaryText)
+            }
+        }
+    }
+
+    private fun formatChartDate(date: LocalDate): String {
+        return getString(R.string.read_record_week_chart_date, date.monthValue, date.dayOfMonth)
     }
 
     private fun initData(query: String = searchKey) {
