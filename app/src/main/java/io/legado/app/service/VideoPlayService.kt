@@ -7,6 +7,7 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.drawable.Drawable
 import android.media.AudioManager
 import android.net.wifi.WifiManager.WIFI_MODE_FULL_HIGH_PERF
 import android.os.Binder
@@ -23,6 +24,9 @@ import androidx.media.AudioFocusRequestCompat
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
+import com.bumptech.glide.Glide
+import com.bumptech.glide.request.target.CustomTarget
+import com.bumptech.glide.request.transition.Transition
 import io.legado.app.R
 import io.legado.app.base.BaseService
 import io.legado.app.constant.AppConst
@@ -131,6 +135,7 @@ class VideoPlayService : BaseService(),
     private var playSpeed: Float = 1f
     private var cover: Bitmap =
         BitmapFactory.decodeResource(appCtx.resources, R.drawable.icon_read_book)
+    private var coverTarget: CustomTarget<Bitmap>? = null
 
     override fun onCreate() {
         super.onCreate()
@@ -141,18 +146,33 @@ class VideoPlayService : BaseService(),
         initBroadcastReceiver()
         upMediaSessionPlaybackState(PlaybackStateCompat.STATE_PLAYING)
         doDs()
-        execute {
-            ImageLoader
-                .loadBitmap(this@VideoPlayService, VideoPlay.book?.getDisplayCover())
-                .submit()
-                .get()
-        }.onSuccess {
-            if (it.width > 16 && it.height > 16) {
-                cover = it
-                upMediaMetadata()
-                upVideoPlayNotification()
+        upCover()
+    }
+
+    /**
+     * 异步加载封面, 用于媒体会话和前台通知
+     * 不能阻塞服务初始化: 封面地址多为远端地址,
+     * 网络不通时会一直等待到超时, 既拖慢播放也抛出大量异常堆栈
+     */
+    private fun upCover() {
+        val coverPath = VideoPlay.book?.getDisplayCover()
+        if (coverPath.isNullOrEmpty()) return
+        coverTarget?.let { Glide.with(this).clear(it) }
+        val target = object : CustomTarget<Bitmap>() {
+            override fun onResourceReady(resource: Bitmap, transition: Transition<in Bitmap>?) {
+                if (resource.width > 16 && resource.height > 16) {
+                    cover = resource
+                    upMediaMetadata()
+                    upVideoPlayNotification()
+                }
             }
+
+            override fun onLoadCleared(placeholder: Drawable?) = Unit
+
+            override fun onLoadFailed(errorDrawable: Drawable?) = Unit
         }
+        coverTarget = target
+        ImageLoader.loadBitmap(this, coverPath).into(target)
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -207,6 +227,8 @@ class VideoPlayService : BaseService(),
             wifiLock?.release()
         }
         isRun = false
+        coverTarget?.let { Glide.with(this).clear(it) }
+        coverTarget = null
         abandonFocus()
         exoPlayer.release()
         mediaSessionCompat?.release()
