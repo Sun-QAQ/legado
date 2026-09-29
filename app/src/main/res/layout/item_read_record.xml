@@ -33,7 +33,7 @@
         android:textSize="15sp"
         android:textStyle="bold"
         app:layout_constraintLeft_toRightOf="@id/tv_book_initial"
-        app:layout_constraintMarginLeft="12dp"
+        android:layout_marginStart="12dp"
         app:layout_constraintRight_toLeftOf="@+id/tv_remove"
         app:layout_constraintTop_toTopOf="parent"
         tools:ignore="RtlHardcoded"
@@ -46,7 +46,7 @@
         android:singleLine="true"
         android:textSize="12sp"
         app:layout_constraintLeft_toRightOf="@id/tv_book_initial"
-        app:layout_constraintMarginLeft="12dp"
+        android:layout_marginStart="12dp"
         app:layout_constraintRight_toLeftOf="@id/tv_remove"
         app:layout_constraintTop_toBottomOf="@id/tv_book_name"
         tools:text="阅读 58 分钟" />
@@ -58,7 +58,7 @@
         android:singleLine="true"
         android:textSize="12sp"
         app:layout_constraintLeft_toRightOf="@id/tv_book_initial"
-        app:layout_constraintMarginLeft="12dp"
+        android:layout_marginStart="12dp"
         app:layout_constraintRight_toLeftOf="@id/tv_remove"
         app:layout_constraintTop_toBottomOf="@id/tv_reading_time_tag"
         tools:text="今天 08:12" />
