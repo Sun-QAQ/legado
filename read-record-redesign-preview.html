@@ -53,15 +53,25 @@
     .top-actions { display:flex; gap:8px; }
     .icon { display:grid; place-items:center; border:0; width:37px; height:37px; color:var(--text); background:var(--surface); border-radius:13px; box-shadow:var(--card-shadow); }
     .icon svg { width:19px; height:19px; fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
-    .summary { position:relative; overflow:hidden; display:grid; grid-template-columns:1fr 105px; gap:8px; margin-top:18px; padding:18px; min-height:139px; color:#fff; border-radius:22px; background:linear-gradient(135deg,#5c45a1,#9278dc); box-shadow:0 13px 28px rgba(103,80,164,.28); }
+    .summary { position:relative; overflow:hidden; margin-top:18px; padding:18px; min-height:124px; color:#fff; border-radius:22px; background:linear-gradient(135deg,#5c45a1,#9278dc); box-shadow:0 13px 28px rgba(103,80,164,.28); }
     .summary::after { content:""; position:absolute; right:-43px; bottom:-70px; width:172px; height:172px; border:30px solid rgba(255,255,255,.12); border-radius:50%; }
     .summary .label { position:relative; z-index:1; font-size:12px; opacity:.85; }
     .summary .time { position:relative; z-index:1; margin-top:5px; font-size:30px; font-weight:800; letter-spacing:-.055em; }
     .summary .time small { margin-left:3px; font-size:14px; letter-spacing:0; }
     .summary .delta { position:relative; z-index:1; display:inline-flex; margin-top:10px; padding:4px 8px; border-radius:8px; background:rgba(255,255,255,.16); font-size:10px; }
-    .chart { position:relative; z-index:1; align-self:end; display:flex; height:78px; gap:7px; align-items:end; justify-content:center; }
-    .bar { width:6px; border-radius:99px; background:rgba(255,255,255,.37); }
-    .bar.today { background:white; box-shadow:0 0 0 4px rgba(255,255,255,.14); }
+    .weekly-card { margin-top:14px; padding:15px 15px 12px; border-radius:20px; background:var(--surface); box-shadow:var(--card-shadow); }
+    .weekly-head { display:flex; align-items:start; justify-content:space-between; }
+    .weekly-head h2 { margin:0; font-size:15px; letter-spacing:-.02em; }
+    .weekly-head p { margin:4px 0 0; color:var(--text-3); font-size:10px; }
+    .weekly-total { color:var(--primary); font-size:12px; font-weight:800; }
+    .weekly-total b { font-size:17px; letter-spacing:-.04em; }
+    .week-plot { position:relative; display:flex; height:91px; align-items:end; justify-content:space-between; margin-top:8px; padding:0 2px; }
+    .week-plot::before { content:""; position:absolute; right:0; bottom:19px; left:0; height:66px; background:repeating-linear-gradient(to bottom,transparent 0,transparent 20px,var(--line) 21px); pointer-events:none; }
+    .week-column { position:relative; z-index:1; display:flex; width:29px; height:91px; flex-direction:column; align-items:center; justify-content:end; gap:6px; }
+    .week-column i { display:block; width:14px; min-height:6px; border-radius:7px 7px 3px 3px; background:var(--primary-soft); transition:height .2s; }
+    .week-column.today i { background:linear-gradient(180deg,var(--primary-2),var(--primary)); box-shadow:0 4px 9px rgba(103,80,164,.27); }
+    .week-column span { color:var(--text-3); font-size:9px; }
+    .week-column.today span { color:var(--primary); font-weight:800; }
     .section-head { display:flex; align-items:center; justify-content:space-between; margin:23px 1px 11px; }
     .section-head h2 { margin:0; font-size:16px; letter-spacing:-.02em; }
     .section-head span { color:var(--text-3); font-size:11px; }
@@ -135,7 +145,18 @@
           </div></header>
           <section class="summary">
             <div><div class="label">累计阅读时长</div><div class="time">128<small>小时 36 分</small></div><div class="delta">↑ 本周已读 6 小时 42 分</div></div>
-            <div class="chart" aria-label="最近七天阅读时长"><i class="bar" style="height:28%"></i><i class="bar" style="height:45%"></i><i class="bar" style="height:32%"></i><i class="bar" style="height:70%"></i><i class="bar" style="height:54%"></i><i class="bar" style="height:83%"></i><i class="bar today" style="height:49%"></i></div>
+          </section>
+          <section class="weekly-card" aria-label="近七天阅读时间柱状图">
+            <div class="weekly-head"><div><h2>近 7 天阅读</h2><p>9 月 23 日 — 9 月 29 日</p></div><div class="weekly-total"><b>6</b> 小时 42 分</div></div>
+            <div class="week-plot">
+              <div class="week-column" title="周二：34 分钟"><i style="height:22px"></i><span>二</span></div>
+              <div class="week-column" title="周三：46 分钟"><i style="height:29px"></i><span>三</span></div>
+              <div class="week-column" title="周四：39 分钟"><i style="height:25px"></i><span>四</span></div>
+              <div class="week-column" title="周五：1 小时 12 分"><i style="height:45px"></i><span>五</span></div>
+              <div class="week-column" title="周六：1 小时 2 分"><i style="height:39px"></i><span>六</span></div>
+              <div class="week-column" title="周日：1 小时 23 分"><i style="height:53px"></i><span>日</span></div>
+              <div class="week-column today" title="今天：1 小时 6 分"><i style="height:42px"></i><span>今</span></div>
+            </div>
           </section>
           <div class="section-head"><h2>阅读足迹</h2><span id="countLabel">共 24 本</span></div>
           <div class="filters" id="filters"><button class="filter active" data-filter="all">全部</button><button class="filter" data-filter="today">今天</button><button class="filter" data-filter="week">近 7 天</button><button class="filter" data-filter="older">更早</button></div>
