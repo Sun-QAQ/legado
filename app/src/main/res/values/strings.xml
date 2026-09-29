@@ -974,6 +974,17 @@
     <string name="local_tts">Local TTS</string>
     <string name="thread_count">Thread count</string>
     <string name="all_read_time">Total read time</string>
+    <string name="read_record_footprints">Reading footprint</string>
+    <string name="read_record_count">%1$d books</string>
+    <string name="read_record_week_summary">Read %1$s in the past 7 days</string>
+    <string name="read_record_clear_all">Clear records</string>
+    <string name="read_record_filter_all">All</string>
+    <string name="read_record_filter_today">Today</string>
+    <string name="read_record_filter_week">Past 7 days</string>
+    <string name="read_record_filter_earlier">Earlier</string>
+    <string name="read_record_today_at">Today %1$s</string>
+    <string name="read_record_yesterday">Yesterday</string>
+    <string name="read_record_days_ago">%1$d days ago</string>
     <string name="un_select_all">Unselect all</string>
     <string name="import_str">Import</string>
     <string name="export_str">Export</string>

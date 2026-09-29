@@ -22,6 +22,9 @@ interface ReadRecordDao {
     @get:Query("select sum(readTime) from readRecord")
     val allTime: Long
 
+    @Query("select sum(readTime) from readRecord where lastRead >= :startTime")
+    fun readTimeSince(startTime: Long): Long?
+
     @Query(
         """
         select bookName, sum(readTime) as readTime, max(lastRead) as lastRead 

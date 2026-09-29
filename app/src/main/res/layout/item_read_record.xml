@@ -4,79 +4,74 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:background="?attr/selectableItemBackground"
-    android:paddingLeft="10dp"
-    android:paddingRight="10dp">
+    android:layout_marginLeft="16dp"
+    android:layout_marginTop="4dp"
+    android:layout_marginRight="16dp"
+    android:layout_marginBottom="4dp"
+    android:background="@drawable/bg_stat_card"
+    android:minHeight="76dp"
+    android:padding="12dp">
+
+    <TextView
+        android:id="@+id/tv_book_initial"
+        android:layout_width="42dp"
+        android:layout_height="52dp"
+        android:gravity="center"
+        android:maxLines="1"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        tools:text="长" />
 
     <TextView
         android:id="@+id/tv_book_name"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:padding="6dp"
-        android:textColor="@color/primaryText"
         android:singleLine="true"
-        app:layout_constraintLeft_toLeftOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
+        android:textSize="15sp"
+        android:textStyle="bold"
+        app:layout_constraintLeft_toRightOf="@id/tv_book_initial"
+        app:layout_constraintMarginLeft="12dp"
         app:layout_constraintRight_toLeftOf="@+id/tv_remove"
-        tools:text="name"
-        tools:ignore="RtlHardcoded" />
+        app:layout_constraintTop_toTopOf="parent"
+        tools:ignore="RtlHardcoded"
+        tools:text="name" />
 
     <TextView
         android:id="@+id/tv_reading_time_tag"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:padding="6dp"
-        android:singleLine="true"
-        android:text="@string/reading_time_tag"
-        android:textColor="@color/secondaryText"
-        app:layout_constraintLeft_toLeftOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/tv_book_name" />
-
-    <TextView
-        android:id="@+id/tv_reading_time"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:padding="6dp"
         android:singleLine="true"
-        android:textColor="@color/secondaryText"
-        app:layout_constraintLeft_toRightOf="@+id/tv_reading_time_tag"
+        android:textSize="12sp"
+        app:layout_constraintLeft_toRightOf="@id/tv_book_initial"
+        app:layout_constraintMarginLeft="12dp"
+        app:layout_constraintRight_toLeftOf="@id/tv_remove"
         app:layout_constraintTop_toBottomOf="@id/tv_book_name"
-        app:layout_constraintRight_toLeftOf="@+id/tv_remove"
-        tools:text="readingTime" />
-
-    <TextView
-        android:id="@+id/tv_last_read_time_tag"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:padding="6dp"
-        android:singleLine="true"
-        android:text="@string/last_read_time_tag"
-        android:textColor="@color/secondaryText"
-        app:layout_constraintLeft_toLeftOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/tv_reading_time_tag" />
+        tools:text="阅读 58 分钟" />
 
     <TextView
         android:id="@+id/tv_last_read_time"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:padding="6dp"
         android:singleLine="true"
-        android:textColor="@color/secondaryText"
-        app:layout_constraintLeft_toRightOf="@+id/tv_last_read_time_tag"
+        android:textSize="12sp"
+        app:layout_constraintLeft_toRightOf="@id/tv_book_initial"
+        app:layout_constraintMarginLeft="12dp"
+        app:layout_constraintRight_toLeftOf="@id/tv_remove"
         app:layout_constraintTop_toBottomOf="@id/tv_reading_time_tag"
-        app:layout_constraintRight_toLeftOf="@+id/tv_remove"
-        tools:text="readingTime" />
+        tools:text="今天 08:12" />
 
-    <TextView
+    <ImageButton
         android:id="@+id/tv_remove"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:padding="6dp"
-        android:text="@string/clear"
-        android:textColor="@color/primaryText"
-        android:background="?attr/selectableItemBackground"
+        android:layout_width="36dp"
+        android:layout_height="36dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:contentDescription="@string/clear"
+        android:padding="8dp"
+        android:src="@drawable/ic_more_vert"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintRight_toRightOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintBottom_toBottomOf="parent" />
-
+        app:layout_constraintTop_toTopOf="parent" />
 </androidx.constraintlayout.widget.ConstraintLayout>
