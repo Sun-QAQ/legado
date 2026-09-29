@@ -211,10 +211,10 @@ class ReadRecordActivity : BaseActivity<ActivityReadRecordBinding>() {
                 val weekStart = System.currentTimeMillis() - TimeUnit.DAYS.toMillis(7)
                 appDb.readRecordDao.allTime to (appDb.readRecordDao.readTimeSince(weekStart) ?: 0L)
             }
-            binding.tvReadingTime.text = formatSummaryDuring(times.first)
+            binding.tvReadingTime.text = formatHoursAndMinutes(times.first)
             binding.tvWeekReadingTime.text = getString(
                 R.string.read_record_week_summary,
-                formatDuring(times.second),
+                formatHoursAndMinutes(times.second),
             )
         }
     }
@@ -369,13 +369,9 @@ class ReadRecordActivity : BaseActivity<ActivityReadRecordBinding>() {
         return "$d$h$m$s".ifBlank { "0秒" }
     }
 
-    private fun formatSummaryDuring(mss: Long): String {
-        val days = mss / TimeUnit.DAYS.toMillis(1)
-        val hours = mss % TimeUnit.DAYS.toMillis(1) / TimeUnit.HOURS.toMillis(1)
-        return when {
-            days > 0 -> "${days}天${hours}小时"
-            hours > 0 -> "${hours}小时${mss % TimeUnit.HOURS.toMillis(1) / TimeUnit.MINUTES.toMillis(1)}分钟"
-            else -> formatDuring(mss)
-        }
+    private fun formatHoursAndMinutes(mss: Long): String {
+        val hours = mss / TimeUnit.HOURS.toMillis(1)
+        val minutes = mss % TimeUnit.HOURS.toMillis(1) / TimeUnit.MINUTES.toMillis(1)
+        return "${hours}小时${minutes}分钟"
     }
 }
