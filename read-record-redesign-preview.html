@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Legado · 阅读记录重设计原型</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --primary:#6750a4; --primary-2:#8f78d5; --primary-soft:#eee8ff;
+      --bg:#f7f6fb; --surface:#fff; --surface-2:#f1eff7; --line:#e6e1ec;
+      --text:#1d1b20; --text-2:#625b69; --text-3:#938c98; --danger:#b3261e;
+      --shadow:0 24px 64px rgba(40,31,67,.16); --card-shadow:0 5px 20px rgba(43,35,64,.08);
+    }
+    [data-theme="dark"] {
+      color-scheme:dark;
+      --primary:#d0bcff; --primary-2:#aa8eff; --primary-soft:#332c4b;
+      --bg:#141218; --surface:#211f26; --surface-2:#2b2930; --line:#48454f;
+      --text:#e7e0ec; --text-2:#cac4d0; --text-3:#938f99; --danger:#ffb4ab;
+      --shadow:0 24px 64px rgba(0,0,0,.42); --card-shadow:0 5px 20px rgba(0,0,0,.2);
+    }
+    * { box-sizing:border-box; }
+    button,input { font:inherit; }
+    button { color:inherit; cursor:pointer; }
+    body {
+      margin:0; min-height:100vh; color:var(--text); background:
+        radial-gradient(circle at 10% 15%,rgba(115,91,189,.17),transparent 27%),
+        radial-gradient(circle at 88% 82%,rgba(241,147,178,.12),transparent 25%),var(--bg);
+      font-family:"HarmonyOS Sans SC","PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+      transition:.25s background,.25s color;
+    }
+    .prototype { min-height:100vh; display:grid; grid-template-columns:360px 393px; justify-content:center; align-items:center; gap:72px; padding:36px 22px; }
+    .brief { max-width:360px; }
+    .eyebrow { color:var(--primary); font-size:12px; letter-spacing:.14em; font-weight:800; }
+    .eyebrow::before { content:""; display:inline-block; width:25px; height:3px; margin-right:9px; vertical-align:middle; border-radius:99px; background:currentColor; }
+    .brief h1 { margin:17px 0 13px; font-size:44px; line-height:1.1; letter-spacing:-.055em; }
+    .brief > p { margin:0; color:var(--text-2); line-height:1.75; font-size:15px; }
+    .points { margin-top:28px; padding:0; list-style:none; }
+    .points li { display:grid; grid-template-columns:28px 1fr; gap:11px; padding:13px 0; border-bottom:1px solid var(--line); font-size:13px; line-height:1.55; }
+    .points b { display:grid; place-items:center; width:28px; height:28px; border-radius:9px; color:var(--primary); background:var(--primary-soft); font-size:12px; }
+    .points strong { display:block; margin-bottom:2px; font-size:14px; }
+    .hint { margin-top:21px; color:var(--text-3); font-size:12px; }
+
+    .phone { position:relative; width:393px; height:852px; border:13px solid #29272d; border-radius:51px; background:#29272d; box-shadow:var(--shadow),inset 0 0 0 1px rgba(255,255,255,.1); overflow:hidden; }
+    .phone::before { content:""; position:absolute; z-index:9; top:0; left:50%; width:126px; height:28px; transform:translateX(-50%); border-radius:0 0 18px 18px; background:#29272d; }
+    .screen { position:relative; height:100%; overflow:hidden; border-radius:39px; background:var(--bg); }
+    .status { height:42px; padding:16px 27px 0; display:flex; align-items:center; justify-content:space-between; font-size:11px; font-weight:700; }
+    .status-icons { display:flex; align-items:center; gap:5px; font-size:12px; }
+    .app { height:calc(100% - 42px); overflow:auto; scrollbar-width:none; padding:12px 18px 118px; }
+    .app::-webkit-scrollbar { display:none; }
+    .topbar { display:flex; align-items:center; justify-content:space-between; }
+    .page-title { font-size:25px; font-weight:800; letter-spacing:-.04em; }
+    .top-actions { display:flex; gap:8px; }
+    .icon { display:grid; place-items:center; border:0; width:37px; height:37px; color:var(--text); background:var(--surface); border-radius:13px; box-shadow:var(--card-shadow); }
+    .icon svg { width:19px; height:19px; fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+    .summary { position:relative; overflow:hidden; display:grid; grid-template-columns:1fr 105px; gap:8px; margin-top:18px; padding:18px; min-height:139px; color:#fff; border-radius:22px; background:linear-gradient(135deg,#5c45a1,#9278dc); box-shadow:0 13px 28px rgba(103,80,164,.28); }
+    .summary::after { content:""; position:absolute; right:-43px; bottom:-70px; width:172px; height:172px; border:30px solid rgba(255,255,255,.12); border-radius:50%; }
+    .summary .label { position:relative; z-index:1; font-size:12px; opacity:.85; }
+    .summary .time { position:relative; z-index:1; margin-top:5px; font-size:30px; font-weight:800; letter-spacing:-.055em; }
+    .summary .time small { margin-left:3px; font-size:14px; letter-spacing:0; }
+    .summary .delta { position:relative; z-index:1; display:inline-flex; margin-top:10px; padding:4px 8px; border-radius:8px; background:rgba(255,255,255,.16); font-size:10px; }
+    .chart { position:relative; z-index:1; align-self:end; display:flex; height:78px; gap:7px; align-items:end; justify-content:center; }
+    .bar { width:6px; border-radius:99px; background:rgba(255,255,255,.37); }
+    .bar.today { background:white; box-shadow:0 0 0 4px rgba(255,255,255,.14); }
+    .section-head { display:flex; align-items:center; justify-content:space-between; margin:23px 1px 11px; }
+    .section-head h2 { margin:0; font-size:16px; letter-spacing:-.02em; }
+    .section-head span { color:var(--text-3); font-size:11px; }
+    .filters { display:flex; gap:8px; overflow:auto; padding:1px 1px 4px; scrollbar-width:none; }
+    .filters::-webkit-scrollbar { display:none; }
+    .filter { flex:none; border:1px solid transparent; padding:8px 12px; border-radius:11px; color:var(--text-2); background:var(--surface); box-shadow:var(--card-shadow); font-size:12px; transition:.18s; }
+    .filter.active { color:#fff; background:var(--primary); box-shadow:0 6px 15px rgba(103,80,164,.28); }
+    .record-list { margin-top:10px; border-radius:20px; overflow:hidden; background:var(--surface); box-shadow:var(--card-shadow); }
+    .record { display:grid; grid-template-columns:42px 1fr 25px; gap:12px; align-items:center; padding:13px 13px; border-bottom:1px solid var(--line); transition:.18s background; }
+    .record:last-child { border-bottom:0; }
+    .record:hover { background:var(--surface-2); }
+    .cover { position:relative; overflow:hidden; display:grid; place-items:center; height:57px; border-radius:9px; color:rgba(255,255,255,.91); font-size:11px; font-family:STKaiti,"KaiTi",serif; text-align:center; line-height:1.25; box-shadow:0 2px 5px rgba(0,0,0,.18); }
+    .cover::after { content:""; position:absolute; inset:0; background:linear-gradient(135deg,rgba(255,255,255,.23),transparent 46%); }
+    .c1 { background:linear-gradient(150deg,#151e34,#566985 55%,#cf9d62); }.c2 { background:linear-gradient(150deg,#ce6e54,#521e38 58%,#17283e); }.c3 { background:linear-gradient(150deg,#31575f,#8eae9c 58%,#e7d6a8); }.c4 { background:linear-gradient(150deg,#332a5c,#8e75c1 54%,#dfb1ab); }.c5 { background:linear-gradient(150deg,#855a28,#c7a169 56%,#ead9ad); }
+    .record-main { min-width:0; }
+    .record-name { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:13px; font-weight:750; }
+    .record-meta { display:flex; align-items:center; gap:5px; margin-top:5px; color:var(--text-3); font-size:10.5px; }
+    .record-meta i { display:inline-block; width:4px; height:4px; border-radius:50%; background:var(--primary); }
+    .more { border:0; padding:4px; color:var(--text-3); background:transparent; font-size:18px; line-height:1; }
+    .day-label { display:flex; align-items:center; gap:8px; margin:18px 1px 8px; color:var(--text-3); font-size:11px; font-weight:700; }
+    .day-label::after { content:""; flex:1; height:1px; background:var(--line); }
+    .bottom { position:absolute; z-index:3; right:0; bottom:0; left:0; display:flex; gap:3px; padding:10px 22px 23px; background:linear-gradient(transparent,var(--bg) 25%); }
+    .nav { flex:1; display:grid; place-items:center; gap:2px; border:0; padding:7px 0 0; color:var(--text-3); background:transparent; font-size:10px; }
+    .nav svg { width:21px; height:21px; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
+    .nav.active { color:var(--primary); font-weight:800; }
+    .nav.active svg { fill:var(--primary-soft); }
+
+    .scrim { position:absolute; z-index:10; inset:0; display:none; background:rgba(19,16,27,.35); backdrop-filter:blur(2px); }
+    .sheet { position:absolute; z-index:11; right:0; bottom:0; left:0; display:none; padding:9px 18px 26px; border-radius:25px 25px 0 0; background:var(--surface); box-shadow:0 -12px 40px rgba(0,0,0,.18); animation:up .22s ease-out; }
+    .sheet.open,.scrim.open { display:block; }
+    @keyframes up { from { transform:translateY(100%); } to { transform:translateY(0); } }
+    .handle { width:35px; height:4px; margin:0 auto 17px; border-radius:99px; background:var(--line); }
+    .sheet h3 { margin:0 0 8px; font-size:17px; }
+    .sheet button { display:flex; width:100%; align-items:center; justify-content:space-between; border:0; padding:13px 4px; color:var(--text-2); background:transparent; text-align:left; font-size:14px; }
+    .sheet button.active { color:var(--primary); font-weight:750; }
+    .sheet button.active::after { content:"✓"; font-size:17px; }
+    .search-layer { position:absolute; z-index:12; inset:0; display:none; padding:57px 18px; background:var(--bg); }
+    .search-layer.open { display:block; }
+    .searchbox { display:flex; align-items:center; gap:8px; padding:0 12px; border-radius:14px; background:var(--surface); box-shadow:var(--card-shadow); }
+    .searchbox svg { width:18px; stroke:var(--text-3); }
+    .searchbox input { width:100%; border:0; outline:0; padding:13px 0; color:var(--text); background:transparent; font-size:14px; }
+    .searchbox input::placeholder { color:var(--text-3); }
+    .search-layer p { margin:22px 3px; color:var(--text-3); font-size:12px; }
+    .empty { display:none; padding:38px 10px; color:var(--text-3); text-align:center; font-size:13px; }
+    .empty b { display:block; margin-bottom:6px; color:var(--text-2); font-size:15px; }
+    .record-list.no-result .record { display:none; }.record-list.no-result .empty { display:block; }
+    @media (max-width:800px) { .prototype { display:block; padding:0; }.brief { display:none; }.phone { width:100%; height:100vh; border:0; border-radius:0; box-shadow:none; }.phone::before { display:none; }.screen { border-radius:0; } }
+  </style>
+</head>
+<body>
+  <main class="prototype">
+    <aside class="brief">
+      <div class="eyebrow">LEGADO · READING HISTORY</div>
+      <h1>让每一次阅读<br>留下温度。</h1>
+      <p>把原本的信息清单，重构为可回顾、可筛选、也能一眼感受阅读节奏的个人阅读档案。</p>
+      <ul class="points">
+        <li><b>01</b><div><strong>阅读概览先行</strong>累计时长与近一周节奏合并为轻量卡片，不需要进入统计页也能获得反馈。</div></li>
+        <li><b>02</b><div><strong>按时间组织回忆</strong>记录按「今天、近 7 天、更早」分组，最近读过的书自然浮现。</div></li>
+        <li><b>03</b><div><strong>低干扰的精细管理</strong>搜索、排序和单条管理被收纳进图标与底部操作面板，主界面只保留关键内容。</div></li>
+      </ul>
+      <p class="hint">点击搜索、排序和主题按钮体验交互原型。</p>
+    </aside>
+
+    <section class="phone" aria-label="阅读记录页面原型">
+      <div class="screen">
+        <div class="status"><span>9:41</span><span class="status-icons">▮▮▮　⌁　▰</span></div>
+        <div class="app">
+          <header class="topbar"><h1 class="page-title">阅读记录</h1><div class="top-actions">
+            <button class="icon" id="searchBtn" aria-label="搜索"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4 4"/></svg></button>
+            <button class="icon" id="sortBtn" aria-label="排序"><svg viewBox="0 0 24 24"><path d="M4 7h16M7 12h10M10 17h4"/></svg></button>
+          </div></header>
+          <section class="summary">
+            <div><div class="label">累计阅读时长</div><div class="time">128<small>小时 36 分</small></div><div class="delta">↑ 本周已读 6 小时 42 分</div></div>
+            <div class="chart" aria-label="最近七天阅读时长"><i class="bar" style="height:28%"></i><i class="bar" style="height:45%"></i><i class="bar" style="height:32%"></i><i class="bar" style="height:70%"></i><i class="bar" style="height:54%"></i><i class="bar" style="height:83%"></i><i class="bar today" style="height:49%"></i></div>
+          </section>
+          <div class="section-head"><h2>阅读足迹</h2><span id="countLabel">共 24 本</span></div>
+          <div class="filters" id="filters"><button class="filter active" data-filter="all">全部</button><button class="filter" data-filter="today">今天</button><button class="filter" data-filter="week">近 7 天</button><button class="filter" data-filter="older">更早</button></div>
+          <div class="day-label" data-group="today">今天 · 9 月 29 日</div>
+          <div class="record-list" id="recordList">
+            <article class="record" data-group="today" data-name="长安的荔枝" data-time="58"><div class="cover c1">长安的<br>荔枝</div><div class="record-main"><div class="record-name">长安的荔枝</div><div class="record-meta"><span>阅读 58 分钟</span><i></i><span>刚刚读过</span></div></div><button class="more" aria-label="更多操作">⋮</button></article>
+            <article class="record" data-group="today" data-name="夜航西飞" data-time="32"><div class="cover c2">夜航<br>西飞</div><div class="record-main"><div class="record-name">夜航西飞</div><div class="record-meta"><span>阅读 32 分钟</span><i></i><span>今天 08:12</span></div></div><button class="more" aria-label="更多操作">⋮</button></article>
+            <div class="empty"><b>没有找到相关记录</b>换一个关键词试试</div>
+          </div>
+          <div class="day-label" data-group="week">近 7 天</div>
+          <div class="record-list" id="weekList">
+            <article class="record" data-group="week" data-name="山茶文具店" data-time="1小时 47 分"><div class="cover c3">山茶<br>文具店</div><div class="record-main"><div class="record-name">山茶文具店</div><div class="record-meta"><span>阅读 1 小时 47 分</span><i></i><span>昨天</span></div></div><button class="more" aria-label="更多操作">⋮</button></article>
+            <article class="record" data-group="week" data-name="繁花" data-time="43"><div class="cover c4">繁花</div><div class="record-main"><div class="record-name">繁花</div><div class="record-meta"><span>阅读 43 分钟</span><i></i><span>9 月 26 日</span></div></div><button class="more" aria-label="更多操作">⋮</button></article>
+            <div class="empty"><b>这一段时间没有记录</b>继续读一本喜欢的书吧</div>
+          </div>
+          <div class="day-label" data-group="older">更早</div>
+          <div class="record-list" id="olderList">
+            <article class="record" data-group="older" data-name="我与地坛" data-time="2小时 16 分"><div class="cover c5">我与<br>地坛</div><div class="record-main"><div class="record-name">我与地坛</div><div class="record-meta"><span>阅读 2 小时 16 分</span><i></i><span>9 月 18 日</span></div></div><button class="more" aria-label="更多操作">⋮</button></article>
+            <div class="empty"><b>这一段时间没有记录</b>继续读一本喜欢的书吧</div>
+          </div>
+        </div>
+        <nav class="bottom" aria-label="主导航">
+          <button class="nav"><svg viewBox="0 0 24 24"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1Z"/><path d="M9 21v-6h6v6"/></svg>书架</button>
+          <button class="nav"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4 4"/></svg>发现</button>
+          <button class="nav active"><svg viewBox="0 0 24 24"><path d="M12 7v5l3.5 2"/><circle cx="12" cy="12" r="8"/></svg>记录</button>
+          <button class="nav" id="themeBtn"><svg viewBox="0 0 24 24"><path d="M20 15.5A8 8 0 0 1 8.5 4 8 8 0 1 0 20 15.5Z"/></svg>主题</button>
+        </nav>
+        <div class="scrim" id="scrim"></div>
+        <section class="sheet" id="sortSheet" aria-label="排序方式"><div class="handle"></div><h3>排序方式</h3><button class="active" data-sort="recent">最近阅读</button><button data-sort="duration">阅读时长</button><button data-sort="name">书名</button></section>
+        <section class="search-layer" id="searchLayer"><div class="searchbox"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4 4"/></svg><input id="searchInput" placeholder="搜索书名" autofocus><button class="more" id="closeSearch" aria-label="关闭搜索">×</button></div><p>搜索会在全部阅读记录中查找</p></section>
+      </div>
+    </section>
+  </main>
+  <script>
+    const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
+    const scrim = $('#scrim'), sheet = $('#sortSheet'), searchLayer = $('#searchLayer'), recordLists = $$('.record-list');
+    function closeOverlay(){ scrim.classList.remove('open'); sheet.classList.remove('open'); }
+    $('#sortBtn').onclick = () => { scrim.classList.add('open'); sheet.classList.add('open'); };
+    scrim.onclick = closeOverlay;
+    $('#searchBtn').onclick = () => { searchLayer.classList.add('open'); setTimeout(() => $('#searchInput').focus(), 50); };
+    $('#closeSearch').onclick = () => { searchLayer.classList.remove('open'); $('#searchInput').value = ''; filterRecords(); };
+    $('#themeBtn').onclick = () => document.documentElement.dataset.theme = document.documentElement.dataset.theme === 'dark' ? '' : 'dark';
+    $$('#filters .filter').forEach(button => button.onclick = () => { $$('#filters .filter').forEach(x => x.classList.remove('active')); button.classList.add('active'); const group = button.dataset.filter; $$('.day-label').forEach(x => x.style.display = group === 'all' || x.dataset.group === group ? '' : 'none'); recordLists.forEach(x => x.style.display = group === 'all' || x.querySelector(`[data-group="${group}"]`) ? '' : 'none'); filterRecords(); });
+    function filterRecords(){ const key = $('#searchInput').value.trim().toLowerCase(); let visible = 0; $$('.record').forEach(row => { const show = !key || row.dataset.name.toLowerCase().includes(key); row.style.display = show ? '' : 'none'; if(show) visible++; }); recordLists.forEach(list => list.classList.toggle('no-result', !!key && ![...list.querySelectorAll('.record')].some(row => row.style.display !== 'none'))); $('#countLabel').textContent = key ? `找到 ${visible} 本` : '共 24 本'; }
+    $('#searchInput').oninput = filterRecords;
+    $$('#sortSheet button').forEach(button => button.onclick = () => { $$('#sortSheet button').forEach(x => x.classList.remove('active')); button.classList.add('active'); const method = button.dataset.sort; recordLists.forEach(list => { const records = [...list.querySelectorAll('.record')]; records.sort((a,b) => method === 'name' ? a.dataset.name.localeCompare(b.dataset.name,'zh-CN') : method === 'duration' ? b.dataset.time.localeCompare(a.dataset.time,'zh-CN',{numeric:true}) : 0); records.forEach(row => list.insertBefore(row,list.querySelector('.empty'))); }); closeOverlay(); });
+  </script>
+</body>
+</html>
