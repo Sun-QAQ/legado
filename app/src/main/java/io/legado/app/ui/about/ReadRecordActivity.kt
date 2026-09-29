@@ -55,7 +55,11 @@ class ReadRecordActivity : BaseActivity<ActivityReadRecordBinding>() {
     private var recordFilter = RecordFilter.ALL
     private var searchKey = ""
     private var sortMode
-        get() = LocalConfig.getInt("readRecordSort")
+        get() = if (LocalConfig.contains("readRecordSort")) {
+            LocalConfig.getInt("readRecordSort")
+        } else {
+            2
+        }
         set(value) {
             LocalConfig.putInt("readRecordSort", value)
         }
