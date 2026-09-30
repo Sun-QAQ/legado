@@ -42,7 +42,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import java.time.LocalDate
-import java.time.format.TextStyle
 import java.util.Calendar
 import java.util.Locale
 import java.util.concurrent.TimeUnit
@@ -294,11 +293,11 @@ class ReadRecordActivity : BaseActivity<ActivityReadRecordBinding>() {
                 )
             }
             weekDayViews[index].apply {
-                text = if (isToday) {
-                    getString(R.string.read_record_today_short)
-                } else {
-                    day.date.dayOfWeek.getDisplayName(TextStyle.NARROW, Locale.getDefault())
-                }
+                text = getString(
+                    R.string.read_record_week_chart_axis_date,
+                    day.date.monthValue,
+                    day.date.dayOfMonth,
+                )
                 setTextColor(if (isToday) accent else palette.secondaryText)
             }
         }
