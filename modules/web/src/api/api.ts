@@ -182,11 +182,12 @@ const debug = (
 }
 
 /**
- * 从阅读获取需要特定处理的书籍封面
+ * 书籍封面统一通过阅读 App 获取。
  * @param {string} coverUrl
  */
 const getProxyCoverUrl = (coverUrl: string) => {
-  if (coverUrl.startsWith(legado_http_entry_point)) return coverUrl
+  const proxyEndpoint = new URL('cover', legado_http_entry_point).toString()
+  if (coverUrl.startsWith(proxyEndpoint + '?')) return coverUrl
   return new URL(
     'cover?path=' + encodeURIComponent(coverUrl),
     legado_http_entry_point,

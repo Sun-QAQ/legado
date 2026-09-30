@@ -16,33 +16,24 @@
 <script setup lang="ts">
 import type { Book, SeachBook } from '@/book'
 import API from '@api'
-import { isLegadoUrl } from '@/utils/utils'
 const props = defineProps<{ book: Book | SeachBook }>()
-const failed = ref(false),
-  proxied = ref(false)
+const failed = ref(false)
 const original = computed(
   () =>
     ('customCoverUrl' in props.book ? props.book.customCoverUrl : '') ||
     props.book.coverUrl,
 )
 const src = computed(() =>
-  original.value
-    ? proxied.value || isLegadoUrl(original.value)
-      ? API.getProxyCoverUrl(original.value)
-      : original.value
-    : '',
+  original.value ? API.getProxyCoverUrl(original.value) : '',
 )
 watch(
   () => [props.book.bookUrl, original.value],
   () => {
     failed.value = false
-    proxied.value = false
   },
 )
 const onError = () => {
-  if (!proxied.value && original.value && !isLegadoUrl(original.value))
-    proxied.value = true
-  else failed.value = true
+  failed.value = true
 }
 const color = computed(() => {
   const palette = [
