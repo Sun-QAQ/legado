@@ -84,6 +84,8 @@ import {
   Sunny,
 } from '@element-plus/icons-vue'
 import API from '@api'
+import { legado_http_entry_point } from '@api'
+import { appAccentTokens } from '@/utils/appTheme'
 const route = useRoute()
 const bookStore = useBookStore()
 const connection = useConnectionStore()
@@ -107,11 +109,60 @@ const toggleTheme = async () => {
   }
 }
 watch(
-  () => bookStore.isNight,
-  night => document.documentElement.classList.toggle('dark', night),
+  () => [bookStore.appAccentColor, bookStore.isNight] as const,
+  ([accent, night]) => {
+    const root = document.documentElement
+    root.classList.toggle('dark', night)
+    // 移除旧色阶，让旧版 App 或无效颜色安全回退到默认主题。
+    for (const key of Object.keys(appAccentTokens('#000000', night))) {
+      root.style.removeProperty(key)
+    }
+    for (const [key, value] of Object.entries(appAccentTokens(accent, night))) {
+      root.style.setProperty(key, value)
+    }
+  },
   { immediate: true },
 )
+let themeRequestPending = false
+let themeTimer: ReturnType<typeof setInterval> | undefined
+const refreshAccent = async () => {
+  if (document.hidden || connection.newConnect || themeRequestPending) return
+  const endpoint = legado_http_entry_point
+  themeRequestPending = true
+  try {
+    const config = await API.getReadConfig(endpoint)
+    if (endpoint === legado_http_entry_point) {
+      bookStore.appAccentColor = config?.appAccentColor
+    }
+  } catch {
+    // 保留已同步的强调色；连接错误由接口层处理。
+  } finally {
+    themeRequestPending = false
+  }
+}
+const refreshVisibleAccent = () => {
+  if (!document.hidden) void refreshAccent()
+}
+watch(
+  () => connection.newConnect,
+  connecting => {
+    if (!connecting) void refreshAccent()
+  },
+)
 onMounted(() => {
-  bookStore.loadWebConfig().catch(() => {})
+  bookStore
+    .loadWebConfig()
+    .then(refreshAccent)
+    .catch(() => {})
+  window.addEventListener('focus', refreshVisibleAccent)
+  document.addEventListener('visibilitychange', refreshVisibleAccent)
+  themeTimer = setInterval(() => {
+    if (connection.connectType !== 'danger') void refreshAccent()
+  }, 15000)
+})
+onUnmounted(() => {
+  clearInterval(themeTimer)
+  window.removeEventListener('focus', refreshVisibleAccent)
+  document.removeEventListener('visibilitychange', refreshVisibleAccent)
 })
 </script>

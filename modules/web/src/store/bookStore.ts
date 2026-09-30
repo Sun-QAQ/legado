@@ -41,6 +41,7 @@ export const useBookStore = defineStore('book', {
       contentLoading: true,
       showContent: false,
       config: default_config,
+      appAccentColor: undefined as string | undefined,
       miniInterface: false,
       readSettingsVisible: false,
     }
@@ -158,7 +159,9 @@ export const useBookStore = defineStore('book', {
       )
     },
     setConfig(config?: webReadConfig) {
-      this.config = Object.assign({}, this.config, config)
+      const { appAccentColor, ...settings } = config ?? {}
+      this.appAccentColor = appAccentColor
+      this.config = Object.assign({}, this.config, settings)
     },
     setReadSettingsVisible(visible: boolean) {
       this.readSettingsVisible = visible

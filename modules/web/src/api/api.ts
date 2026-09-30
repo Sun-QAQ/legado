@@ -53,8 +53,11 @@ const getReadConfig = async (http_url = legado_http_entry_point) => {
     } catch {}
   }
 }
-const saveReadConfig = (config: webReadConfig) =>
-  ajax.post<LeagdoApiResponse<string>>('saveReadConfig', config)
+const saveReadConfig = (config: webReadConfig) => {
+  const settings = { ...config }
+  delete settings.appAccentColor
+  return ajax.post<LeagdoApiResponse<string>>('saveReadConfig', settings)
+}
 
 /** @deprecated: 使用`API.saveBookProgressWithBeacon`以确保在页面或者直接关闭的情况下保存进度 */
 const saveBookProgress = (bookProgress: BookProgress) =>

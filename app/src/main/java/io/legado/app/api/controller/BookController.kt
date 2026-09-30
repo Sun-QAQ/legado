@@ -4,6 +4,7 @@ import android.graphics.Bitmap
 import android.graphics.drawable.Drawable
 import androidx.core.graphics.drawable.toBitmap
 import com.bumptech.glide.Glide
+import com.google.gson.JsonObject
 import io.legado.app.api.ReturnData
 import io.legado.app.data.appDb
 import io.legado.app.data.entities.Book
@@ -16,6 +17,7 @@ import io.legado.app.help.book.ContentProcessor
 import io.legado.app.help.book.isLocal
 import io.legado.app.help.config.AppConfig
 import io.legado.app.help.glide.ImageLoader
+import io.legado.app.lib.theme.ThemeStore
 import io.legado.app.model.BookCover
 import io.legado.app.model.ImageProvider
 import io.legado.app.model.ReadBook
@@ -316,10 +318,15 @@ object BookController {
      * 获取web阅读界面配置
      */
     fun getWebReadConfig(): ReturnData {
-        val returnData = ReturnData()
-        val data = CacheManager.get("webReadConfig")
-            ?: return returnData.setErrorMsg("没有配置")
-        return returnData.setData(data)
+        val config = runCatching {
+            GSON.fromJson(CacheManager.get("webReadConfig"), JsonObject::class.java)
+        }.getOrNull() ?: JsonObject()
+        // 强调色始终来自 App 当前主题，即使尚未保存过 Web 阅读配置。
+        config.addProperty(
+            "appAccentColor",
+            String.format("#%06X", ThemeStore.accentColor(appCtx) and 0xFFFFFF)
+        )
+        return ReturnData().setData(GSON.toJson(config))
     }
 
 }

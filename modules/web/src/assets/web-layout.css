@@ -6,6 +6,7 @@
   --web-muted: #74717e;
   --web-line: #e7e4e9;
   --web-primary: #6c5ce7;
+  --web-on-primary: #fff;
   --web-tint: #eeebff;
   --el-color-primary: #6c5ce7;
   --el-color-primary-light-3: #988ded;
@@ -40,6 +41,11 @@ html.dark {
 }
 * {
   box-sizing: border-box;
+}
+.el-button--primary:not(.is-plain, .is-text, .is-link) {
+  --el-button-text-color: var(--web-on-primary);
+  --el-button-hover-text-color: var(--web-on-primary);
+  --el-button-active-text-color: var(--web-on-primary);
 }
 body {
   margin: 0;
@@ -107,7 +113,7 @@ select {
   height: 43px;
   border-radius: 13px;
   background: var(--web-primary);
-  color: #fff;
+  color: var(--web-on-primary);
   font: 25px serif;
 }
 .web-brand small {
