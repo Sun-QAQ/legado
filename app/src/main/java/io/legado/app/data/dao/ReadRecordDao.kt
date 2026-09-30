@@ -12,7 +12,11 @@ interface ReadRecordDao {
 
     @get:Query(
         """
-        select bookName, sum(readTime) as readTime, max(lastRead) as lastRead 
+        select bookName, sum(readTime) as readTime, max(lastRead) as lastRead,
+        (select case when customCoverUrl is null or customCoverUrl = '' then coverUrl else customCoverUrl end
+            from books where name = readRecord.bookName limit 1) as coverUrl,
+        (select author from books where name = readRecord.bookName limit 1) as author,
+        (select origin from books where name = readRecord.bookName limit 1) as origin
         from readRecord 
         group by bookName 
         order by bookName collate localized"""
@@ -24,7 +28,11 @@ interface ReadRecordDao {
 
     @Query(
         """
-        select bookName, sum(readTime) as readTime, max(lastRead) as lastRead 
+        select bookName, sum(readTime) as readTime, max(lastRead) as lastRead,
+        (select case when customCoverUrl is null or customCoverUrl = '' then coverUrl else customCoverUrl end
+            from books where name = readRecord.bookName limit 1) as coverUrl,
+        (select author from books where name = readRecord.bookName limit 1) as author,
+        (select origin from books where name = readRecord.bookName limit 1) as origin
         from readRecord 
         where bookName like '%' || :searchKey || '%'
         group by bookName 

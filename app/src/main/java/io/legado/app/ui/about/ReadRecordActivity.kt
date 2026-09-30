@@ -397,10 +397,8 @@ class ReadRecordActivity : BaseActivity<ActivityReadRecordBinding>() {
             val palette = ThemePalette(context)
             binding.apply {
                 root.background = roundedBackground(palette.surface, 16)
-                tvBookInitial.background = roundedBackground(palette.accentContainer, 12)
-                tvBookInitial.setTextColor(context.accentColor)
                 val displayName = item.bookName.ifBlank { getString(R.string.read_record_untitled_book) }
-                tvBookInitial.text = displayName.firstOrNull()?.toString().orEmpty()
+                ivBookCover.load(item.coverUrl, displayName, item.author, false, item.origin)
                 tvBookName.setTextColor(context.primaryTextColor)
                 tvBookName.text = displayName
                 tvReadingTimeTag.setTextColor(context.secondaryTextColor)
