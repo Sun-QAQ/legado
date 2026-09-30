@@ -3,9 +3,8 @@ import bookSourceEditConfig from './bookSourceEditConfig'
 import rssSourceEditConfig from './rssSourceEditConfig'
 
 type SourceConfigKey =
-  | keyof typeof bookSourceEditConfig
-  | keyof typeof rssSourceEditConfig
-type SourceConfigRecord = {
+  keyof typeof bookSourceEditConfig | keyof typeof rssSourceEditConfig
+export type SourceConfigRecord = {
   title: string
   type: string //"array" | "String" | "Boolean"
   array?: string[]

@@ -1,14 +1,14 @@
 <template>
-  <div class="menu flex-column-center">
+  <div class="menu">
     <el-button
       v-for="button in buttons"
-      size="large"
+      size="default"
       :key="button.name"
       @click="button.action"
     >
       {{ button.name }}
     </el-button>
-    <el-button size="large" @click="() => (hotkeysDialogVisible = true)"
+    <el-button size="default" @click="() => (hotkeysDialogVisible = true)"
       >快捷键</el-button
     >
   </div>
@@ -68,10 +68,16 @@
 import API from '@api'
 import { CircleCheckFilled, Edit } from '@element-plus/icons-vue'
 import hotkeys from 'hotkeys-js'
-import { getSourceName, isInvaildSource, normalizeSource } from '../utils/souce'
+import {
+  getSourceName,
+  getSourceUniqueKey,
+  isInvaildSource,
+  normalizeSource,
+} from '../utils/souce'
 
 const store = useSourceStore()
 const pull = () => {
+  const kind = store.editorKind
   const loadingMsg = ElMessage({
     message: '加载中……',
     showClose: true,
@@ -79,8 +85,9 @@ const pull = () => {
   })
   API.getSources()
     .then(({ data }) => {
+      if (kind !== store.editorKind) return
       if (data.isSuccess) {
-        store.changeTabName('editList')
+        store.changeTabName('editForm')
         store.saveSources(data.data)
         ElMessage({
           message: `成功拉取${data.data.length}条源`,
@@ -96,9 +103,21 @@ const pull = () => {
     .finally(() => loadingMsg.close())
 }
 
-const push = () => {
+const push = async () => {
+  const kind = store.editorKind
+  if (store.sources.length) {
+    try {
+      await ElMessageBox.confirm(
+        `将推送 ${store.sources.length} 个源，同地址源会覆盖 App 配置。是否继续？`,
+        '推送源',
+        { confirmButtonText: '推送', cancelButtonText: '取消' },
+      )
+    } catch {
+      return
+    }
+  }
   const sources = store.sources
-  store.changeTabName('editList')
+  store.changeTabName('editForm')
   if (sources.length === 0) {
     return ElMessage({
       message: '空空如也',
@@ -110,6 +129,7 @@ const push = () => {
     type: 'info',
   })
   API.saveSources(sources).then(({ data }) => {
+    if (kind !== store.editorKind) return
     if (data.isSuccess) {
       const okData = data.data
       if (Array.isArray(okData)) {
@@ -141,14 +161,24 @@ const conver2Tab = () => {
   store.changeEditTabSource(store.currentSource)
 }
 const conver2Source = () => {
-  store.changeCurrentSource(store.editTabSource)
+  if (store.jsonError) return ElMessage.error(store.jsonError)
+  store.changeTabName('editForm')
 }
 
 const undo = () => {
   store.editHistoryUndo()
 }
 
-const clearEdit = () => {
+const clearEdit = async () => {
+  try {
+    await ElMessageBox.confirm(
+      '是否清空当前表单？可通过撤销恢复。',
+      '清空表单',
+      { confirmButtonText: '清空', cancelButtonText: '取消' },
+    )
+  } catch {
+    return
+  }
   store.clearEdit()
   ElMessage({
     message: '已清除',
@@ -156,20 +186,17 @@ const clearEdit = () => {
   })
 }
 
-const redo = () => {
-  store.clearEdit()
-  store.clearAllHistory()
-  ElMessage({
-    message: '已清除所有历史记录',
-    type: 'success',
-  })
-}
+const redo = () => store.editHistoryRedo()
 
 const saveSource = () => {
-  const source = store.currentSource
+  if (store.jsonError) return ElMessage.error(store.jsonError)
+  const kind = store.editorKind
+  const revision = JSON.stringify(store.currentSource)
+  const source = JSON.parse(revision)
   if (isInvaildSource(source)) {
     normalizeSource(source)
     API.saveSource(source).then(({ data }) => {
+      if (kind !== store.editorKind) return
       const sourceName = getSourceName(source)
       if (data.isSuccess) {
         ElMessage({
@@ -177,7 +204,14 @@ const saveSource = () => {
           type: 'success',
         })
         //save to store
-        store.saveCurrentSource()
+        if (JSON.stringify(store.currentSource) === revision)
+          store.saveCurrentSource()
+        else {
+          const sources = store.sources.filter(
+            item => getSourceUniqueKey(item) !== getSourceUniqueKey(source),
+          )
+          store.saveSources([...sources, source])
+        }
       } else {
         ElMessage({
           message: `源《${sourceName}》保存失败!\nErrorMsg: ${data.errorMsg}`,
@@ -194,6 +228,7 @@ const saveSource = () => {
 }
 
 const debug = () => {
+  if (store.jsonError) return ElMessage.error(store.jsonError)
   store.startDebug()
 }
 
@@ -201,8 +236,8 @@ const buttons = ref<{ name: string; hotKeys: string[]; action: () => void }[]>(
   Array.of(
     { name: '⇈推送源', hotKeys: [], action: push },
     { name: '⇊拉取源', hotKeys: [], action: pull },
-    { name: '⋙生成源', hotKeys: [], action: conver2Tab },
-    { name: '⋘编辑源', hotKeys: [], action: conver2Source },
+    { name: '表单→JSON', hotKeys: [], action: conver2Tab },
+    { name: 'JSON→表单', hotKeys: [], action: conver2Source },
     { name: '✗清空表单', hotKeys: [], action: clearEdit },
     { name: '↶撤销操作', hotKeys: [], action: undo },
     { name: '↷重做操作', hotKeys: [], action: redo },
@@ -210,7 +245,7 @@ const buttons = ref<{ name: string; hotKeys: string[]; action: () => void }[]>(
     { name: '✓保存源', hotKeys: [], action: saveSource },
   ),
 )
-const hotkeysDialogVisible = ref(true)
+const hotkeysDialogVisible = ref(false)
 
 const recordKeyDowning = ref(false)
 
@@ -233,7 +268,7 @@ watch(
       return
     }
     readHotkeysConfig()
-    hotkeys.unbind()
+    hotkeys.unbind('*')
     /**监听按键 */
     hotkeys('*', event => {
       event.preventDefault()
@@ -268,7 +303,7 @@ const saveHotKeys = () => {
   hotkeysDialogVisible.value = false
 }
 
-const bindHotKeys = () => {
+function bindHotKeys() {
   // hotkeys默认过滤INPUT SELECT TEXTAREA
   hotkeys.filter = () => true
   buttons.value.forEach(({ hotKeys, action }) => {
@@ -293,7 +328,10 @@ function readHotkeysConfig() {
     if (localStorageConfig === null) return false
     const config = JSON.parse(localStorageConfig)
     if (!Array.isArray(config) || config.length == 0) return false
-    buttons.value.forEach((button, index) => (button.hotKeys = config[index]))
+    buttons.value.forEach(
+      (button, index) =>
+        (button.hotKeys = Array.isArray(config[index]) ? config[index] : []),
+    )
     return true
   } catch {
     ElMessage({ message: '快捷键配置错误', type: 'error' })
@@ -302,6 +340,11 @@ function readHotkeysConfig() {
   return false
 }
 
+onUnmounted(() => {
+  hotkeys.unbind()
+  hotkeys.filter = event =>
+    !/INPUT|SELECT|TEXTAREA/.test((event.target as HTMLElement)?.tagName || '')
+})
 onMounted(() => {
   /**读取热键配置 */
   if (readHotkeysConfig()) {
@@ -322,10 +365,15 @@ onMounted(() => {
   justify-content: center;
 }
 
+.menu {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 14px 0 20px;
+  border-top: 1px solid var(--web-line);
+}
 .menu > .el-button {
-  margin: 4px;
-  padding: 1em;
-  width: 6em;
+  margin: 0;
 }
 
 .hotkeys-item {

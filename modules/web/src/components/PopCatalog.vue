@@ -1,11 +1,8 @@
 <template>
-  <div
-    :class="{ 'cata-wrapper': true, visible: popCataVisible }"
-    :style="popupTheme"
-  >
+  <div :class="{ 'cata-wrapper': true, visible: popCataVisible }">
     <div class="title">目录</div>
     <virtual-list
-      style="height: 300px; overflow: auto"
+      style="height: min(65vh, 600px); overflow: auto"
       :class="{ night: isNight, day: !isNight }"
       ref="virtualListRef"
       data-key="index"
@@ -21,7 +18,6 @@
 
 <script setup lang="ts">
 import VirtualList from 'vue3-virtual-scroll-list'
-import settings from '../config/themeConfig'
 import '../assets/fonts/popfont.css'
 import CatalogItem from './CatalogItem.vue'
 import type { BookChapter } from '@/book'
@@ -31,14 +27,7 @@ const store = useBookStore()
 const { catalog, popCataVisible, miniInterface } = storeToRefs(store)
 
 //主题
-const isNight = computed(() => store.theme)
-const theme = computed(() => store.theme)
-const popupTheme = computed(() => {
-  return {
-    background: settings.themes[theme.value].popup,
-  }
-})
-
+const isNight = computed(() => store.isNight)
 //虚拟列表 数据源
 const virtualListdata = computed(() => {
   const catalogValue = catalog.value
@@ -132,5 +121,20 @@ const gotoChapter = (chapter: BookChapter) => {
       border-bottom: 1px solid #f2f2f2;
     }
   }
+}
+</style>
+
+<style scoped>
+.cata-wrapper {
+  margin: 0;
+  padding: 0;
+  background: transparent !important;
+  width: 100%;
+  color: var(--web-text);
+}
+.cata-wrapper .title {
+  font-family: inherit;
+  margin: 0 0 18px;
+  font-size: 14px;
 }
 </style>

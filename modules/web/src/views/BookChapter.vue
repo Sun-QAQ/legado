@@ -1,84 +1,48 @@
 <template>
-  <div
-    class="chapter-wrapper"
-    :style="bodyTheme"
-    :class="{ night: isNight, day: !isNight }"
-    @click="showToolBar = !showToolBar"
-  >
-    <div class="tool-bar" :style="leftBarTheme">
-      <div class="tools">
-        <el-popover
-          placement="right"
-          :width="popupWidth"
-          trigger="click"
-          :show-arrow="false"
-          v-model:visible="popCataVisible"
-          popper-class="pop-cata"
-        >
-          <PopCatalog @getContent="getContent" class="popup" />
-          <template #reference>
-            <div class="tool-icon" :class="{ 'no-point': false }">
-              <div class="iconfont">&#58905;</div>
-              <div class="icon-text">目录</div>
-            </div>
-          </template>
-        </el-popover>
-        <el-popover
-          placement="right"
-          :width="popupWidth"
-          trigger="click"
-          :show-arrow="false"
-          v-model:visible="readSettingsVisible"
-          popper-class="pop-setting"
-        >
-          <read-settings class="popup" />
-          <template #reference>
-            <div class="tool-icon" :class="{ 'no-point': noPoint }">
-              <div class="iconfont">&#58971;</div>
-              <div class="icon-text">设置</div>
-            </div>
-          </template>
-        </el-popover>
-        <div class="tool-icon" @click="toShelf">
-          <div class="iconfont">&#58892;</div>
-          <div class="icon-text">书架</div>
-        </div>
-        <div class="tool-icon" :class="{ 'no-point': noPoint }" @click="toTop">
-          <div class="iconfont">&#58914;</div>
-          <div class="icon-text">顶部</div>
-        </div>
-        <div
-          class="tool-icon"
-          :class="{ 'no-point': noPoint }"
-          @click="toBottom"
-        >
-          <div class="iconfont">&#58915;</div>
-          <div class="icon-text">底部</div>
-        </div>
+  <div class="chapter-wrapper" :style="bodyTheme" :class="{ night: isNight }">
+    <header class="reader-toolbar">
+      <el-button @click="toShelf">← 返回书架</el-button
+      ><span class="reader-book"
+        >{{ store.readingBook.name
+        }}<small>{{ store.readingBook.author }}</small></span
+      >
+      <div class="inline-actions">
+        <el-button @click="popCataVisible = true">目录</el-button
+        ><el-button :disabled="noPoint" @click="readSettingsVisible = true"
+          >阅读设置</el-button
+        ><el-button :aria-pressed="focusMode" @click="focusMode = !focusMode">{{
+          focusMode ? '退出专注' : '专注阅读'
+        }}</el-button>
       </div>
+    </header>
+    <div v-if="!focusMode" class="reader-navigation">
+      <el-button
+        :disabled="noPoint || isLoading || chapterIndex === 0"
+        @click="toPreChapter"
+        >← 上一章</el-button
+      ><span class="muted"
+        >{{ catalog.length ? chapterIndex + 1 : 0 }} /
+        {{ catalog.length }} 章</span
+      ><el-button
+        :disabled="noPoint || isLoading || chapterIndex >= catalog.length - 1"
+        @click="toNextChapter"
+        >下一章 →</el-button
+      >
     </div>
-    <div class="read-bar" :style="rightBarTheme">
-      <div class="tools">
-        <div
-          class="tool-icon"
-          :class="{ 'no-point': noPoint }"
-          @click="toPreChapter"
-        >
-          <div class="iconfont">&#58920;</div>
-          <span v-if="miniInterface">上一章</span>
-        </div>
-        <div
-          class="tool-icon"
-          :class="{ 'no-point': noPoint }"
-          @click="toNextChapter"
-        >
-          <span v-if="miniInterface">下一章</span>
-          <div class="iconfont">&#58913;</div>
-        </div>
-      </div>
-    </div>
-    <div class="chapter-bar"></div>
-    <div class="chapter" ref="content" :style="chapterTheme">
+    <el-drawer
+      v-model="popCataVisible"
+      title="章节目录"
+      :size="miniInterface ? '92%' : '520px'"
+      direction="ltr"
+      ><PopCatalog @getContent="getContent"
+    /></el-drawer>
+    <el-drawer
+      v-model="readSettingsVisible"
+      title="阅读设置"
+      :size="miniInterface ? '94%' : '480px'"
+      ><read-settings
+    /></el-drawer>
+    <article class="chapter" ref="content" :style="chapterTheme">
       <div class="content">
         <div class="top-bar" ref="top"></div>
         <div
@@ -102,10 +66,25 @@
         <div class="loading" ref="loading"></div>
         <div class="bottom-bar" ref="bottom"></div>
       </div>
+    </article>
+    <div class="reader-navigation bottom-navigation">
+      <el-button
+        :disabled="noPoint || isLoading || chapterIndex === 0"
+        @click="toPreChapter"
+        >← 上一章</el-button
+      >
+      <div class="inline-actions">
+        <el-button @click="toTop">顶部</el-button
+        ><el-button @click="toBottom">底部</el-button>
+      </div>
+      <el-button
+        :disabled="noPoint || isLoading || chapterIndex >= catalog.length - 1"
+        @click="toNextChapter"
+        >下一章 →</el-button
+      >
     </div>
   </div>
 </template>
-
 <script setup lang="ts">
 import jump from '@/plugins/jump'
 import settings from '@/config/themeConfig'
@@ -178,7 +157,7 @@ const loadMore = () => {
 }
 // IntersectionObserver回调 底部加载
 const onReachBottom = (entries: IntersectionObserverEntry[]) => {
-  if (isLoading.value) return
+  if (isLoading.value || !chapterData.value.length) return
   for (const { isIntersecting } of entries) {
     if (!isIntersecting) return
     loadMore()
@@ -199,22 +178,15 @@ const fontSize = computed(() => {
 // 主题部分
 const bodyColor = computed(() => settings.themes[theme.value].body)
 const chapterColor = computed(() => settings.themes[theme.value].content)
-const popupColor = computed(() => settings.themes[theme.value].popup)
 
-const readWidth = computed(() => {
-  if (!miniInterface.value) {
-    return store.config.readWidth - 130 + 'px'
-  } else {
-    return window.innerWidth + 'px'
-  }
-})
-const popupWidth = computed(() => {
-  if (!miniInterface.value) {
-    return store.config.readWidth - 33
-  } else {
-    return window.innerWidth - 33
-  }
-})
+const readWidth = computed(
+  () =>
+    Math.min(
+      store.config.readWidth,
+      window.innerWidth - (miniInterface.value ? 0 : 48),
+    ) + 'px',
+)
+
 const bodyTheme = computed(() => {
   return {
     background: bodyColor.value,
@@ -226,26 +198,7 @@ const chapterTheme = computed(() => {
     width: readWidth.value,
   }
 })
-const showToolBar = ref(false)
-const leftBarTheme = computed(() => {
-  return {
-    background: popupColor.value,
-    marginLeft: miniInterface.value
-      ? 0
-      : -(store.config.readWidth / 2 + 68) + 'px',
-    display: miniInterface.value && !showToolBar.value ? 'none' : 'block',
-  }
-})
-const rightBarTheme = computed(() => {
-  return {
-    background: popupColor.value,
-    marginRight: miniInterface.value
-      ? 0
-      : -(store.config.readWidth / 2 + 52) + 'px',
-    display: miniInterface.value && !showToolBar.value ? 'none' : 'block',
-  }
-})
-
+const focusMode = ref(false)
 /**
  * pc移动端判断 最大阅读宽度修正
  * 阅读宽度最小为640px 加上工具栏 68px 52px 取较大值 为 776px
@@ -297,6 +250,7 @@ const getContent = (index: number, reloadChapter = true, chapterPos = 0) => {
     chapterData.value = []
   }
   const bookUrl = store.readingBook.bookUrl
+  if (!catalog.value[index]) return
   const { title, index: chapterIndex } = catalog.value[index]
 
   loadingWrapper(
@@ -417,7 +371,15 @@ const toPreChapter = () => {
 let canJump = true
 // 监听方向键
 const handleKeyPress = (event: KeyboardEvent) => {
-  if (!canJump) return
+  if (
+    !canJump ||
+    isLoading.value ||
+    noPoint.value ||
+    popCataVisible.value ||
+    readSettingsVisible.value ||
+    /INPUT|TEXTAREA|SELECT/.test((event.target as HTMLElement)?.tagName || '')
+  )
+    return
   switch (event.key) {
     case 'ArrowLeft':
       event.stopPropagation()
@@ -464,7 +426,14 @@ const handleKeyPress = (event: KeyboardEvent) => {
 
 // 阻止默认滚动事件
 const ignoreKeyPress = (event: KeyboardEvent) => {
-  if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
+  if (
+    !/INPUT|TEXTAREA|SELECT/.test(
+      (event.target as HTMLElement)?.tagName || '',
+    ) &&
+    !readSettingsVisible.value &&
+    !popCataVisible.value &&
+    (event.key === 'ArrowUp' || event.key === 'ArrowDown')
+  ) {
     event.preventDefault()
     event.stopPropagation()
   }
@@ -498,7 +467,15 @@ onMounted(async () => {
   loadingWrapper(
     store.loadWebCatalog(book).then(chapters => {
       store.setReadingBook(book)
-      getContent(chapterIndex, true, chapterPos)
+      if (!chapters.length) {
+        ElMessage.warning('暂无章节目录')
+        return
+      }
+      const validIndex = Math.min(
+        Math.max(0, chapterIndex),
+        chapters.length - 1,
+      )
+      getContent(validIndex, true, chapterPos)
       window.addEventListener('keyup', handleKeyPress)
       window.addEventListener('keydown', ignoreKeyPress)
       // 兼容Safari < 14
@@ -510,7 +487,11 @@ onMounted(async () => {
       if (infiniteLoading.value === true) scrollObserver.observe(loading.value)
       //第二次点击同一本书 页面标题不会变化
       document.title = '...'
-      document.title = (name as string) + ' | ' + chapters[chapterIndex].title
+      document.title =
+        (name as string) +
+          ' | ' +
+          chapters[Math.min(Math.max(0, chapterIndex), chapters.length - 1)]
+            ?.title || ''
     }),
   )
 })
@@ -521,6 +502,7 @@ onUnmounted(() => {
   window.removeEventListener('resize', onResize)
   // 兼容Safari < 14
   document.removeEventListener('visibilitychange', onVisibilityChange)
+  store.saveBookProgress()
   readSettingsVisible.value = false
   popCataVisible.value = false
   scrollObserver?.disconnect()
@@ -562,209 +544,112 @@ onBeforeRouteLeave(async (to, from, next) => {
 })
 </script>
 
-<style lang="scss" scoped>
-:deep(.pop-setting) {
-  margin-left: 68px;
-  top: 0;
-}
-
-:deep(.pop-cata) {
-  margin-left: 10px;
-}
-
+<style scoped>
 .chapter-wrapper {
-  padding: 0 4%;
-
-  overflow-x: hidden;
-
-  :deep(.no-point) {
-    pointer-events: none;
-  }
-
-  .tool-bar {
-    position: fixed;
-    top: 0;
-    left: 50%;
-    z-index: 100;
-
-    .tools {
-      display: flex;
-      flex-direction: column;
-
-      .tool-icon {
-        font-size: 18px;
-        width: 58px;
-        height: 48px;
-        text-align: center;
-        padding-top: 12px;
-        cursor: pointer;
-        outline: none;
-
-        .iconfont {
-          font-family: iconfont;
-          width: 16px;
-          height: 16px;
-          font-size: 16px;
-          margin: 0 auto 6px;
-        }
-
-        .icon-text {
-          font-size: 12px;
-        }
-      }
-    }
-  }
-
-  .read-bar {
-    position: fixed;
-    bottom: 0;
-    right: 50%;
-    z-index: 100;
-
-    .tools {
-      display: flex;
-      flex-direction: column;
-
-      .tool-icon {
-        font-size: 18px;
-        width: 42px;
-        height: 31px;
-        padding-top: 12px;
-        text-align: center;
-        align-items: center;
-        cursor: pointer;
-        outline: none;
-        margin-top: -1px;
-
-        .iconfont {
-          font-family: iconfont;
-          width: 16px;
-          height: 16px;
-          font-size: 16px;
-          margin: 0 auto 6px;
-        }
-      }
-    }
-  }
-
-  .chapter {
-    font-family: 'Microsoft YaHei', PingFangSC-Regular, HelveticaNeue-Light,
-      'Helvetica Neue Light', sans-serif;
-    text-align: left;
-    padding: 0 65px;
-    min-height: 100vh;
-    width: 670px;
-    margin: 0 auto;
-
-    .content {
-      font-size: 18px;
-      line-height: 1.8;
-      font-family: 'Microsoft YaHei', PingFangSC-Regular, HelveticaNeue-Light,
-        'Helvetica Neue Light', sans-serif;
-
-      .bottom-bar,
-      .top-bar {
-        height: 64px;
-      }
-    }
-  }
+  min-height: 100vh;
+  padding: 0 24px 32px;
+  color: #292730;
 }
-
-.day {
-  :deep(.popup) {
-    box-shadow:
-      0 2px 4px rgba(0, 0, 0, 0.12),
-      0 0 6px rgba(0, 0, 0, 0.04);
-  }
-
-  :deep(.tool-icon) {
-    border: 1px solid rgba(0, 0, 0, 0.1);
-    margin-top: -1px;
-    color: #000;
-
-    .icon-text {
-      color: rgba(0, 0, 0, 0.4);
-    }
-  }
-
-  :deep(.chapter) {
-    border: 1px solid #d8d8d8;
-    color: #262626;
-  }
+.chapter-wrapper.night {
+  color: #ddd7ca;
 }
-
-.night {
-  :deep(.popup) {
-    box-shadow:
-      0 2px 4px rgba(0, 0, 0, 0.48),
-      0 0 6px rgba(0, 0, 0, 0.16);
-  }
-
-  :deep(.tool-icon) {
-    border: 1px solid #444;
-    margin-top: -1px;
-    color: #666;
-
-    .icon-text {
-      color: #666;
-    }
-  }
-
-  :deep(.chapter) {
-    border: 1px solid #444;
-    color: #666;
-  }
-
-  :deep(.popper__arrow) {
-    background: #666;
-  }
+.reader-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  margin: 0 -24px;
+  padding: 16px 28px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  background: var(--web-surface);
+  color: var(--web-text);
+  border-bottom: 1px solid var(--web-line);
 }
-
-@media screen and (max-width: 776px) {
+.reader-book {
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+.reader-book small {
+  font-size: 12px;
+  display: block;
+  color: var(--web-muted);
+}
+.reader-navigation {
+  max-width: 1000px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin: 22px auto;
+  font-size: 12px;
+}
+.chapter {
+  margin: 24px auto;
+  border: 1px solid var(--web-line);
+  border-radius: 12px;
+  padding: 0 48px;
+  min-height: 60vh;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+.chapter .content {
+  font-size: 18px;
+  line-height: 1.8;
+}
+.top-bar,
+.bottom-bar {
+  height: 38px;
+}
+.chapter :deep(.title) {
+  font:
+    26px/1.6 SimSun,
+    serif;
+  text-align: center;
+  letter-spacing: 1px;
+  margin: 0 0 32px;
+}
+.chapter :deep(img) {
+  max-width: 100%;
+  height: auto;
+}
+.bottom-navigation {
+  padding-bottom: 20px;
+}
+.reader-toolbar .inline-actions {
+  gap: 8px;
+}
+@media (max-width: 600px) {
   .chapter-wrapper {
-    padding: 0;
-
-    .tool-bar {
-      left: 0;
-      width: 100vw;
-      margin-left: 0 !important;
-
-      .tools {
-        flex-direction: row;
-        justify-content: space-between;
-
-        .tool-icon {
-          border: none;
-        }
-      }
-    }
-
-    .read-bar {
-      right: 0;
-      width: 100vw;
-      margin-right: 0 !important;
-
-      .tools {
-        flex-direction: row;
-        justify-content: space-between;
-        padding: 0 15px;
-
-        .tool-icon {
-          border: none;
-          width: auto;
-
-          .iconfont {
-            display: inline-block;
-          }
-        }
-      }
-    }
-
-    .chapter {
-      width: 100vw !important;
-      padding: 0 20px;
-      box-sizing: border-box;
-    }
+    padding: 0 0 24px;
+  }
+  .reader-toolbar {
+    margin: 0;
+    padding: 12px 16px;
+    gap: 12px;
+  }
+  .reader-toolbar .inline-actions {
+    width: 100%;
+  }
+  .reader-navigation {
+    padding: 0 16px;
+    margin: 16px auto;
+  }
+  .chapter {
+    border-radius: 0;
+    border-left: 0;
+    border-right: 0;
+    margin: 0 auto;
+    padding: 0 22px;
+  }
+  .chapter :deep(.title) {
+    font-size: 22px;
+  }
+  .bottom-navigation .inline-actions {
+    gap: 4px;
   }
 }
 </style>

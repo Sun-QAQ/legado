@@ -3,6 +3,7 @@
 
 import type { webReadConfig } from '@/web'
 import ajax from './axios'
+import { sourceMode } from '@/config/sourceContext'
 import type {
   BaseBook,
   Book,
@@ -96,10 +97,13 @@ const search = (
   const socket = new WebSocket(
     new URL('searchBook', legado_webSocket_entry_point),
   )
-  socket.onerror = wsOnError
+  socket.onerror = event => {
+    onFinish()
+    wsOnError?.call(socket, event)
+  }
 
   socket.onopen = () => {
-    socket.send(`{"key":"${searchKey}"}`)
+    socket.send(JSON.stringify({ key: searchKey }))
   }
   socket.onmessage = event => {
     try {
@@ -113,6 +117,7 @@ const search = (
   socket.onclose = () => {
     onFinish()
   }
+  return socket
 }
 
 const saveBook = (book: BaseBook) =>
@@ -120,25 +125,25 @@ const saveBook = (book: BaseBook) =>
 const deleteBook = (book: BaseBook) =>
   ajax.post<LeagdoApiResponse<string>>('deleteBook', book)
 
-const isBookSource = /bookSource/i.test(location.href)
+const isBookSource = () => sourceMode.value === 'book'
 
 // 源编辑API
 // Http
 const getSources = () =>
-  isBookSource ? ajax.get('getBookSources') : ajax.get('getRssSources')
+  isBookSource() ? ajax.get('getBookSources') : ajax.get('getRssSources')
 
 const saveSource = (data: Source) =>
-  isBookSource
+  isBookSource()
     ? ajax.post<LeagdoApiResponse<string>>('saveBookSource', data)
     : ajax.post<LeagdoApiResponse<string>>('saveRssSource', data)
 
 const saveSources = (data: Source[]) =>
-  isBookSource
+  isBookSource()
     ? ajax.post<LeagdoApiResponse<Source[]>>('saveBookSources', data)
     : ajax.post<LeagdoApiResponse<Source[]>>('saveRssSources', data)
 
 const deleteSource = (data: Source[]) =>
-  isBookSource
+  isBookSource()
     ? ajax.post<LeagdoApiResponse<string>>('deleteBookSources', data)
     : ajax.post<LeagdoApiResponse<string>>('deleteRssSources', data)
 
@@ -150,12 +155,15 @@ const debug = (
   /** @type {() => void} */ onFinish: () => void,
 ) => {
   const url = new URL(
-    `${isBookSource ? 'bookSource' : 'rssSource'}Debug`,
+    `${isBookSource() ? 'bookSource' : 'rssSource'}Debug`,
     legado_webSocket_entry_point,
   )
 
   const socket = new WebSocket(url)
-  socket.onerror = wsOnError
+  socket.onerror = event => {
+    onFinish()
+    wsOnError?.call(socket, event)
+  }
   socket.onopen = () => {
     socket.send(JSON.stringify({ tag: sourceUrl, key: searchKey }))
   }
@@ -167,6 +175,7 @@ const debug = (
   socket.onclose = () => {
     onFinish()
   }
+  return socket
 }
 
 /**

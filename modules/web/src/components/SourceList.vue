@@ -32,7 +32,7 @@
   <el-checkbox-group id="source-list" v-model="sourceUrlSelect">
     <virtual-list
       style="height: 100%; overflow-y: auto; overflow-x: hidden"
-      :data-key="(source: Source) => getSourceName(source)"
+      :data-key="(source: Source) => getSourceUniqueKey(source)"
       :data-sources="sourcesFiltered"
       :data-component="SourceItem"
       :estimate-size="45"
@@ -46,7 +46,6 @@ import { Folder, Delete, Download, Search } from '@element-plus/icons-vue'
 import {
   isSourceMatches,
   getSourceUniqueKey,
-  getSourceName,
   convertSourcesToMap,
 } from '@utils/souce'
 import VirtualList from 'vue3-virtual-scroll-list'
@@ -79,9 +78,20 @@ const sourceSelect = computed<Source[]>(() => {
   }, [] as Source[])
 })
 
-const deleteSelectSources = () => {
+const deleteSelectSources = async () => {
+  try {
+    await ElMessageBox.confirm(
+      `将从 App 删除选中的 ${sourceSelect.value.length} 个源，是否继续？`,
+      '删除源',
+      { type: 'warning', confirmButtonText: '删除', cancelButtonText: '取消' },
+    )
+  } catch {
+    return
+  }
+  const kind = store.editorKind
   const sourceSelectValue = sourceSelect.value
   API.deleteSource(sourceSelectValue).then(({ data }) => {
+    if (kind !== store.editorKind) return
     if (!data.isSuccess) return ElMessage.error(data.errorMsg)
     store.deleteSources(sourceSelectValue)
     const sourceUrlSelectRawValue = toRaw(sourceUrlSelect.value)
@@ -92,7 +102,16 @@ const deleteSelectSources = () => {
     sourceUrlSelect.value = sourceUrlSelectRawValue
   })
 }
-const clearAllSources = () => {
+const clearAllSources = async () => {
+  try {
+    await ElMessageBox.confirm(
+      '清空本地源列表，不删除 App 中的源。是否继续？',
+      '清空列表',
+      { confirmButtonText: '清空', cancelButtonText: '取消' },
+    )
+  } catch {
+    return
+  }
   store.clearAllSource()
   sourceUrlSelect.value = []
 }
@@ -104,7 +123,7 @@ const importSourceFile = () => {
   input.accept = '.json,.txt'
   input.addEventListener('change', () => {
     const files = input.files
-    if (files === null) {
+    if (files === null || files.length === 0) {
       return ElMessage.info('未选择文件')
     }
     const reader = new FileReader()
@@ -112,7 +131,19 @@ const importSourceFile = () => {
     reader.onload = () => {
       try {
         const jsonData = JSON.parse(reader.result as string)
-        store.saveSources(jsonData)
+        const sources = Array.isArray(jsonData) ? jsonData : [jsonData]
+        if (
+          !sources.every(
+            source =>
+              source &&
+              typeof source === 'object' &&
+              (store.editorKind === 'book'
+                ? typeof source.bookSourceUrl === 'string'
+                : typeof source.sourceUrl === 'string'),
+          )
+        )
+          throw new Error('文件类型与当前源管理页不一致')
+        store.saveSources(sources)
       } catch (e: unknown) {
         ElMessage.error('上传的源格式错误: ' + (e as Error).message)
       }
@@ -121,14 +152,14 @@ const importSourceFile = () => {
   input.click()
 }
 
-const isBookSource = /bookSource/i.test(window.location.href)
+const isBookSource = computed(() => store.editorKind === 'book')
 const outExport = () => {
   const exportFile = document.createElement('a')
   const sources =
       sourceUrlSelect.value.length === 0
         ? sourcesFiltered.value
         : sourceSelect.value,
-    sourceType = isBookSource ? 'BookSource' : 'RssSource'
+    sourceType = isBookSource.value ? 'BookSource' : 'RssSource'
 
   exportFile.download = `${sourceType}_${Date()
     .replace(/.*?\s(\d+)\s(\d+)\s(\d+:\d+:\d+).*/, '$2$1$3')
@@ -147,15 +178,25 @@ const outExport = () => {
 .tool {
   display: flex;
   margin: 4px 0;
-  justify-content: center;
+  justify-content: flex-start;
+  gap: 6px;
+  flex-wrap: wrap;
 }
 
 #source-list {
   margin-top: 6px;
-  height: calc(100vh - 112px - 7px);
+  height: 440px;
   :deep(.el-checkbox) {
     margin-bottom: 4px;
     width: 100%;
+  }
+}
+</style>
+
+<style scoped>
+@media (max-width: 900px) {
+  #source-list {
+    height: 210px;
   }
 }
 </style>

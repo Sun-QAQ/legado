@@ -9,12 +9,10 @@ import API, {
 import ajax from './axios'
 import { validatorHttpUrl } from '@/utils/utils'
 
-import { createApp } from 'vue'
-import App from '@/App.vue'
-import store, { useConnectionStore } from '@/store'
+import { useConnectionStore } from '@/store/connectionStore'
 
-createApp(App).use(store)
-const connectionStore = useConnectionStore()
+// 请求发生在应用挂载后，此时使用应用的 Pinia；避免创建第二个 App 造成循环初始化。
+const connectionStore = () => useConnectionStore()
 
 const LeagdoApiResponseKeys: string[] = Array.of('isSuccess', 'errorMsg')
 
@@ -28,7 +26,7 @@ const responseCheckInterceptor = (resp: AxiosResponse) => {
     for (const key of LeagdoApiResponseKeys) {
       if (!(key in data)) {
         isLeagdoApiResponse = false
-        LeagdoApiResponseKeys.length = 0
+        break
       }
     }
     if ((data as LeagdoApiResponse<unknown>).isSuccess === true) {
@@ -43,27 +41,30 @@ const responseCheckInterceptor = (resp: AxiosResponse) => {
     notification.warning({ message: '后端返回内容格式错误', grouping: true })
     throw new Error()
   }
-  connectionStore.setConnectType('primary')
-  connectionStore.setConnectStatus('已连接 ' + legado_http_entry_point)
+  connectionStore().setConnectType('primary')
+  connectionStore().setConnectStatus('已连接 ' + legado_http_entry_point)
   return resp
 }
 
-const axiosErrorInterceptor = (err: unknown) => {
+const reportConnectionError = () => {
   notification.error({
     message: '后端连接失败，请检查阅读WEB服务或者设置其它可用链接',
     grouping: true,
   })
-  connectionStore.setConnectType('danger')
-  connectionStore.setConnectStatus('连接异常')
+  connectionStore().setConnectType('danger')
+  connectionStore().setConnectStatus('连接异常')
+}
+const axiosErrorInterceptor = (err: unknown) => {
+  reportConnectionError()
   throw err
 }
 // http全局
 ajax.interceptors.response.use(responseCheckInterceptor, axiosErrorInterceptor)
 // websocket
-setWebsocketOnError(axiosErrorInterceptor)
+setWebsocketOnError(reportConnectionError)
 setWebsocketOnMessage(() => {
-  connectionStore.setConnectType('primary')
-  connectionStore.setConnectStatus('已连接 ' + legado_http_entry_point)
+  connectionStore().setConnectType('primary')
+  connectionStore().setConnectStatus('已连接 ' + legado_http_entry_point)
 })
 /**
  * 按照阅读的默认规则 解析阅读HTTP WebSocket API入口地址

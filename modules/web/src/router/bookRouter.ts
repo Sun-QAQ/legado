@@ -7,6 +7,16 @@ export const bookRoutes = [
     component: () => import('../views/BookShelf.vue'),
   },
   {
+    path: '/search',
+    name: 'search',
+    component: () => import('../views/BookShelf.vue'),
+  },
+  {
+    path: '/settings',
+    name: 'settings',
+    component: () => import('../views/WebSettings.vue'),
+  },
+  {
     path: '/chapter',
     name: 'chapter',
     component: () => import('../views/BookChapter.vue'),

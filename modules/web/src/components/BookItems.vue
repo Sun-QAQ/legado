@@ -1,196 +1,171 @@
 <template>
-  <div class="books-wrapper">
-    <div class="wrapper">
-      <div
-        class="book"
-        v-for="book in books"
-        :key="book.bookUrl"
-        @click="handleClick(book)"
+  <div class="book-grid" :class="{ 'book-list': list }">
+    <article
+      v-for="book in books"
+      :key="`${book.origin}:${book.bookUrl}`"
+      class="book-item"
+    >
+      <button
+        class="book-open"
+        @click="$emit('bookClick', book)"
+        :aria-label="`${isSearch ? '加入书架并阅读' : '阅读'}《${book.name}》`"
       >
-        <div class="cover-img">
-          <img
-            class="cover"
-            :src="getCover(book)"
-            :key="book.coverUrl"
-            @error.once="proxyImage"
-            alt=""
-            loading="lazy"
+        <book-cover :book="book" />
+        <div class="book-info">
+          <h3>{{ book.name }}</h3>
+          <p class="book-author">{{ book.author || '佚名' }}</p>
+          <p v-if="isSearch" class="book-source">{{ book.originName }}</p>
+          <p v-if="isSearch && book.intro" class="book-intro">
+            {{ book.intro }}
+          </p>
+          <template v-if="!isSearch"
+            ><p class="book-chapter">
+              已读：{{ (book as Book).durChapterTitle || '尚未开始' }}
+            </p>
+            <p class="book-chapter">
+              最新：{{ book.latestChapterTitle || '暂无章节信息' }}
+            </p>
+            <p class="book-chapter">
+              共 {{ (book as Book).totalChapterNum }} 章 ·
+              {{ dateFormat((book as Book).lastCheckTime) }}
+            </p></template
+          >
+          <p class="book-progress">
+            <span>{{
+              isSearch ? '加入并阅读 →' : `已读 ${bookProgress(book as Book)}%`
+            }}</span
+            ><span
+              v-if="!isSearch && (book as Book).lastCheckCount > 0"
+              class="update-tag"
+              >有更新</span
+            >
+          </p>
+          <el-progress
+            v-if="!isSearch"
+            :percentage="bookProgress(book as Book)"
+            :stroke-width="4"
+            :show-text="false"
           />
         </div>
-        <div class="info">
-          <div class="name">{{ book.name }}</div>
-          <div class="sub">
-            <div class="author">
-              {{ book.author }}
-            </div>
-            <div class="tags" v-if="isSearch">
-              <el-tag
-                v-for="tag in book.kind?.split(',').slice(0, 2)"
-                :key="tag"
-              >
-                {{ tag }}
-              </el-tag>
-            </div>
-            <div class="update-info" v-if="!isSearch">
-              <div class="dot">•</div>
-              <div class="size">共{{ (book as Book).totalChapterNum }}章</div>
-              <div class="dot">•</div>
-              <div class="date">
-                {{ dateFormat((book as Book).lastCheckTime) }}
-              </div>
-            </div>
-          </div>
-          <div class="intro" v-if="isSearch">{{ book.intro }}</div>
-
-          <div class="dur-chapter" v-if="!isSearch">
-            已读：{{ (book as Book).durChapterTitle }}
-          </div>
-          <div class="last-chapter">最新：{{ book.latestChapterTitle }}</div>
-        </div>
-      </div>
-    </div>
+      </button>
+    </article>
   </div>
 </template>
 <script setup lang="ts">
 import type { Book, SeachBook } from '@/book'
-import { dateFormat, isLegadoUrl } from '../utils/utils'
-import API from '@api'
-const props = defineProps<{
+import { dateFormat } from '@/utils/utils'
+import { bookProgress } from '@/utils/bookPresentation'
+defineProps<{
   books: Array<Book | SeachBook>
   isSearch: boolean
+  list?: boolean
 }>()
-
-const emit = defineEmits(['bookClick'])
-const handleClick = (book: Book | SeachBook) => emit('bookClick', book)
-const getCover = ({ bookUrl, coverUrl }: Book | SeachBook) => {
-  if (coverUrl === undefined) return API.getProxyCoverUrl(bookUrl)
-  return isLegadoUrl(coverUrl) ? API.getProxyCoverUrl(coverUrl) : coverUrl
-}
-const proxyImage = (evt: Event) => {
-  const target = evt.target as HTMLImageElement
-  target.src = API.getProxyCoverUrl(target.src)
-}
-
-const subJustify = computed(() =>
-  props.isSearch ? 'space-between' : 'flex-start',
-)
+defineEmits<{ bookClick: [book: Book | SeachBook] }>()
 </script>
-
-<style lang="scss" scoped>
-.books-wrapper {
-  overflow: auto;
-
-  .wrapper {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, 380px);
-    justify-content: space-around;
-    grid-gap: 10px;
-
-    .book {
-      user-select: none;
-      display: flex;
-      cursor: pointer;
-      margin-bottom: 18px;
-      padding: 24px 24px;
-      width: 360px;
-      flex-direction: row;
-      justify-content: space-around;
-
-      .cover-img {
-        width: 84px;
-        height: 112px;
-
-        .cover {
-          width: 84px;
-          height: 112px;
-        }
-      }
-
-      .info {
-        display: flex;
-        flex-direction: column;
-        justify-content: space-around;
-        align-items: left;
-        height: 112px;
-        margin-left: 20px;
-        flex: 1;
-        overflow: hidden;
-
-        .name {
-          width: fit-content;
-          font-size: 16px;
-          font-weight: 700;
-          color: #33373d;
-        }
-
-        .sub {
-          display: flex;
-          flex-direction: row;
-          align-items: baseline;
-          justify-content: v-bind('subJustify');
-          font-size: 12px;
-          font-weight: 600;
-          color: #6b6b6b;
-          .tags {
-            :deep(.el-tag) {
-              margin-right: 0.5em;
-            }
-          }
-          .update-info {
-            display: flex;
-            .dot {
-              margin: 0 7px;
-            }
-          }
-        }
-
-        .intro,
-        .dur-chapter,
-        .last-chapter {
-          color: #969ba3;
-          font-size: 13px;
-          margin-top: 3px;
-          font-weight: 500;
-          word-wrap: break-word;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          display: -webkit-box;
-          -webkit-box-orient: vertical;
-          -webkit-line-clamp: 1;
-          line-clamp: 1;
-          text-align: left;
-        }
-      }
-    }
-
-    .book:hover {
-      background: rgba(0, 0, 0, 0.1);
-      transition-duration: 0.5s;
-    }
+<style scoped>
+.book-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 28px 24px;
+}
+.book-item {
+  min-width: 0;
+}
+.book-open {
+  background: transparent;
+  border: 0;
+  color: var(--web-text);
+  padding: 0;
+  text-align: left;
+  width: 100%;
+  cursor: pointer;
+}
+.book-open :deep(.book-cover) {
+  max-width: 140px;
+  margin-bottom: 16px;
+  transition: transform 0.2s;
+}
+.book-open:hover :deep(.book-cover) {
+  transform: translateY(-4px);
+}
+.book-info h3 {
+  font-size: 15px;
+  margin: 0 0 4px;
+  overflow-wrap: anywhere;
+}
+.book-info p {
+  font-size: 12px;
+  color: var(--web-muted);
+  margin: 4px 0;
+  overflow-wrap: anywhere;
+}
+.book-chapter {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.book-info .book-progress {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  margin-top: 12px;
+}
+.update-tag {
+  background: var(--web-tint);
+  color: var(--web-primary);
+  padding: 2px 5px;
+  border-radius: 4px;
+}
+.book-intro {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.book-list {
+  grid-template-columns: 1fr;
+  gap: 0;
+}
+.book-list .book-item {
+  padding: 18px 0;
+  border-bottom: 1px solid var(--web-line);
+}
+.book-list .book-open {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+}
+.book-list .book-open :deep(.book-cover) {
+  width: 74px;
+  flex-shrink: 0;
+  margin: 0;
+}
+.book-list .book-info {
+  min-width: 0;
+  flex: 1;
+}
+.book-list :deep(.el-progress) {
+  max-width: 250px;
+}
+@media (max-width: 600px) {
+  .book-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 24px 20px;
   }
-
-  .wrapper:last-child {
-    margin-right: auto;
+  .book-open :deep(.book-cover) {
+    max-width: none;
+  }
+  .book-list {
+    grid-template-columns: 1fr;
+  }
+  .book-list .book-open :deep(.book-cover) {
+    width: 65px;
   }
 }
-
-.books-wrapper::-webkit-scrollbar {
-  width: 0 !important;
-}
-
-@media screen and (max-width: 750px) {
-  .books-wrapper {
-    .wrapper {
-      display: flex;
-      flex-direction: column;
-
-      .book {
-        box-sizing: border-box;
-        width: 100%;
-        margin-bottom: 0;
-        padding: 10px 20px;
-      }
-    }
+@media (prefers-reduced-motion: reduce) {
+  .book-open :deep(.book-cover) {
+    transition: none;
   }
 }
 </style>

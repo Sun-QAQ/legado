@@ -9,7 +9,12 @@
     }"
   >
     {{ getSourceName(source) }}
-    <el-button text :icon="Edit" @click="handleSourceClick(source)" />
+    <el-button
+      text
+      :icon="Edit"
+      :aria-label="`编辑源${getSourceName(source)}`"
+      @click.stop="handleSourceClick(source)"
+    />
   </el-checkbox>
 </template>
 
@@ -27,8 +32,19 @@ const store = useSourceStore()
 const currentSourceUrl = computed(() => store.currentSourceUrl)
 const sourceUrl = computed(() => getSourceUniqueKey(props.source))
 
-const handleSourceClick = (source: Source) => {
+const handleSourceClick = async (source: Source) => {
+  if (store.isDirty) {
+    try {
+      await ElMessageBox.confirm('当前修改尚未保存，是否切换源？', '切换源', {
+        confirmButtonText: '切换',
+        cancelButtonText: '继续编辑',
+      })
+    } catch {
+      return
+    }
+  }
   store.changeCurrentSource(source)
+  store.changeTabName('editForm')
 }
 const isSaveError = computed(() => {
   const map = store.savedSourcesMap

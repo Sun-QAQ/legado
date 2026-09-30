@@ -1,39 +1,30 @@
 <template>
-  <el-tabs v-model="current_tab">
-    <el-tab-pane
-      v-for="(tab, index) in tabData"
-      :key="tab[0]"
-      :name="tab[0]"
-      :label="tab[1]"
-    >
-      <source-json v-if="index == 0" />
-      <source-debug v-if="index == 1" />
-      <source-list v-if="index == 2" />
-      <source-help v-if="index == 3" />
-    </el-tab-pane>
-  </el-tabs>
+  <el-tabs v-model="currentTab" class="source-tabs"
+    ><el-tab-pane label="表单编辑" name="editForm"
+      ><source-tab-form :config="config" /></el-tab-pane
+    ><el-tab-pane label="JSON" name="editTab"><source-json /></el-tab-pane
+    ><el-tab-pane label="调试输出" name="editDebug"
+      ><source-debug /></el-tab-pane
+    ><el-tab-pane label="规则帮助" name="editHelp"><source-help /></el-tab-pane
+  ></el-tabs>
 </template>
-
 <script setup lang="ts">
-import { useSourceStore } from '@/store'
-
+import type { SourceConfig } from '@/config/sourceConfig'
+defineProps<{ config: SourceConfig }>()
 const store = useSourceStore()
-
-const current_tab = computed({
+const currentTab = computed({
   get: () => store.currentTab,
-  set: val => (store.currentTab = val),
+  set: val => store.changeTabName(val),
 })
-
-const tabData = ref([
-  ['editTab', '编辑源'],
-  ['editDebug', '调试源'],
-  ['editList', '源列表'],
-  ['editHelp', '帮助信息'],
-])
 </script>
-
-<style lang="scss" scoped>
-:deep(.el-tabs__header) {
-  margin-bottom: 5px;
+<style scoped>
+.source-tabs {
+  min-width: 0;
+}
+.source-tabs :deep(.el-tabs__content) {
+  overflow: visible;
+}
+.source-tabs :deep(.el-tabs__header) {
+  margin-bottom: 20px;
 }
 </style>

@@ -27,16 +27,16 @@ export const isSourceMatches: (source: Source, searchKey: string) => boolean = (
   // TODO: 正则和普通字符串识别 识别 * . \ [ ] <= <! != = ?: () \d\w\s\...
   if (isBookSource(source)) {
     return (
-      (source.bookSourceName.includes(searchKey) ||
-        source.bookSourceUrl.includes(searchKey) ||
+      (source.bookSourceName?.includes(searchKey) ||
+        source.bookSourceUrl?.includes(searchKey) ||
         source.bookSourceGroup?.includes(searchKey) ||
         source.bookSourceComment?.includes(searchKey)) ??
       false
     )
   }
   return (
-    (source.sourceName.includes(searchKey) ||
-      source.sourceUrl.includes(searchKey) ||
+    (source.sourceName?.includes(searchKey) ||
+      source.sourceUrl?.includes(searchKey) ||
       source.sourceGroup?.includes(searchKey) ||
       source.sourceComment?.includes(searchKey)) ??
     false
@@ -49,7 +49,7 @@ export const convertSourcesToMap = (sources: Source[]): Map<string, Source> => {
   return map
 }
 
-export const normalizeSource = (source: any) => {
+export const normalizeSource = (source: Record<string, unknown>) => {
   for (const key in source) {
     const value = source[key]
     if (
@@ -59,12 +59,14 @@ export const normalizeSource = (source: any) => {
     ) {
       delete source[key]
     } else if (value instanceof Object) {
-      normalizeSource(value)
+      normalizeSource(value as Record<string, unknown>)
     }
   }
 }
 
 export const emptyBookSource = {
+  bookSourceType: 0,
+  enabled: true,
   ruleSearch: {},
   ruleBookInfo: {},
   ruleToc: {},

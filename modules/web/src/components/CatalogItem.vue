@@ -1,6 +1,7 @@
 <template>
   <div class="wrapper">
-    <div
+    <button
+      type="button"
       v-for="cata in catas"
       class="cata-text"
       :key="cata.url"
@@ -8,7 +9,7 @@
       @click="gotoChapter(cata)"
     >
       {{ cata.title }}
-    </div>
+    </button>
   </div>
 </template>
 <script setup lang="ts">
@@ -35,12 +36,19 @@ const catas = computed(() => {
 
 <style lang="scss" scoped>
 .selected {
-  color: #eb4259;
+  color: var(--web-primary) !important;
 }
 .wrapper {
   display: flex;
 
   .cata-text {
+    color: var(--web-text);
+    background: transparent;
+    border: 0;
+    cursor: pointer;
+    padding: 10px 0;
+    text-align: left;
+    font: inherit;
     width: 100%;
     margin-right: 26px;
     overflow: hidden;

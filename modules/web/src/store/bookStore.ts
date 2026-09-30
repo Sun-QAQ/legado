@@ -95,14 +95,7 @@ export const useBookStore = defineStore('book', {
         return this.shelf
       })
 
-      if (this.shelf.length > 0) {
-        // bookshelf data fetched before:do not await
-        console.log('返回缓存书架数据')
-        return this.shelf
-      } else {
-        console.log('从阅读后端获取书架数据...')
-        return await fetchBookshellf_promise
-      }
+      return await fetchBookshellf_promise
     },
     /** 从后端加载书籍目录，优先返回内存缓存 */
     async loadWebCatalog(

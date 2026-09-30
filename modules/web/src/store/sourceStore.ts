@@ -6,9 +6,10 @@ import {
   convertSourcesToMap,
 } from '@utils/souce'
 import type { BookSoure, RssSource, Source } from '@/source'
+import { sourceMode } from '@/config/sourceContext'
 
-const isBookSource = /bookSource/i.test(location.href)
-const emptySource = isBookSource ? emptyBookSource : emptyRssSource
+const isBookSource = () => sourceMode.value === 'book'
+const emptySource = () => (isBookSource() ? emptyBookSource : emptyRssSource)
 
 export const useSourceStore = defineStore('source', {
   state: () => {
@@ -16,30 +17,58 @@ export const useSourceStore = defineStore('source', {
       bookSources: shallowRef([] as BookSoure[]), // 临时存放所有书源,
       rssSources: shallowRef([] as RssSource[]), // 临时存放所有订阅源
       savedSources: [] as Source[], // 批量保存到阅读app成功的源
-      currentSource: JSON.parse(JSON.stringify(emptySource)) as Source, // 当前编辑的源
-      currentTab: localStorage.getItem('tabName') || 'editTab',
+      currentSource: JSON.parse(JSON.stringify(emptySource())) as Source, // 当前编辑的源
+      currentTab: 'editForm',
+      jsonError: '',
+      undoHistory: [] as Source[],
+      redoHistory: [] as Source[],
+      historyReplay: false,
+      draftBaseline: JSON.stringify(emptySource()),
       editTabSource: {} as Source, // 生成序列化的json数据
       isDebuging: false,
+      editorKind: sourceMode.value,
+      drafts: {} as Record<string, { current: Source; json: Source }>,
     }
   },
   getters: {
+    isDirty: state =>
+      JSON.stringify(state.currentSource) !== state.draftBaseline ||
+      !!state.jsonError,
     sources: (state): Source[] =>
-      isBookSource ? state.bookSources : state.rssSources,
+      isBookSource() ? state.bookSources : state.rssSources,
     sourcesMap: function (): Map<string, Source> {
       return convertSourcesToMap(this.sources)
     },
     savedSourcesMap: (state): Map<string, Source> =>
       convertSourcesToMap(state.savedSources),
     currentSourceUrl: state =>
-      isBookSource
+      isBookSource()
         ? (state.currentSource as BookSoure).bookSourceUrl
         : (state.currentSource as RssSource).sourceUrl,
     searchKey: (state): string =>
-      isBookSource
+      isBookSource()
         ? (state.currentSource as BookSoure)?.ruleSearch?.checkKeyWord || '我的'
         : '',
   },
   actions: {
+    selectType() {
+      if (this.editorKind === sourceMode.value) return
+      this.drafts[this.editorKind] = {
+        current: this.currentSource,
+        json: this.editTabSource,
+      }
+      this.clearAllHistory()
+      this.editorKind = sourceMode.value
+      const draft = this.drafts[this.editorKind]
+      this.currentSource =
+        draft?.current || JSON.parse(JSON.stringify(emptySource()))
+      this.editTabSource = draft?.json || ({} as Source)
+      this.savedSources = []
+      this.isDebuging = false
+      this.draftBaseline = JSON.stringify(this.currentSource)
+      this.currentTab = 'editForm'
+      this.jsonError = ''
+    },
     startDebug() {
       this.currentTab = 'editDebug'
       this.isDebuging = true
@@ -50,7 +79,7 @@ export const useSourceStore = defineStore('source', {
 
     //拉取源后保存
     saveSources(data: Source[]) {
-      if (isBookSource) {
+      if (isBookSource()) {
         this.bookSources = markRaw(data) as BookSoure[]
       } else {
         this.rssSources = markRaw(data) as RssSource[]
@@ -62,13 +91,10 @@ export const useSourceStore = defineStore('source', {
     },
     //删除源
     deleteSources(data: Source[]) {
-      const sources: Source[] = isBookSource
-        ? this.bookSources
-        : this.rssSources
-      data.forEach(source => {
-        const index = sources.indexOf(source)
-        if (index > -1) sources.splice(index, 1)
-      })
+      const keys = new Set(data.map(getSourceUniqueKey))
+      this.saveSources(
+        this.sources.filter(source => !keys.has(getSourceUniqueKey(source))),
+      )
     },
     //保存当前编辑源
     saveCurrentSource() {
@@ -76,10 +102,19 @@ export const useSourceStore = defineStore('source', {
         map = this.sourcesMap
       map.set(getSourceUniqueKey(source), JSON.parse(JSON.stringify(source)))
       this.saveSources(Array.from(map.values()))
+      this.draftBaseline = JSON.stringify(this.currentSource)
     },
     // 更改当前编辑的源qq
-    changeCurrentSource(source: Source) {
-      this.currentSource = JSON.parse(JSON.stringify(source))
+    changeCurrentSource(source: Source, resetBaseline = true) {
+      this.currentSource = Object.assign(
+        JSON.parse(JSON.stringify(emptySource())),
+        JSON.parse(JSON.stringify(source)),
+      )
+      if (resetBaseline) {
+        this.draftBaseline = JSON.stringify(this.currentSource)
+        this.clearAllHistory()
+      }
+      this.jsonError = ''
     },
     // update editTab tabName and editTab info
     changeTabName(tabName: string) {
@@ -89,45 +124,43 @@ export const useSourceStore = defineStore('source', {
     changeEditTabSource(source: Source) {
       this.editTabSource = JSON.parse(JSON.stringify(source))
     },
-    editHistory(history: Source) {
-      let historyObj
-      if (localStorage.getItem('history')) {
-        historyObj = JSON.parse(localStorage.getItem('history')!)
-        historyObj.new.push(history)
-        if (historyObj.new.length > 50) {
-          historyObj.new.shift()
-        }
-        if (historyObj.old.length > 50) {
-          historyObj.old.shift()
-        }
-        localStorage.setItem('history', JSON.stringify(historyObj))
-      } else {
-        const arr = { new: [history], old: [] }
-        localStorage.setItem('history', JSON.stringify(arr))
-      }
+    recordHistory(previous: string) {
+      if (this.historyReplay) return
+      this.undoHistory.push(JSON.parse(previous))
+      if (this.undoHistory.length > 50) this.undoHistory.shift()
+      this.redoHistory = []
     },
     editHistoryUndo() {
-      if (localStorage.getItem('history')) {
-        const historyObj = JSON.parse(localStorage.getItem('history')!)
-        historyObj.old.push(this.currentSource)
-        if (historyObj.new.length) {
-          this.currentSource = historyObj.new.pop()
-        }
-        localStorage.setItem('history', JSON.stringify(historyObj))
-      }
+      const previous = this.undoHistory.pop()
+      if (!previous) return
+      this.historyReplay = true
+      this.redoHistory.push(JSON.parse(JSON.stringify(this.currentSource)))
+      this.currentSource = previous
+      this.jsonError = ''
+      this.historyReplay = false
+    },
+    editHistoryRedo() {
+      const next = this.redoHistory.pop()
+      if (!next) return
+      this.historyReplay = true
+      this.undoHistory.push(JSON.parse(JSON.stringify(this.currentSource)))
+      this.currentSource = next
+      this.jsonError = ''
+      this.historyReplay = false
     },
     clearAllHistory() {
-      localStorage.setItem('history', JSON.stringify({ new: [], old: [] }))
+      this.undoHistory = []
+      this.redoHistory = []
     },
     clearEdit() {
       this.editTabSource = {} as Source
-      this.currentSource = JSON.parse(JSON.stringify(emptySource)) //复制一份新对象
+      this.currentSource = JSON.parse(JSON.stringify(emptySource())) //复制一份新对象
     },
 
     // clear all source
     clearAllSource() {
-      this.bookSources = []
-      this.rssSources = []
+      if (isBookSource()) this.bookSources = []
+      else this.rssSources = []
       this.savedSources = []
     },
   },

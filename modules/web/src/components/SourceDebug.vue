@@ -26,6 +26,13 @@ const store = useSourceStore()
 
 const printDebug = ref('')
 const searchKey = ref('')
+let socket: WebSocket | undefined
+let disposed = false
+onUnmounted(() => {
+  disposed = true
+  socket?.close()
+  store.debugFinish()
+})
 
 watch(
   () => store.isDebuging,
@@ -40,14 +47,26 @@ const appendDebugMsg = (msg: string) => {
   printDebug.value += msg + '\n'
 }
 const startDebug = async () => {
+  if (store.jsonError) {
+    store.debugFinish()
+    return ElMessage.error(store.jsonError)
+  }
+  const revision = JSON.stringify(store.currentSource)
+  socket?.close()
   printDebug.value = ''
   try {
-    await API.saveSource(store.currentSource)
+    const response = await API.saveSource(store.currentSource)
+    if (!response.data.isSuccess)
+      throw new Error(response.data.errorMsg || '保存源失败')
   } catch (e) {
     store.debugFinish()
-    throw e
+    ElMessage.error(e instanceof Error ? e.message : '无法启动调试')
+    return
   }
-  API.debug(
+  if (disposed) return
+  if (JSON.stringify(store.currentSource) === revision)
+    store.saveCurrentSource()
+  socket = API.debug(
     store.currentSourceUrl,
     searchKey.value || store.searchKey,
     appendDebugMsg,
@@ -62,6 +81,6 @@ const isBookSource = computed(() => {
 
 <style lang="scss" scoped>
 :deep(#debug-text) {
-  height: calc(100vh - 45px - 36px - 5px);
+  min-height: 360px;
 }
 </style>
