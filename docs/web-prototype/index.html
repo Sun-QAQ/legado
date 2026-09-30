@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>阅读 · Web 界面原型</title>
+  <link rel="stylesheet" href="prototype.css">
+  <script src="prototype.js" defer></script>
+</head>
+<body>
+  <a class="skip" href="#main">跳到主要内容</a>
+  <div class="shell">
+    <aside class="sidebar">
+      <a class="brand" href="#shelf"><span class="brand-mark">阅</span><span>阅读<small>LEGADO / WEB</small></span></a>
+      <div class="nav-caption">我的阅读空间</div>
+      <nav aria-label="主导航">
+        <a href="#shelf" data-page="shelf"><span class="nav-icon">▤</span>我的书架<span class="nav-count">6</span></a>
+        <a href="#search" data-page="search"><span class="nav-icon">⌕</span>在线搜索</a>
+        <div class="nav-caption">内容与工具</div>
+        <a href="#sources" data-page="sources"><span class="nav-icon">⌘</span>书源管理</a>
+        <a href="#rss" data-page="rss"><span class="nav-icon">◉</span>订阅源管理</a>
+        <a href="#settings" data-page="settings"><span class="nav-icon">⚙</span>连接与设置</a>
+      </nav>
+      <div class="sidebar-bottom"><p>清风不识字，何故乱翻书。</p><button class="connection" data-go="settings"><span class="dot"></span><span id="connection-label">演示连接<small>阅读 App · 原型数据</small></span><span>›</span></button></div>
+    </aside>
+    <div class="workspace">
+      <header class="topbar"><div><span class="breadcrumb">阅读空间</span><span class="separator">/</span><span id="crumb">我的书架</span></div><div class="top-actions"><span class="prototype-tag">交互原型 · 演示数据</span><button id="theme-toggle" aria-label="切换深浅主题">◐</button></div></header>
+      <main id="main" tabindex="-1"></main>
+      <footer class="footer">LEGADO <span>让阅读回到内容本身</span><span>Web 界面设计 / v1</span></footer>
+    </div>
+  </div>
+  <dialog id="modal"><div id="modal-content"></div></dialog>
+  <div id="toast" role="status" aria-live="polite"></div>
+</body>
+</html>
