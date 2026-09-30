@@ -27,6 +27,7 @@ import io.legado.app.lib.theme.ThemePalette
 import io.legado.app.lib.theme.accentColor
 import io.legado.app.lib.theme.primaryTextColor
 import io.legado.app.lib.theme.secondaryTextColor
+import io.legado.app.ui.book.info.BookInfoActivity
 import io.legado.app.ui.book.search.SearchActivity
 import io.legado.app.utils.ColorUtils
 import io.legado.app.utils.applyNavigationBarPadding
@@ -36,7 +37,7 @@ import io.legado.app.utils.dpToPx
 import io.legado.app.utils.getInt
 import io.legado.app.utils.putInt
 import io.legado.app.utils.setEdgeEffectColor
-import io.legado.app.utils.startActivityForBook
+import io.legado.app.utils.startActivity
 import io.legado.app.utils.viewbindingdelegate.viewBinding
 import kotlinx.coroutines.Dispatchers.IO
 import kotlinx.coroutines.launch
@@ -420,7 +421,10 @@ class ReadRecordActivity : BaseActivity<ActivityReadRecordBinding>() {
                         if (book == null) {
                             SearchActivity.start(this@ReadRecordActivity, item.bookName)
                         } else {
-                            startActivityForBook(book)
+                            startActivity<BookInfoActivity> {
+                                putExtra("name", book.name)
+                                putExtra("author", book.author)
+                            }
                         }
                     }
                 }
