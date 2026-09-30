@@ -193,7 +193,7 @@ const getProxyCoverUrl = (coverUrl: string) => {
   ).toString()
 }
 /**
- * 从阅读获取需要特定处理的图片
+ * 正文图片统一通过阅读 App 获取，沿用书源请求头、缓存及解密逻辑。
  * @param {string} bookUrl
  * @param {string} src
  * @param {number|`${number}`} width
@@ -203,7 +203,8 @@ const getProxyImageUrl = (
   src: string,
   width: number | `${number}`,
 ) => {
-  if (src.startsWith(legado_http_entry_point)) return src
+  const proxyEndpoint = new URL('image', legado_http_entry_point).toString()
+  if (src.startsWith(proxyEndpoint + '?')) return src
   return new URL(
     'image?path=' +
       encodeURIComponent(src) +
