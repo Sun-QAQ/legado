@@ -274,11 +274,24 @@ const openBook = async (book: Book | SeachBook) => {
     ElMessage.error('打开书籍失败，请检查连接后重试')
   }
 }
+const searchFromNavigation = async () => {
+  const key = typeof route.query.q === 'string' ? route.query.q.trim() : ''
+  if (!online.value || !key) return
+  searchWord.value = key
+  try {
+    await store.loadWebConfig()
+    if (!disposed && online.value && route.query.q === key) searchBook()
+  } catch {
+    error.value = '请确认阅读 App 的 Web 服务已开启，且服务地址可用。'
+  }
+}
+watch(() => [online.value, route.query.q], searchFromNavigation)
 onMounted(() => {
   if (!online.value) loadShelf()
   else {
     store.clearSearchBooks()
-    store.loadWebConfig().catch(() => {})
+    if (route.query.q) void searchFromNavigation()
+    else store.loadWebConfig().catch(() => {})
   }
 })
 onUnmounted(() => {

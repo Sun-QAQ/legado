@@ -1,72 +1,108 @@
-<!DOCTYPE HTML>
-<!--
-	Forty by HTML5 UP
-	html5up.net | @ajlkn
-	Free for personal and commercial use under the CCA 3.0 license (html5up.net/license)
--->
-<html>
-
-<head>
-    <title>Legado web 导航</title>
-    <meta charset="utf-8"/>
-    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no"/>
-    <link rel="stylesheet" href="assets/css/main.css"/>
-</head>
-
-<body class="is-preload">
-
-<!-- Wrapper -->
-<div id="wrapper">
-
-    <!-- Header -->
-    <header id="header" class="alt">
-        <nav>
-            <a href="#menu">Menu</a>
-        </nav>
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <title>Legado · 阅读导航</title>
+    <link rel="icon" href="favicon.ico" />
+    <link rel="stylesheet" href="assets/css/navigation.css" />
+    <script src="assets/js/navigation.js" defer></script>
+  </head>
+  <body>
+    <header class="page-header">
+      <span class="page-label">阅读 · WEB</span>
+      <a
+        class="settings-link"
+        href="vue/index.html#/settings"
+        aria-label="连接与设置"
+        title="连接与设置"
+      >
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path
+            d="m9 3-.6 2.4-2 .9L4.2 6 2.7 8.6l1.7 1.8v2.3l-1.7 1.9 1.5 2.6 2.2-.4 2 .9L9 20h3l.6-2.3 2-.9 2.2.4 1.5-2.6-1.7-1.9v-2.3l1.7-1.8L16.8 6l-2.2.3-2-.9L12 3Z"
+            transform="translate(1.5 .5)"
+          />
+          <circle cx="12" cy="12" r="3" />
+        </svg>
+      </a>
     </header>
-
-    <!-- Menu -->
-    <nav id="menu">
-        <ul class="links">
-            <li><a href="https://github.com/gedoor/legado">Github</a></li>
-            <li><a href="https://github.com/zsakvo">zsakvo</a></li>
-            <li><a href="#">Design: HTML5 UP</a></li>
-        </ul>
-    </nav>
-
-    <!-- Banner -->
-    <section id="banner" class="major">
-        <div class="inner">
-            <header class="major">
-                <h1>昨日邻家乞新火，晓窗分与读书灯</h1>
-            </header>
-            <div class="content">
-                <!-- <p>A responsive site template designed by HTML5 UP<br />
-                    and released under the Creative Commons.</p> -->
-                <ul class="actions">
-                    <li><a href="vue/index.html" class="button next scrolly" target="_blank">书架</a>
-                    </li>
-                </ul>
-                <ul class="actions">
-                    <li><a href="vue/index.html#/bookSource" class="button next scrolly"
-                           target="_blank">书源</a></li>
-                </ul>
-                <ul class="actions">
-                    <li><a href="uploadBook/index.html" class="button next scrolly" target="_blank">传书</a>
-                    </li>
-                </ul>
-                <ul class="actions">
-                    <li><a href="vue/index.html#/rssSource" class="button next scrolly"
-                           target="_blank">订阅源</a></li>
-                </ul>
-            </div>
+    <main>
+      <section class="navigation-center" aria-label="阅读导航">
+        <div class="brand">
+          <img
+            src="assets/images/app-icon.png"
+            width="72"
+            height="72"
+            alt="阅读应用图标"
+          />
+          <h1>Legado</h1>
         </div>
-    </section>
-</div>
-
-<!-- Scripts -->
-<script src="assets/js/dist.js"></script>
-
-</body>
-
+        <form class="book-search" id="book-search" role="search">
+          <label class="sr-only" for="search-key">搜索书籍</label>
+          <input
+            id="search-key"
+            name="q"
+            type="search"
+            placeholder="搜索书名或作者"
+            autocomplete="off"
+            enterkeyhint="search"
+            required
+          />
+          <button type="submit" aria-label="搜索书籍" title="搜索书籍">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="10.8" cy="10.8" r="6.8" />
+              <path d="m16 16 5 5" />
+            </svg>
+          </button>
+        </form>
+        <nav class="shortcuts" aria-label="功能入口">
+          <a href="vue/index.html" class="shortcut">
+            <span class="shortcut-icon"
+              ><svg viewBox="0 0 24 24" aria-hidden="true">
+                <rect x="3" y="4" width="5" height="16" rx="1" />
+                <rect x="9" y="4" width="5" height="16" rx="1" />
+                <path d="m16 5 4-1 3 15-4 1Z" />
+                <path d="M3 8h5m1 8h5" /></svg
+            ></span>
+            <span>书架</span>
+          </a>
+          <a href="vue/index.html#/bookSource" class="shortcut">
+            <span class="shortcut-icon"
+              ><svg viewBox="0 0 24 24" aria-hidden="true">
+                <path
+                  d="m10 14 4-4m-6 5-1 1a4 4 0 0 1-6-6l4-4a4 4 0 0 1 6 0m2 3 1-1a4 4 0 0 1 6 6l-4 4a4 4 0 0 1-6 0"
+                  transform="translate(1 0)"
+                /></svg
+            ></span>
+            <span>书源</span>
+          </a>
+          <a href="uploadBook/index.html" class="shortcut">
+            <span class="shortcut-icon"
+              ><svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M12 16V3m-5 5 5-5 5 5M4 15v5h16v-5" /></svg
+            ></span>
+            <span>传书</span>
+          </a>
+          <a href="vue/index.html#/rssSource" class="shortcut">
+            <span class="shortcut-icon"
+              ><svg viewBox="0 0 24 24" aria-hidden="true">
+                <circle cx="5" cy="19" r="1" />
+                <path d="M4 11a9 9 0 0 1 9 9M4 4a16 16 0 0 1 16 16" /></svg
+            ></span>
+            <span>订阅源</span>
+          </a>
+        </nav>
+      </section>
+    </main>
+    <footer class="page-footer">
+      <span id="connection-status" role="status">让阅读回到内容本身</span>
+      <a
+        href="https://github.com/gedoor/legado"
+        target="_blank"
+        rel="noopener noreferrer"
+        >GitHub</a
+      >
+    </footer>
+  </body>
 </html>

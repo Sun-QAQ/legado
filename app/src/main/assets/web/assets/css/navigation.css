@@ -1,0 +1,269 @@
+:root {
+  color-scheme: light;
+  --background: #f7f7f8;
+  --surface: #ffffff;
+  --text: #383b42;
+  --muted: #8b8f98;
+  --line: #e6e7eb;
+  --accent: #6c5ce7;
+  --on-accent: #ffffff;
+  --accent-soft: #eeebff;
+  font-family:
+    "Microsoft YaHei",
+    system-ui,
+    -apple-system,
+    sans-serif;
+}
+html.dark {
+  color-scheme: dark;
+  --background: #17181c;
+  --surface: #24262c;
+  --text: #edeef2;
+  --muted: #969ca9;
+  --line: #34373f;
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  min-width: 280px;
+  background: var(--background);
+  color: var(--text);
+}
+a {
+  color: inherit;
+  text-decoration: none;
+}
+button,
+input {
+  font: inherit;
+}
+button,
+a {
+  -webkit-tap-highlight-color: transparent;
+}
+svg {
+  width: 24px;
+  height: 24px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 5px;
+}
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 28px 36px;
+}
+.page-label {
+  font-size: 12px;
+  letter-spacing: 2px;
+  color: var(--muted);
+}
+.settings-link {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+}
+.settings-link:hover {
+  background: var(--surface);
+  color: var(--accent);
+}
+main {
+  min-height: calc(100svh - 160px);
+  padding: clamp(80px, 15vh, 165px) 24px 100px;
+}
+.navigation-center {
+  width: min(100%, 840px);
+  margin: 0 auto;
+}
+.brand {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 54px;
+}
+.brand img {
+  display: block;
+  border-radius: 20px;
+}
+.brand h1 {
+  font-size: 50px;
+  font-weight: 600;
+  letter-spacing: -1.8px;
+  margin: 0;
+  line-height: 1.1;
+}
+.book-search {
+  display: flex;
+  height: 66px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  border-radius: 24px;
+  overflow: hidden;
+  box-shadow: 0 2px 5px #0000000b;
+  transition:
+    box-shadow 0.2s,
+    border-color 0.2s;
+}
+.book-search:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+.book-search input {
+  flex: 1;
+  width: 0;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--text);
+  padding: 0 26px;
+  font-size: 17px;
+}
+.book-search input::placeholder {
+  color: var(--muted);
+}
+.book-search button {
+  flex: 0 0 76px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  background: var(--accent);
+  color: var(--on-accent);
+  cursor: pointer;
+}
+.book-search button:hover {
+  filter: brightness(0.94);
+}
+.book-search button:focus-visible {
+  outline-offset: -6px;
+  outline-color: var(--on-accent);
+}
+.shortcuts {
+  display: flex;
+  justify-content: center;
+  gap: 38px;
+  margin-top: 34px;
+}
+.shortcut {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 18px;
+  border-radius: 16px;
+  min-width: 84px;
+  font-size: 14px;
+  transition:
+    background 0.2s,
+    transform 0.2s;
+}
+.shortcut:hover {
+  background: var(--accent-soft);
+  transform: translateY(-2px);
+}
+.shortcut-icon {
+  width: 58px;
+  height: 58px;
+  display: grid;
+  place-items: center;
+  border-radius: 17px;
+  background: var(--surface);
+  color: var(--accent);
+  box-shadow: 0 2px 6px #00000008;
+  border: 1px solid var(--line);
+}
+.shortcut-icon svg {
+  width: 25px;
+  height: 25px;
+}
+.page-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 36px 28px;
+  color: var(--muted);
+  font-size: 12px;
+  gap: 16px;
+}
+.page-footer a:hover {
+  color: var(--accent);
+}
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+@media (max-width: 600px) {
+  .page-header {
+    padding: 18px 20px;
+  }
+  main {
+    padding: 95px 20px 90px;
+    min-height: calc(100svh - 138px);
+  }
+  .brand {
+    gap: 15px;
+    margin-bottom: 38px;
+  }
+  .brand img {
+    width: 58px;
+    height: 58px;
+    border-radius: 16px;
+  }
+  .brand h1 {
+    font-size: 40px;
+  }
+  .book-search {
+    height: 58px;
+    border-radius: 20px;
+  }
+  .book-search input {
+    padding: 0 18px;
+    font-size: 15px;
+  }
+  .book-search button {
+    flex-basis: 60px;
+  }
+  .shortcuts {
+    gap: 6px;
+    margin-top: 26px;
+  }
+  .shortcut {
+    min-width: 0;
+    flex: 1;
+    padding: 12px 4px;
+    font-size: 13px;
+  }
+  .shortcut-icon {
+    width: 50px;
+    height: 50px;
+    border-radius: 15px;
+  }
+  .page-footer {
+    padding: 18px 20px 24px;
+    font-size: 11px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+  }
+}
