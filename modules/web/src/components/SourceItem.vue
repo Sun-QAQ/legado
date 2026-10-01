@@ -8,8 +8,11 @@
       edit: sourceUrl == currentSourceUrl,
     }"
   >
-    {{ getSourceName(source) }}
+    <span class="source-name" :title="getSourceName(source)">{{
+      getSourceName(source)
+    }}</span>
     <el-button
+      class="source-edit"
       text
       :icon="Edit"
       :aria-label="`编辑源${getSourceName(source)}`"
@@ -55,9 +58,25 @@ const isSaveError = computed(() => {
 <style lang="scss" scoped>
 :deep(.el-checkbox__label) {
   flex: 1;
+  min-width: 0;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 6px;
+}
+.source-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.source-edit {
+  flex: 0 0 28px;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  margin-left: 0;
 }
 .error {
   border-color: var(--el-color-error) !important;
