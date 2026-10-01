@@ -56,6 +56,9 @@ const isSaveError = computed(() => {
 })
 </script>
 <style lang="scss" scoped>
+.el-checkbox.is-bordered.el-checkbox--large {
+  padding-right: 4px;
+}
 :deep(.el-checkbox__label) {
   flex: 1;
   min-width: 0;
