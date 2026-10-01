@@ -1,5 +1,13 @@
 <template>
-  <div class="chapter-wrapper" :style="bodyTheme" :class="{ night: isNight }">
+  <div
+    class="chapter-wrapper"
+    :style="bodyTheme"
+    :class="{
+      night: isNight,
+      'manga-mode': mangaMode,
+      'focus-mode': focusMode,
+    }"
+  >
     <header class="reader-toolbar">
       <el-button @click="toShelf">← 返回书架</el-button
       ><span class="reader-book"
@@ -42,32 +50,55 @@
       :size="miniInterface ? '94%' : '480px'"
       ><read-settings
     /></el-drawer>
-    <article class="chapter" ref="content" :style="chapterTheme">
+    <article
+      class="chapter"
+      :class="{ 'manga-chapter': mangaMode }"
+      ref="content"
+      :style="chapterTheme"
+    >
       <div class="content">
         <div class="top-bar" ref="top"></div>
-        <div
-          v-for="data in chapterData"
-          :key="data.index"
-          :chapterIndex="data.index"
-          ref="chapter"
-        >
-          <chapter-content
-            ref="chapterRef"
+        <manga-reader
+          v-if="mangaMode && currentMangaChapter && showContent"
+          ref="mangaRef"
+          :key="currentMangaChapter.index"
+          :pages="mangaPages"
+          :position="chapterPos"
+          :title="currentMangaChapter.title"
+          :book-url="store.readingBook.bookUrl"
+          :image-width="store.config.readWidth"
+          :busy="isLoading || noPoint"
+          :has-previous-chapter="chapterIndex > 0"
+          :has-next-chapter="chapterIndex < catalog.length - 1"
+          @progress="onReadedLengthChange(chapterIndex, $event)"
+          @previous-chapter="toPreviousMangaChapter"
+          @next-chapter="toNextChapter"
+        />
+        <template v-if="!mangaMode">
+          <div
+            v-for="data in chapterData"
+            :key="data.index"
             :chapterIndex="data.index"
-            :contents="data.content"
-            :title="data.title"
-            :spacing="store.config.spacing"
-            :fontSize="fontSize"
-            :fontFamily="fontFamily"
-            @readedLengthChange="onReadedLengthChange"
-            v-if="showContent"
-          />
-        </div>
+            ref="chapter"
+          >
+            <chapter-content
+              ref="chapterRef"
+              :chapterIndex="data.index"
+              :contents="data.content"
+              :title="data.title"
+              :spacing="store.config.spacing"
+              :fontSize="fontSize"
+              :fontFamily="fontFamily"
+              @readedLengthChange="onReadedLengthChange"
+              v-if="showContent"
+            />
+          </div>
+        </template>
         <div class="loading" ref="loading"></div>
         <div class="bottom-bar" ref="bottom"></div>
       </div>
     </article>
-    <div class="reader-navigation bottom-navigation">
+    <div v-if="!mangaMode" class="reader-navigation bottom-navigation">
       <el-button
         :disabled="noPoint || isLoading || chapterIndex === 0"
         @click="toPreChapter"
@@ -92,6 +123,8 @@ import API from '@api'
 import { useLoading } from '@/hooks/loading'
 import { useThrottleFn } from '@vueuse/shared'
 import { isNullOrBlank } from '@/utils/utils'
+import { getMangaPages } from '@/utils/mangaPages'
+import MangaReader from '@/components/MangaReader.vue'
 
 const content = ref()
 // loading spinner
@@ -138,14 +171,18 @@ watch(
 )
 
 // 无限滚动
-const infiniteLoading = computed(() => store.config.infiniteLoading)
+const mangaMode = computed(() => store.config.mangaMode)
+const mangaRef = ref<InstanceType<typeof MangaReader>>()
+const infiniteLoading = computed(
+  () => store.config.infiniteLoading && !mangaMode.value,
+)
 let scrollObserver: IntersectionObserver | null
 const loading = ref()
 watchEffect(() => {
   if (!infiniteLoading.value) {
     scrollObserver?.disconnect()
   } else {
-    scrollObserver?.observe(loading.value)
+    if (loading.value) scrollObserver?.observe(loading.value)
   }
 })
 const loadMore = () => {
@@ -157,7 +194,8 @@ const loadMore = () => {
 }
 // IntersectionObserver回调 底部加载
 const onReachBottom = (entries: IntersectionObserverEntry[]) => {
-  if (isLoading.value || !chapterData.value.length) return
+  if (!infiniteLoading.value || isLoading.value || !chapterData.value.length)
+    return
   for (const { isIntersecting } of entries) {
     if (!isIntersecting) return
     loadMore()
@@ -238,8 +276,26 @@ const toShelf = () => {
 const chapterData = ref<{ index: number; content: string[]; title: string }[]>(
   [],
 )
+const currentMangaChapter = computed(() =>
+  chapterData.value.find(data => data.index === chapterIndex.value),
+)
+const mangaPages = computed(() =>
+  getMangaPages(currentMangaChapter.value?.content || []),
+)
+watch(mangaMode, () => {
+  const position = chapterPos.value
+  chapterData.value = chapterData.value.filter(
+    data => data.index === chapterIndex.value,
+  )
+  if (!mangaMode.value) toChapterPos(position)
+})
 const noPoint = ref(true)
-const getContent = (index: number, reloadChapter = true, chapterPos = 0) => {
+const getContent = (
+  index: number,
+  reloadChapter = true,
+  chapterPos = 0,
+  lastMangaPage = false,
+) => {
   if (reloadChapter) {
     //展示进度条
     store.setShowContent(false)
@@ -260,7 +316,13 @@ const getContent = (index: number, reloadChapter = true, chapterPos = 0) => {
           const data = res.data.data
           const content = data.split(/\n+/)
           chapterData.value.push({ index, content, title })
-          if (reloadChapter) toChapterPos(chapterPos)
+          if (reloadChapter && mangaMode.value && lastMangaPage) {
+            const pages = getMangaPages(content)
+            saveReadingBookProgressToBrowser(
+              index,
+              pages.at(-1)?.chapterPos || 0,
+            )
+          } else if (reloadChapter && !mangaMode.value) toChapterPos(chapterPos)
         } else {
           ElMessage({ message: res.data.errorMsg, type: 'error' })
           const content = [res.data.errorMsg]
@@ -288,7 +350,7 @@ const chapter = ref()
 const chapterRef = ref()
 const toChapterPos = (pos: number) => {
   nextTick(() => {
-    if (chapterRef.value.length === 1)
+    if (chapterRef.value?.length === 1)
       chapterRef.value[0].scrollToReadedLength(pos)
   })
 }
@@ -367,6 +429,12 @@ const toPreChapter = () => {
     })
   }
 }
+const toPreviousMangaChapter = () => {
+  if (chapterIndex.value > 0 && !isLoading.value) {
+    getContent(chapterIndex.value - 1, true, 0, true)
+    store.saveBookProgress()
+  }
+}
 
 let canJump = true
 // 监听方向键
@@ -384,14 +452,17 @@ const handleKeyPress = (event: KeyboardEvent) => {
     case 'ArrowLeft':
       event.stopPropagation()
       event.preventDefault()
-      toPreChapter()
+      if (mangaMode.value) mangaRef.value?.turnPage(-1)
+      else toPreChapter()
       break
     case 'ArrowRight':
       event.stopPropagation()
       event.preventDefault()
-      toNextChapter()
+      if (mangaMode.value) mangaRef.value?.turnPage(1)
+      else toNextChapter()
       break
     case 'ArrowUp':
+      if (mangaMode.value) return
       event.stopPropagation()
       event.preventDefault()
       if (document.documentElement.scrollTop === 0) {
@@ -405,6 +476,7 @@ const handleKeyPress = (event: KeyboardEvent) => {
       }
       break
     case 'ArrowDown':
+      if (mangaMode.value) return
       event.stopPropagation()
       event.preventDefault()
       if (
@@ -612,12 +684,27 @@ onBeforeRouteLeave(async (to, from, next) => {
   letter-spacing: 1px;
   margin: 0 0 32px;
 }
-.chapter :deep(img) {
+.chapter:not(.manga-chapter) :deep(img) {
   max-width: 100%;
   height: auto;
 }
 .bottom-navigation {
   padding-bottom: 20px;
+}
+.chapter.manga-chapter {
+  padding: 0;
+  margin: 12px auto;
+  min-height: 0;
+}
+.manga-chapter .top-bar,
+.manga-chapter .bottom-bar {
+  height: 0;
+}
+.manga-mode .reader-navigation {
+  margin: 12px auto;
+}
+.manga-mode.focus-mode :deep(.manga-stage) {
+  height: max(240px, calc(100dvh - 140px));
 }
 .reader-toolbar .inline-actions {
   gap: 8px;

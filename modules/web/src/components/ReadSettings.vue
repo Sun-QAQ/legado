@@ -1,6 +1,14 @@
 <template>
   <div class="read-settings">
     <section>
+      <h3>阅读方式</h3>
+      <div class="setting-toggle">
+        <span>漫画模式</span>
+        <el-switch v-model="store.config.mangaMode" aria-label="漫画模式" />
+      </div>
+      <p class="muted">左右翻页，每页一张图片。支持方向键和左右滑动。</p>
+    </section>
+    <section>
       <h3>阅读背景</h3>
       <div class="theme-options">
         <button
@@ -92,6 +100,7 @@
         <span>无限加载</span
         ><el-switch
           v-model="store.config.infiniteLoading"
+          :disabled="store.config.mangaMode"
           aria-label="无限加载"
         />
       </div>

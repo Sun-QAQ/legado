@@ -16,6 +16,7 @@ const default_config: webReadConfig = {
   fontSize: 18,
   readWidth: 800,
   infiniteLoading: false,
+  mangaMode: false,
   customFontName: '',
   jumpDuration: 1000,
   spacing: {

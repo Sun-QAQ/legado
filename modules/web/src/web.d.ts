@@ -6,6 +6,7 @@ export type webReadConfig = {
   fontSize: number
   readWidth: number
   infiniteLoading: boolean
+  mangaMode: boolean
   customFontName: string
   jumpDuration: number
   spacing: {
