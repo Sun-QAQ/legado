@@ -105,7 +105,7 @@ class HttpServer(port: Int) : NanoHTTPD("::", port) {
 
             val coverFile = returnData.data as? File
             val response = if (uri == "/cover" && coverFile != null) {
-                CoverResponse.create(coverFile)
+                CoverResponse.create(coverFile, session.headers["if-none-match"])
             } else if (returnData.data is Bitmap) {
                 val outputStream = ByteArrayOutputStream()
                 (returnData.data as Bitmap).compress(Bitmap.CompressFormat.PNG, 100, outputStream)
