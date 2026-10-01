@@ -17,7 +17,7 @@ object BookSourceController {
     val enabledGroups: ReturnData
         get() = ReturnData().setData(
             appDb.bookSourceDao.allEnabledGroupsUnProcessed
-                .flatMap { it.splitNotBlank(AppPattern.splitGroupRegex) }
+                .flatMap { it.splitNotBlank(AppPattern.splitGroupRegex).asList() }
                 .map { it.trim() }
                 .filter { it.isNotEmpty() }
                 .distinct()
