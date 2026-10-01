@@ -188,7 +188,7 @@ select {
   min-width: 0;
 }
 .web-topbar {
-  height: 76px;
+  height: 56px;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -361,7 +361,7 @@ select {
     display: none;
   }
   .web-topbar {
-    height: 55px;
+    height: 48px;
     padding: 0 18px;
     font-size: 12px;
   }
