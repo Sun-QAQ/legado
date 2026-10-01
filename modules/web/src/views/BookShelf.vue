@@ -322,6 +322,7 @@ onUnmounted(() => {
   min-width: 0;
 }
 .recent-title {
+  min-height: 3em;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;

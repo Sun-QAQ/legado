@@ -94,6 +94,8 @@ defineEmits<{ bookClick: [book: Book | SeachBook] }>()
   -webkit-box-orient: vertical;
   overflow: hidden;
   font-size: 15px;
+  line-height: 1.6;
+  min-height: 3.2em;
   margin: 0 0 4px;
   overflow-wrap: anywhere;
 }
