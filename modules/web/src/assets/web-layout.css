@@ -107,14 +107,12 @@ select {
   font-weight: 600;
 }
 .brand-mark {
-  display: grid;
-  place-items: center;
+  display: block;
+  flex-shrink: 0;
   width: 43px;
   height: 43px;
   border-radius: 13px;
-  background: var(--web-primary);
-  color: var(--web-on-primary);
-  font: 25px serif;
+  object-fit: contain;
 }
 .web-brand small {
   display: block;

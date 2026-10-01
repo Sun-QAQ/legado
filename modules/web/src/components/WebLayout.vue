@@ -2,10 +2,16 @@
   <div class="web-shell" :class="{ 'reading-shell': reading }">
     <a class="skip-link" href="#web-main">跳到主要内容</a>
     <aside v-if="!reading" class="web-sidebar">
-      <router-link to="/" class="web-brand"
-        ><span class="brand-mark">阅</span
-        ><span>阅读<small>LEGADO / WEB</small></span></router-link
-      >
+      <router-link to="/" class="web-brand">
+        <img
+          class="brand-mark"
+          :src="brandIcon"
+          alt="阅读 icon5"
+          width="43"
+          height="43"
+        />
+        <span>阅读<small>LEGADO / WEB</small></span>
+      </router-link>
       <nav aria-label="主导航">
         <div class="nav-caption">我的阅读空间</div>
         <router-link to="/" :class="{ active: route.name === 'shelf' }"
@@ -86,6 +92,7 @@ import {
 import API from '@api'
 import { legado_http_entry_point } from '@api'
 import { appAccentTokens } from '@/utils/appTheme'
+const brandIcon = `${import.meta.env.BASE_URL}icon5.svg`
 const route = useRoute()
 const bookStore = useBookStore()
 const connection = useConnectionStore()
