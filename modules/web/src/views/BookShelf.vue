@@ -46,7 +46,7 @@
       <div class="recent-cover"><book-cover :book="recent" /></div>
       <div class="continue-info">
         <div class="eyebrow">CONTINUE READING / 继续上次阅读</div>
-        <h2>{{ recent.name }}</h2>
+        <h2 class="recent-title" :title="recent.name">{{ recent.name }}</h2>
         <p class="muted">
           {{ recent.author }} · {{ recent.durChapterTitle || '开始阅读' }}
         </p>
@@ -317,6 +317,16 @@ onUnmounted(() => {
     25px/1.5 SimSun,
     serif;
   margin: 6px 0;
+}
+.continue-info {
+  min-width: 0;
+}
+.recent-title {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  overflow-wrap: anywhere;
 }
 .continue-info p {
   margin: 4px 0 12px;

@@ -12,7 +12,7 @@
       >
         <book-cover :book="book" />
         <div class="book-info">
-          <h3>{{ book.name }}</h3>
+          <h3 :title="book.name">{{ book.name }}</h3>
           <p class="book-author">{{ book.author || '佚名' }}</p>
           <p v-if="isSearch" class="book-source">{{ book.originName }}</p>
           <p v-if="isSearch && book.intro" class="book-intro">
@@ -89,6 +89,10 @@ defineEmits<{ bookClick: [book: Book | SeachBook] }>()
   transform: translateY(-4px);
 }
 .book-info h3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
   font-size: 15px;
   margin: 0 0 4px;
   overflow-wrap: anywhere;
