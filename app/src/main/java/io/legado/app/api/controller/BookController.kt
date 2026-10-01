@@ -66,6 +66,20 @@ object BookController {
         }
 
     /**
+     * Web 封面保留原始图片数据，避免 Bitmap 转换丢失动画帧。
+     */
+    fun getWebCover(parameters: Map<String, List<String>>): ReturnData {
+        val target = ImageLoader.loadFile(appCtx, parameters["path"]?.firstOrNull()).submit()
+        return try {
+            ReturnData().setData(target.get(3, TimeUnit.SECONDS))
+        } catch (e: Exception) {
+            getCover(parameters)
+        } finally {
+            Glide.with(appCtx).clear(target)
+        }
+    }
+
+    /**
      * 获取封面
      */
     fun getCover(parameters: Map<String, List<String>>): ReturnData {

@@ -13,11 +13,13 @@ import io.legado.app.utils.GSON
 import io.legado.app.utils.LogUtils
 import io.legado.app.utils.stackTraceStr
 import io.legado.app.web.utils.AssetsWeb
+import io.legado.app.web.utils.CoverResponse
 import kotlinx.coroutines.runBlocking
 import okio.Pipe
 import okio.buffer
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
+import java.io.File
 
 class HttpServer(port: Int) : NanoHTTPD("::", port) {
     private val assetsWeb = AssetsWeb("web")
@@ -81,7 +83,7 @@ class HttpServer(port: Int) : NanoHTTPD("::", port) {
                         "/getChapterList" -> BookController.getChapterList(parameters)
                         "/refreshToc" -> BookController.refreshToc(parameters)
                         "/getBookContent" -> BookController.getBookContent(parameters)
-                        "/cover" -> BookController.getCover(parameters)
+                        "/cover" -> BookController.getWebCover(parameters)
                         "/image" -> BookController.getImg(parameters)
                         "/getReadConfig" -> BookController.getWebReadConfig()
                         "/getRssSource" -> RssSourceController.getSource(parameters)
@@ -100,7 +102,10 @@ class HttpServer(port: Int) : NanoHTTPD("::", port) {
                 return assetsWeb.getResponse(uri)
             }
 
-            val response = if (returnData.data is Bitmap) {
+            val coverFile = returnData.data as? File
+            val response = if (uri == "/cover" && coverFile != null) {
+                CoverResponse.create(coverFile)
+            } else if (returnData.data is Bitmap) {
                 val outputStream = ByteArrayOutputStream()
                 (returnData.data as Bitmap).compress(Bitmap.CompressFormat.PNG, 100, outputStream)
                 val byteArray = outputStream.toByteArray()
