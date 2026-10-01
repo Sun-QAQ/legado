@@ -72,7 +72,7 @@ object BookController {
         val returnData = ReturnData()
         val coverPath = parameters["path"]?.firstOrNull()
         val ftBitmap = ImageLoader.loadBitmap(appCtx, coverPath)
-            .override(84, 112)
+            .override(280, 390)
             .centerCrop()
             .submit()
         return try {
@@ -83,7 +83,7 @@ object BookController {
                     Glide.with(appCtx)
                         .asBitmap()
                         .load(BookCover.defaultDrawable.toBitmap())
-                        .override(84, 112)
+                        .override(280, 390)
                         .centerCrop()
                         .submit()
                         .get()
