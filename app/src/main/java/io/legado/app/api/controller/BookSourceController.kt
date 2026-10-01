@@ -2,6 +2,7 @@ package io.legado.app.api.controller
 
 
 import android.text.TextUtils
+import io.legado.app.constant.AppPattern
 import io.legado.app.api.ReturnData
 import io.legado.app.data.appDb
 import io.legado.app.data.entities.BookSource
@@ -9,8 +10,19 @@ import io.legado.app.help.source.SourceHelp
 import io.legado.app.utils.GSON
 import io.legado.app.utils.fromJsonArray
 import io.legado.app.utils.fromJsonObject
+import io.legado.app.utils.splitNotBlank
 
 object BookSourceController {
+
+    val enabledGroups: ReturnData
+        get() = ReturnData().setData(
+            appDb.bookSourceDao.allEnabledGroupsUnProcessed
+                .flatMap { it.splitNotBlank(AppPattern.splitGroupRegex) }
+                .map { it.trim() }
+                .filter { it.isNotEmpty() }
+                .distinct()
+                .sorted()
+        )
 
     val sources: ReturnData
         get() {

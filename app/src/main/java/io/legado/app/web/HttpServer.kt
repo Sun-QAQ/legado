@@ -79,6 +79,7 @@ class HttpServer(port: Int) : NanoHTTPD("::", port) {
                     returnData = when (uri) {
                         "/getBookSource" -> BookSourceController.getSource(parameters)
                         "/getBookSources" -> BookSourceController.sources
+                        "/getBookSourceGroups" -> BookSourceController.enabledGroups
                         "/getBookshelf" -> BookController.bookshelf
                         "/getChapterList" -> BookController.getChapterList(parameters)
                         "/refreshToc" -> BookController.refreshToc(parameters)

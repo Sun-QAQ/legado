@@ -13,7 +13,10 @@ import splitties.init.appCtx
  * 搜索范围
  */
 @Suppress("unused")
-data class SearchScope(private var scope: String) {
+data class SearchScope(
+    private var scope: String,
+    private val fallbackToAllSources: Boolean = true
+) {
 
     constructor(groups: List<String>) : this(groups.joinToString(","))
 
@@ -119,12 +122,12 @@ data class SearchScope(private var scope: String) {
                     list.addAll(bookSources)
                     bookSources.isNotEmpty()
                 }
-                if (oldScope.size != newScope.size) {
+                if (fallbackToAllSources && oldScope.size != newScope.size) {
                     update(newScope)
                     stateLiveData.postValue(scope)
                 }
             }
-            if (list.isEmpty()) {
+            if (fallbackToAllSources && list.isEmpty()) {
                 scope = ""
                 appDb.bookSourceDao.allEnabledPart.let {
                     if (it.isNotEmpty()) {

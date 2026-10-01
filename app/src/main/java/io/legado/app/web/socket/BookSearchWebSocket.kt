@@ -26,6 +26,7 @@ class BookSearchWebSocket(handshakeRequest: NanoHTTPD.IHTTPSession) :
 
     private val normalClosure = NanoWSD.WebSocketFrame.CloseCode.NormalClosure
     private val searchModel = SearchModel(this, this)
+    private var searchScope = AppConfig.searchScope
 
     private val SEARCH_FINISH = "Search finish"
 
@@ -66,6 +67,7 @@ class BookSearchWebSocket(handshakeRequest: NanoHTTPD.IHTTPSession) :
                         close(normalClosure, SEARCH_FINISH, false)
                         return@launch
                     }
+                    searchScope = searchMap["group"] ?: AppConfig.searchScope
                     searchModel.search(System.currentTimeMillis(), key)
                 }
             }
@@ -80,7 +82,7 @@ class BookSearchWebSocket(handshakeRequest: NanoHTTPD.IHTTPSession) :
 
     }
 
-    override fun getSearchScope(): SearchScope = SearchScope(AppConfig.searchScope)
+    override fun getSearchScope(): SearchScope = SearchScope(searchScope, fallbackToAllSources = false)
 
     override fun onSearchStart() {
 

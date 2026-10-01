@@ -74,6 +74,8 @@ const saveBookProgressWithBeacon = (bookProgress: BookProgress) => {
 }
 
 const getBookShelf = () => ajax.get<LeagdoApiResponse<Book[]>>('getBookshelf')
+const getBookSourceGroups = () =>
+  ajax.get<LeagdoApiResponse<string[]>>('getBookSourceGroups')
 
 const getChapterList = (/** @type {string} */ bookUrl: string) =>
   ajax.get<LeagdoApiResponse<BookChapter[]>>(
@@ -96,6 +98,7 @@ const search = (
   searchKey: string,
   onReceive: (data: SeachBook[]) => void,
   onFinish: () => void,
+  group = '',
 ) => {
   const socket = new WebSocket(
     new URL('searchBook', legado_webSocket_entry_point),
@@ -106,7 +109,7 @@ const search = (
   }
 
   socket.onopen = () => {
-    socket.send(JSON.stringify({ key: searchKey }))
+    socket.send(JSON.stringify({ key: searchKey, group }))
   }
   socket.onmessage = event => {
     try {
@@ -223,6 +226,7 @@ export default {
   saveBookProgress,
   saveBookProgressWithBeacon,
   getBookShelf,
+  getBookSourceGroups,
   getChapterList,
   getBookContent,
   search,

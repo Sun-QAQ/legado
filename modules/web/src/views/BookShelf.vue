@@ -27,7 +27,23 @@
         aria-label="在线搜索关键词"
         :prefix-icon="Search"
         clearable
-      /><el-button type="primary" native-type="submit" :loading="searching"
+      /><el-select
+        v-model="searchGroup"
+        class="search-group"
+        aria-label="搜索书源分组"
+        placeholder="全部书源"
+        filterable
+        :loading="groupsLoading"
+        :disabled="groupsLoading"
+      >
+        <el-option label="全部书源" value="" />
+        <el-option
+          v-for="group in sourceGroups"
+          :key="group"
+          :label="group"
+          :value="group"
+        /> </el-select
+      ><el-button type="primary" native-type="submit" :loading="searching"
         >搜索书籍</el-button
       ><el-button v-if="searching" @click="stopSearch">停止搜索</el-button>
     </form>
@@ -152,6 +168,9 @@ const loading = ref(false),
   searching = ref(false),
   searched = ref(false),
   error = ref('')
+const searchGroup = ref(''),
+  sourceGroups = ref<string[]>([]),
+  groupsLoading = ref(false)
 let socket: WebSocket | undefined
 let disposed = false,
   searchGeneration = 0
@@ -205,6 +224,24 @@ const stopSearch = () => {
   socket = undefined
   searching.value = false
 }
+const loadSearchGroups = async () => {
+  groupsLoading.value = true
+  try {
+    await store.loadWebConfig()
+    const { data } = await API.getBookSourceGroups()
+    if (disposed || !online.value) return
+    if (!data.isSuccess) throw new Error(data.errorMsg)
+    sourceGroups.value = data.data
+    if (!sourceGroups.value.includes(searchGroup.value)) searchGroup.value = ''
+  } catch {
+    if (!disposed && online.value)
+      ElMessage.warning(
+        '书源分组加载失败，可继续搜索全部书源，重新进入此页可重试',
+      )
+  } finally {
+    groupsLoading.value = false
+  }
+}
 const searchBook = () => {
   const key = searchWord.value.trim()
   if (!key) return ElMessage.info('请输入书名或作者')
@@ -234,6 +271,7 @@ const searchBook = () => {
         if (!disposed && generation === searchGeneration)
           searching.value = false
       },
+      searchGroup.value,
     )
   } catch {
     searching.value = false
@@ -286,12 +324,15 @@ const searchFromNavigation = async () => {
   }
 }
 watch(() => [online.value, route.query.q], searchFromNavigation)
+watch(online, active => {
+  if (active) void loadSearchGroups()
+})
 onMounted(() => {
   if (!online.value) loadShelf()
   else {
     store.clearSearchBooks()
+    void loadSearchGroups()
     if (route.query.q) void searchFromNavigation()
-    else store.loadWebConfig().catch(() => {})
   }
 })
 onUnmounted(() => {
@@ -387,6 +428,10 @@ onUnmounted(() => {
   flex: 1;
   min-width: 120px;
 }
+.search-box .search-group {
+  width: 180px;
+  flex-shrink: 0;
+}
 .search-hint {
   font-size: 12px;
   margin: 15px 0 28px;
@@ -447,6 +492,10 @@ onUnmounted(() => {
   }
   .search-box .el-input {
     flex-basis: 100%;
+  }
+  .search-box .search-group {
+    flex: 1;
+    min-width: 130px;
   }
 }
 </style>
