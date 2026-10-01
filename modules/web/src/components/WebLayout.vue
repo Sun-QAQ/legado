@@ -2,7 +2,7 @@
   <div class="web-shell" :class="{ 'reading-shell': reading }">
     <a class="skip-link" href="#web-main">跳到主要内容</a>
     <aside v-if="!reading" class="web-sidebar">
-      <router-link to="/" class="web-brand">
+      <a href="../index.html" class="web-brand" aria-label="返回导航页">
         <img
           class="brand-mark"
           :src="brandIcon"
@@ -11,7 +11,7 @@
           height="43"
         />
         <span>阅读<small>LEGADO / WEB</small></span>
-      </router-link>
+      </a>
       <nav aria-label="主导航">
         <div class="nav-caption">我的阅读空间</div>
         <router-link to="/" :class="{ active: route.name === 'shelf' }"
