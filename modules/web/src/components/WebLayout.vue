@@ -137,12 +137,12 @@ const refreshAccent = async () => {
   const endpoint = legado_http_entry_point
   themeRequestPending = true
   try {
-    const config = await API.getReadConfig(endpoint)
+    const config = await API.getReadConfig(endpoint, true)
     if (endpoint === legado_http_entry_point) {
       bookStore.appAccentColor = config?.appAccentColor
     }
   } catch {
-    // 保留已同步的强调色；连接错误由接口层处理。
+    // 后台同步失败保留已同步的强调色，等待下次重试。
   } finally {
     themeRequestPending = false
   }
@@ -164,7 +164,7 @@ onMounted(() => {
   window.addEventListener('focus', refreshVisibleAccent)
   document.addEventListener('visibilitychange', refreshVisibleAccent)
   themeTimer = setInterval(() => {
-    if (connection.connectType !== 'danger') void refreshAccent()
+    void refreshAccent()
   }, 15000)
 })
 onUnmounted(() => {

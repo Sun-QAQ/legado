@@ -1,4 +1,4 @@
-import type { AxiosResponse } from 'axios'
+import { isAxiosError, isCancel, type AxiosResponse } from 'axios'
 import type { LeagdoApiResponse } from './api'
 import API, {
   setWebsocketOnError,
@@ -38,11 +38,15 @@ const responseCheckInterceptor = (resp: AxiosResponse) => {
     isLeagdoApiResponse = false
   }
   if (isLeagdoApiResponse === false) {
-    notification.warning({ message: '后端返回内容格式错误', grouping: true })
+    if (!resp.config.backgroundSync) {
+      notification.warning({ message: '后端返回内容格式错误', grouping: true })
+    }
     throw new Error()
   }
-  connectionStore().setConnectType('primary')
-  connectionStore().setConnectStatus('已连接 ' + legado_http_entry_point)
+  if (!resp.config.backgroundSync) {
+    connectionStore().setConnectType('primary')
+    connectionStore().setConnectStatus('已连接 ' + legado_http_entry_point)
+  }
   return resp
 }
 
@@ -55,7 +59,9 @@ const reportConnectionError = () => {
   connectionStore().setConnectStatus('连接异常')
 }
 const axiosErrorInterceptor = (err: unknown) => {
-  reportConnectionError()
+  if (!isCancel(err) && !(isAxiosError(err) && err.config?.backgroundSync)) {
+    reportConnectionError()
+  }
   throw err
 }
 // http全局
