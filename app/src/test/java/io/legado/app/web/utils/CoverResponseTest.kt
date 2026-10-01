@@ -1,9 +1,7 @@
 package io.legado.app.web.utils
 
-import java.awt.Color
-import java.awt.image.BufferedImage
-import javax.imageio.IIOImage
-import javax.imageio.ImageIO
+import com.bumptech.glide.gifdecoder.GifHeaderParser
+import java.util.Base64
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -17,52 +15,32 @@ class CoverResponseTest {
 
     @Test
     fun animatedGifRetainsBothFramesThroughProxyResponse() {
+        // 2×2 GIF：第一帧为红色，第二帧为蓝色。
+        val bytes = Base64.getDecoder().decode(
+            "R0lGODlhAgACAPAAAP8AAP8AACwAAAAAAgACAEAIBgABCAQQEAAsAAAAAAIAAgDAAAD/AAD/CAYAAQgEEBAAOw=="
+        )
         val file = temporaryFolder.newFile("cover-cache")
-        val writer = ImageIO.getImageWritersByFormatName("gif").next()
-        try {
-            ImageIO.createImageOutputStream(file).use { output ->
-                writer.output = output
-                writer.prepareWriteSequence(null)
-                for (color in listOf(Color.RED, Color.BLUE)) {
-                    val frame = BufferedImage(2, 2, BufferedImage.TYPE_INT_RGB)
-                    frame.createGraphics().let { graphics ->
-                        graphics.color = color
-                        graphics.fillRect(0, 0, 2, 2)
-                        graphics.dispose()
-                    }
-                    writer.writeToSequence(IIOImage(frame, null, null), null)
-                }
-                writer.endWriteSequence()
-            }
-        } finally {
-            writer.dispose()
-        }
-
+        file.writeBytes(bytes)
         CoverResponse.create(file).use { response ->
             assertEquals("image/gif", response.mimeType)
-            val bytes = response.data.readBytes()
-            assertArrayEquals(file.readBytes(), bytes)
-            val reader = ImageIO.getImageReadersByFormatName("gif").next()
-            try {
-                ImageIO.createImageInputStream(bytes.inputStream()).use { input ->
-                    reader.input = input
-                    assertEquals(2, reader.getNumImages(true))
-                    assertEquals(Color.RED.rgb, reader.read(0).getRGB(0, 0))
-                    assertEquals(Color.BLUE.rgb, reader.read(1).getRGB(0, 0))
-                }
-            } finally {
-                reader.dispose()
-            }
+            val received = response.data.readBytes()
+            assertArrayEquals(bytes, received)
+            val header = GifHeaderParser().setData(received).parseHeader()
+            assertEquals(0, header.status)
+            assertEquals(2, header.numFrames)
         }
     }
 
     @Test
     fun staticPngUsesImageMimeTypeWithoutAnExtension() {
+        val bytes = Base64.getDecoder().decode(
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aMxkAAAAASUVORK5CYII="
+        )
         val file = temporaryFolder.newFile("static-cover-cache")
-        ImageIO.write(BufferedImage(280, 390, BufferedImage.TYPE_INT_RGB), "png", file)
+        file.writeBytes(bytes)
         CoverResponse.create(file).use { response ->
             assertEquals("image/png", response.mimeType)
-            assertArrayEquals(file.readBytes(), response.data.readBytes())
+            assertArrayEquals(bytes, response.data.readBytes())
         }
     }
 }
