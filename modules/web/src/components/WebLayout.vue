@@ -90,7 +90,6 @@ import {
   Sunny,
 } from '@element-plus/icons-vue'
 import API from '@api'
-import { legado_http_entry_point } from '@api'
 import { appAccentTokens } from '@/utils/appTheme'
 const brandIcon = `${import.meta.env.BASE_URL}icon5.svg`
 const route = useRoute()
@@ -130,46 +129,7 @@ watch(
   },
   { immediate: true },
 )
-let themeRequestPending = false
-let themeTimer: ReturnType<typeof setInterval> | undefined
-const refreshAccent = async () => {
-  if (document.hidden || connection.newConnect || themeRequestPending) return
-  const endpoint = legado_http_entry_point
-  themeRequestPending = true
-  try {
-    const config = await API.getReadConfig(endpoint, true)
-    if (endpoint === legado_http_entry_point) {
-      bookStore.appAccentColor = config?.appAccentColor
-    }
-  } catch {
-    // 后台同步失败保留已同步的强调色，等待下次重试。
-  } finally {
-    themeRequestPending = false
-  }
-}
-const refreshVisibleAccent = () => {
-  if (!document.hidden) void refreshAccent()
-}
-watch(
-  () => connection.newConnect,
-  connecting => {
-    if (!connecting) void refreshAccent()
-  },
-)
 onMounted(() => {
-  bookStore
-    .loadWebConfig()
-    .then(refreshAccent)
-    .catch(() => {})
-  window.addEventListener('focus', refreshVisibleAccent)
-  document.addEventListener('visibilitychange', refreshVisibleAccent)
-  themeTimer = setInterval(() => {
-    void refreshAccent()
-  }, 15000)
-})
-onUnmounted(() => {
-  clearInterval(themeTimer)
-  window.removeEventListener('focus', refreshVisibleAccent)
-  document.removeEventListener('visibilitychange', refreshVisibleAccent)
+  bookStore.loadWebConfig().catch(() => {})
 })
 </script>

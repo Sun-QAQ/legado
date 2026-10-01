@@ -42,14 +42,10 @@ export const setApiEntryPoint = (
 
 // 书架API
 // Http
-const getReadConfig = async (
-  http_url = legado_http_entry_point,
-  backgroundSync = false,
-) => {
+const getReadConfig = async (http_url = legado_http_entry_point) => {
   const { data } = await ajax.get<LeagdoApiResponse<string>>('getReadConfig', {
     baseURL: http_url.toString(),
     timeout: 10000,
-    backgroundSync,
   })
   if (data.isSuccess) {
     try {

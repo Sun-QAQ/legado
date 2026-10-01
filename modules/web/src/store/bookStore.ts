@@ -26,6 +26,7 @@ const default_config: webReadConfig = {
   },
 }
 let webReadConfigLoadedDate: Date | undefined
+let webReadConfigPromise: Promise<void> | undefined
 
 export const useBookStore = defineStore('book', {
   state: () => {
@@ -145,15 +146,21 @@ export const useBookStore = defineStore('book', {
     setReadingBook(readingBook: typeof this.readingBook) {
       this.readingBook = readingBook
     },
-    /** 只从从后端加载一次web阅读配置 */
+    /** 启动时加载一次阅读配置，多个组件共用同一个请求。 */
     async loadWebConfig() {
       if (webReadConfigLoadedDate === undefined) {
-        const _config = await API.getReadConfig()
-        webReadConfigLoadedDate = new Date()
-        console.log(
-          `${this.$id}.loadWebConfig: ${webReadConfigLoadedDate.toLocaleString()}成功加载阅读配置`,
-        )
-        return this.setConfig(_config)
+        webReadConfigPromise ??= API.getReadConfig()
+          .then(config => {
+            this.setConfig(config)
+            webReadConfigLoadedDate = new Date()
+            console.log(
+              `${this.$id}.loadWebConfig: ${webReadConfigLoadedDate.toLocaleString()}成功加载阅读配置`,
+            )
+          })
+          .finally(() => {
+            webReadConfigPromise = undefined
+          })
+        return webReadConfigPromise
       }
       console.log(
         `${this.$id}.loadWebConfig: 已于${webReadConfigLoadedDate.toLocaleString()}成功加载`,
