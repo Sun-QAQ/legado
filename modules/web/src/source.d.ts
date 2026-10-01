@@ -36,7 +36,7 @@ type BookSoure = BaseSource & {
   bookSourceName: string
   // 分组
   bookSourceGroup?: string
-  // 类型，0 文本，1 音频, 2 图片, 3 文件（指的是类似知轩藏书只提供下载的网站）
+  // 类型，0 文本，1 音频，2 图片，3 文件（只提供下载的网站），4 视频
   bookSourceType: number
   // 详情页url正则
   bookUrlPattern?: string

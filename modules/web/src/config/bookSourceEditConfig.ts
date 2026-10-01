@@ -6,7 +6,7 @@ export default {
         title: '源类型',
         id: 'bookSourceType',
         type: 'Array',
-        array: ['文本', '音频', '图片', '文件'],
+        array: ['文本', '音频', '图片', '文件', '视频'],
         required: true,
       },
       {
