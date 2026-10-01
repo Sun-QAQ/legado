@@ -54,7 +54,7 @@ const color = computed(() => {
 .book-cover {
   width: 100%;
   aspect-ratio: 0.72;
-  border-radius: 3px 8px 8px 3px;
+  border-radius: 8px;
   overflow: hidden;
   background: var(--cover-color);
   box-shadow: 4px 7px 12px #17131f17;
