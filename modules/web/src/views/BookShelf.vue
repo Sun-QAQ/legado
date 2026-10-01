@@ -432,6 +432,9 @@ onUnmounted(() => {
   width: 180px;
   flex-shrink: 0;
 }
+.search-group :deep(.el-select__input:focus-visible) {
+  outline: none;
+}
 .search-hint {
   font-size: 12px;
   margin: 15px 0 28px;
