@@ -13,7 +13,9 @@
         <book-cover :book="book" />
         <div class="book-info">
           <h3 :title="book.name">{{ book.name }}</h3>
-          <p class="book-author">{{ book.author || '佚名' }}</p>
+          <p class="book-author" :title="book.author || '佚名'">
+            {{ book.author || '佚名' }}
+          </p>
           <p v-if="isSearch" class="book-source">{{ book.originName }}</p>
           <p v-if="isSearch && book.intro" class="book-intro">
             {{ book.intro }}
@@ -106,6 +108,11 @@ defineEmits<{ bookClick: [book: Book | SeachBook] }>()
   overflow-wrap: anywhere;
 }
 .book-chapter {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.book-author {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
