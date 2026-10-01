@@ -98,6 +98,12 @@
             value="name" /><el-option
             label="阅读进度"
             value="progress" /></el-select
+        ><el-select v-model="pageSize" aria-label="每页书籍数量"
+          ><el-option
+            v-for="size in [50, 100, 200]"
+            :key="size"
+            :label="`${size} 本/页`"
+            :value="size" /></el-select
         ><el-button
           :icon="list ? Grid : List"
           aria-label="切换网格或列表"
@@ -115,7 +121,7 @@
     </div>
     <book-items
       v-else-if="books.length"
-      :books="books"
+      :books="visibleBooks"
       :is-search="online"
       :list="list && !online"
       @book-click="openBook"
@@ -146,6 +152,20 @@
       >
     </div>
   </section>
+  <div v-if="!online && books.length && !error" class="shelf-pagination">
+    <span class="muted"
+      >共 {{ books.length }} 本 · 第 {{ currentPage }} /
+      {{ pageCount }} 页</span
+    >
+    <el-pagination
+      v-model:current-page="currentPage"
+      :page-size="pageSize"
+      :total="books.length"
+      :pager-count="5"
+      layout="prev, pager, next"
+      aria-label="书架分页"
+    />
+  </div>
 </template>
 <script setup lang="ts">
 import { Grid, List, Refresh, Search } from '@element-plus/icons-vue'
@@ -161,6 +181,15 @@ const filter = ref('全部书籍'),
   sort = ref('recent'),
   searchWord = ref('')
 const list = ref(localStorage.getItem('web-shelf-layout') === 'list')
+const pageSize = ref(50),
+  currentPage = ref(1)
+watch(
+  [filter, sort, searchWord, pageSize],
+  () => {
+    currentPage.value = 1
+  },
+  { flush: 'sync' },
+)
 watch(list, value =>
   localStorage.setItem('web-shelf-layout', value ? 'list' : 'grid'),
 )
@@ -205,6 +234,21 @@ const books = computed(() => {
         : (b.durChapterTime || 0) - (a.durChapterTime || 0),
   )
 })
+const pageCount = computed(() =>
+  Math.max(1, Math.ceil(books.value.length / pageSize.value)),
+)
+const visibleBooks = computed(() => {
+  if (online.value) return books.value
+  const start = (currentPage.value - 1) * pageSize.value
+  return books.value.slice(start, start + pageSize.value)
+})
+watch(
+  pageCount,
+  count => {
+    currentPage.value = Math.min(currentPage.value, count)
+  },
+  { flush: 'sync' },
+)
 const loadShelf = async () => {
   loading.value = true
   error.value = ''
@@ -418,6 +462,15 @@ onUnmounted(() => {
 }
 .shelf-content {
   min-height: 200px;
+}
+.shelf-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 24px;
+  font-size: 12px;
 }
 .search-box {
   display: flex;
