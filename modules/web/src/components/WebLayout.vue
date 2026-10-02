@@ -143,12 +143,7 @@ const brandIcon = `${import.meta.env.BASE_URL}icon5.svg`
 const route = useRoute()
 const bookStore = useBookStore()
 const connection = useConnectionStore()
-const sidebarCollapsed = ref(
-  localStorage.getItem('web-sidebar-collapsed') === 'true',
-)
-watch(sidebarCollapsed, value =>
-  localStorage.setItem('web-sidebar-collapsed', String(value)),
-)
+const sidebarCollapsed = ref(true)
 const reading = computed(() => route.name === 'chapter')
 const title = computed(
   () =>
