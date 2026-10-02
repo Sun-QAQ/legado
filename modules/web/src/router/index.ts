@@ -12,6 +12,7 @@ const router = createRouter({
 router.beforeResolve(to => selectSourceMode(to.path))
 router.afterEach(to => {
   if (to.name == 'shelf') document.title = '书架'
+  if (to.name == 'upload') document.title = '传书'
 })
 
 export default router

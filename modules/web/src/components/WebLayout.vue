@@ -23,8 +23,8 @@
           ><el-icon><Search /></el-icon>在线搜索</router-link
         >
         <div class="nav-caption">内容与工具</div>
-        <a href="../uploadBook/index.html"
-          ><el-icon><Upload /></el-icon>传书</a
+        <router-link to="/upload" :class="{ active: route.name === 'upload' }"
+          ><el-icon><Upload /></el-icon>传书</router-link
         >
         <router-link
           to="/bookSource"
@@ -108,6 +108,7 @@ const title = computed(
       'book-home': '书源管理',
       'rss-home': '订阅源管理',
       settings: '连接与设置',
+      upload: '传书',
     })[route.name as string] || '阅读',
 )
 const toggleTheme = async () => {
