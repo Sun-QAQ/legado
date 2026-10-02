@@ -176,7 +176,7 @@ const store = useBookStore(),
   route = useRoute(),
   router = useRouter()
 const online = computed(() => route.name === 'search')
-const filters = ['全部书籍', '阅读中', '未读', '已读完']
+const filters = ['全部书籍', '阅读中', '已读完']
 const filter = ref('全部书籍'),
   sort = ref('recent'),
   searchWord = ref('')
@@ -223,7 +223,6 @@ const books = computed(() => {
   )
   if (filter.value === '阅读中')
     items = items.filter(b => b.durChapterTime > 0 && bookProgress(b) < 100)
-  if (filter.value === '未读') items = items.filter(b => !b.durChapterTime)
   if (filter.value === '已读完')
     items = items.filter(b => bookProgress(b) === 100)
   return [...items].sort((a, b) =>
