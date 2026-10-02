@@ -1,7 +1,20 @@
 <template>
-  <div class="web-shell" :class="{ 'reading-shell': reading }">
+  <div
+    class="web-shell"
+    :class="{ 'reading-shell': reading, 'sidebar-collapsed': sidebarCollapsed }"
+  >
     <a class="skip-link" href="#web-main">跳到主要内容</a>
     <aside v-if="!reading" class="web-sidebar">
+      <el-button
+        class="sidebar-toggle"
+        :icon="sidebarCollapsed ? Expand : Fold"
+        circle
+        :aria-label="sidebarCollapsed ? '展开菜单' : '收起菜单'"
+        :title="sidebarCollapsed ? '展开菜单' : '收起菜单'"
+        :aria-expanded="!sidebarCollapsed"
+        aria-controls="web-navigation"
+        @click="sidebarCollapsed = !sidebarCollapsed"
+      />
       <a href="../index.html" class="web-brand" aria-label="返回导航页">
         <img
           class="brand-mark"
@@ -12,39 +25,68 @@
         />
         <span>阅读<small>LEGADO / WEB</small></span>
       </a>
-      <nav aria-label="主导航">
+      <nav id="web-navigation" aria-label="主导航">
         <div class="nav-caption">我的阅读空间</div>
-        <router-link to="/" :class="{ active: route.name === 'shelf' }"
-          ><el-icon><Collection /></el-icon>我的书架<span class="nav-count">{{
+        <router-link
+          to="/"
+          :class="{ active: route.name === 'shelf' }"
+          aria-label="我的书架"
+          title="我的书架"
+          ><el-icon><Collection /></el-icon
+          ><span class="nav-label">我的书架</span
+          ><span class="nav-count">{{
             bookStore.shelf.length
           }}</span></router-link
         >
-        <router-link to="/search" :class="{ active: route.name === 'search' }"
-          ><el-icon><Search /></el-icon>在线搜索</router-link
+        <router-link
+          to="/search"
+          :class="{ active: route.name === 'search' }"
+          aria-label="在线搜索"
+          title="在线搜索"
+          ><el-icon><Search /></el-icon
+          ><span class="nav-label">在线搜索</span></router-link
         >
         <div class="nav-caption">内容与工具</div>
-        <router-link to="/upload" :class="{ active: route.name === 'upload' }"
-          ><el-icon><Upload /></el-icon>传书</router-link
+        <router-link
+          to="/upload"
+          :class="{ active: route.name === 'upload' }"
+          aria-label="传书"
+          title="传书"
+          ><el-icon><Upload /></el-icon
+          ><span class="nav-label">传书</span></router-link
         >
         <router-link
           to="/bookSource"
           :class="{ active: route.name === 'book-home' }"
-          ><el-icon><Connection /></el-icon>书源管理</router-link
+          aria-label="书源管理"
+          title="书源管理"
+          ><el-icon><Connection /></el-icon
+          ><span class="nav-label">书源管理</span></router-link
         >
         <router-link
           to="/rssSource"
           :class="{ active: route.name === 'rss-home' }"
-          ><el-icon><Bell /></el-icon>订阅源管理</router-link
+          aria-label="订阅源管理"
+          title="订阅源管理"
+          ><el-icon><Bell /></el-icon
+          ><span class="nav-label">订阅源管理</span></router-link
         >
         <router-link
           to="/settings"
           :class="{ active: route.name === 'settings' }"
-          ><el-icon><Setting /></el-icon>连接与设置</router-link
+          aria-label="连接与设置"
+          title="连接与设置"
+          ><el-icon><Setting /></el-icon
+          ><span class="nav-label">连接与设置</span></router-link
         >
       </nav>
       <div class="sidebar-bottom">
         <p>清风不识字，何故乱翻书。</p>
-        <router-link to="/settings" class="connection-card"
+        <router-link
+          to="/settings"
+          class="connection-card"
+          :aria-label="connection.connectStatus"
+          :title="connection.connectStatus"
           ><span class="connection-dot" :class="connection.connectType" /><span
             >{{
               connection.connectType === 'danger'
@@ -92,6 +134,8 @@ import {
   Setting,
   Moon,
   Sunny,
+  Fold,
+  Expand,
 } from '@element-plus/icons-vue'
 import API from '@api'
 import { appAccentTokens } from '@/utils/appTheme'
@@ -99,6 +143,12 @@ const brandIcon = `${import.meta.env.BASE_URL}icon5.svg`
 const route = useRoute()
 const bookStore = useBookStore()
 const connection = useConnectionStore()
+const sidebarCollapsed = ref(
+  localStorage.getItem('web-sidebar-collapsed') === 'true',
+)
+watch(sidebarCollapsed, value =>
+  localStorage.setItem('web-sidebar-collapsed', String(value)),
+)
 const reading = computed(() => route.name === 'chapter')
 const title = computed(
   () =>

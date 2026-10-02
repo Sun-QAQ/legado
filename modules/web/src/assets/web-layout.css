@@ -106,6 +106,52 @@ select {
   font-size: 22px;
   font-weight: 600;
 }
+.sidebar-toggle.el-button {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+}
+@media (min-width: 601px) {
+  .web-shell.sidebar-collapsed {
+    grid-template-columns: 76px minmax(0, 1fr);
+  }
+  .sidebar-collapsed .web-sidebar {
+    padding: 48px 12px 20px;
+  }
+  .sidebar-collapsed .sidebar-toggle {
+    top: 10px;
+    right: 23px;
+  }
+  .sidebar-collapsed .web-brand {
+    justify-content: center;
+    margin: 0 0 20px;
+  }
+  .sidebar-collapsed .web-brand > span,
+  .sidebar-collapsed .nav-label,
+  .sidebar-collapsed .nav-caption,
+  .sidebar-collapsed .nav-count,
+  .sidebar-collapsed .sidebar-bottom > p,
+  .sidebar-collapsed .connection-card > span:not(.connection-dot) {
+    display: none;
+  }
+  .sidebar-collapsed .web-sidebar nav > a {
+    justify-content: center;
+    padding: 14px 0;
+  }
+  .sidebar-collapsed .web-sidebar nav .el-icon {
+    font-size: 20px;
+  }
+  .sidebar-collapsed .nav-caption + a {
+    margin-top: 18px;
+  }
+  .sidebar-collapsed .connection-card {
+    justify-content: center;
+    padding: 16px 0;
+  }
+}
 .brand-mark {
   display: block;
   flex-shrink: 0;
@@ -324,6 +370,16 @@ select {
   }
 }
 @media (max-width: 600px) {
+  .sidebar-toggle.el-button {
+    top: 20px;
+    right: 16px;
+  }
+  .sidebar-collapsed .web-sidebar nav {
+    display: none;
+  }
+  .sidebar-collapsed .web-brand {
+    margin-bottom: 0;
+  }
   .web-shell {
     display: block;
   }
