@@ -23,6 +23,9 @@
           ><el-icon><Search /></el-icon>在线搜索</router-link
         >
         <div class="nav-caption">内容与工具</div>
+        <a href="../uploadBook/index.html"
+          ><el-icon><Upload /></el-icon>传书</a
+        >
         <router-link
           to="/bookSource"
           :class="{ active: route.name === 'book-home' }"
@@ -84,6 +87,7 @@ import {
   Collection,
   Search,
   Connection,
+  Upload,
   Bell,
   Setting,
   Moon,
