@@ -1,12 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- 将菜单的 32dp 圆形图标居中于 48dp 选择区域，与复选框对齐。 -->
 <RadioButton xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/radio"
     android:layout_width="48dp"
     android:layout_height="wrap_content"
     android:layout_gravity="center_vertical"
-    android:paddingStart="8dp"
-    android:paddingEnd="8dp"
+    android:paddingStart="0dp"
+    android:paddingEnd="0dp"
     android:focusable="false"
     android:clickable="false"
-    android:duplicateParentState="true" />
+    android:duplicateParentState="true"
+    app:buttonCompat="@drawable/bg_menu_radio_button" />
