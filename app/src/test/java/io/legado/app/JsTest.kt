@@ -1,6 +1,7 @@
 package io.legado.app
 
 import com.script.ScriptBindings
+import com.script.SimpleScriptContext
 import com.script.rhino.RhinoScriptEngine
 import io.legado.app.data.entities.BookChapter
 import org.intellij.lang.annotations.Language
@@ -8,6 +9,17 @@ import org.junit.Assert
 import org.junit.Test
 
 class JsTest {
+
+    @Test
+    fun concatenatedGlobalStringSurvivesJavaInterop() {
+        val context = SimpleScriptContext()
+        RhinoScriptEngine.eval("var prefix = 'hello'; var combined = prefix + ' world';", context)
+        Assert.assertEquals("hello world", RhinoScriptEngine.eval("combined", context))
+        Assert.assertEquals(
+            "hello+world",
+            RhinoScriptEngine.eval("Packages.java.net.URLEncoder.encode(combined, 'UTF-8')", context)
+        )
+    }
 
     @Language("js")
     private val printJs = """

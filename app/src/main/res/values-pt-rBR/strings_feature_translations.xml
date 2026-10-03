@@ -237,4 +237,7 @@
     <string name="ai_thinking_save_failed">Falha ao salvar configurações de raciocínio</string>
     <string name="ai_thinking_hint">Salvo por provedor e modelo. O padrão usa as configurações do provedor. Os níveis e a desativação dependem do modelo.</string>
     <string name="ai_thinking_qwen_hint">Qwen usa limites de tokens: mínimo 512, baixo 1024, médio 4096, alto 8192, muito alto 16384, máximo 32768. Requer suporte do modelo.</string>
+    <string-array name="ai_thinking_modes"><item>Padrão do modelo</item><item>Ativado</item><item>Desativado</item></string-array>
+    <string-array name="ai_thinking_efforts"><item>Padrão do modelo</item><item>Mínimo</item><item>Baixo</item><item>Médio</item><item>Alto</item><item>Muito alto</item><item>Máximo</item></string-array>
+    <string-array name="ai_thinking_formats"><item>Automático</item><item>Compatível com OpenAI</item><item>Compatível com DeepSeek / GLM</item><item>Compatível com Qwen</item></string-array>
 </resources>

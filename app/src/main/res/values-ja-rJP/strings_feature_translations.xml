@@ -237,4 +237,7 @@
     <string name="ai_thinking_save_failed">思考設定を保存できませんでした</string>
     <string name="ai_thinking_hint">プロバイダーとモデルごとに保存します。「モデルの既定」はプロバイダーの既定値を使用します。思考の強度や無効化はモデルの対応状況によります。</string>
     <string name="ai_thinking_qwen_hint">Qwen の思考強度はトークン上限で指定：最小 512、低 1024、中 4096、高 8192、非常に高い 16384、最大 32768。モデルの対応が必要です。</string>
+    <string-array name="ai_thinking_modes"><item>モデルの既定</item><item>有効</item><item>無効</item></string-array>
+    <string-array name="ai_thinking_efforts"><item>モデルの既定</item><item>最小</item><item>低</item><item>中</item><item>高</item><item>非常に高い</item><item>最大</item></string-array>
+    <string-array name="ai_thinking_formats"><item>自動</item><item>OpenAI 互換</item><item>DeepSeek / GLM 互換</item><item>Qwen 互換</item></string-array>
 </resources>

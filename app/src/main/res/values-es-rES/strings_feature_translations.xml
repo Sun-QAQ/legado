@@ -237,4 +237,7 @@
     <string name="ai_thinking_save_failed">No se pudieron guardar los ajustes de razonamiento</string>
     <string name="ai_thinking_hint">Se guarda por proveedor y modelo. El valor predeterminado usa los ajustes del proveedor. Los niveles y la desactivación dependen del modelo.</string>
     <string name="ai_thinking_qwen_hint">Qwen usa presupuestos de tokens: mínimo 512, bajo 1024, medio 4096, alto 8192, muy alto 16384, máximo 32768. Requiere soporte del modelo.</string>
+    <string-array name="ai_thinking_modes"><item>Predeterminado del modelo</item><item>Activado</item><item>Desactivado</item></string-array>
+    <string-array name="ai_thinking_efforts"><item>Predeterminado del modelo</item><item>Mínimo</item><item>Bajo</item><item>Medio</item><item>Alto</item><item>Muy alto</item><item>Máximo</item></string-array>
+    <string-array name="ai_thinking_formats"><item>Automático</item><item>Compatible con OpenAI</item><item>Compatible con DeepSeek / GLM</item><item>Compatible con Qwen</item></string-array>
 </resources>

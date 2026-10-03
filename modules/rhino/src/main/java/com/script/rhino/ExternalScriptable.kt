@@ -280,6 +280,9 @@ internal class ExternalScriptable @JvmOverloads constructor(
         }
 
     private fun jsToJava(jsObj: Any?): Any? {
+        // 拼接字符串是 JS 基本值；先展开再存入 Java bindings，避免读取时作为
+        // org.mozilla 对象包装并被类访问限制过滤为空值。
+        if (jsObj is ConsString) return jsObj.toString()
         return if (jsObj is Wrapper) {
             if (jsObj is NativeJavaClass) {
                 jsObj

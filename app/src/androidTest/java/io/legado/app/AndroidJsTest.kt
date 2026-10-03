@@ -20,25 +20,22 @@ class AndroidJsTest {
             var accessKeyId = '1111';
             var accessKeySecret = '2222';
             var timestamp = '3333';
-            var Mac = Packages.javax.crypto.Mac;
-            var SecretKeySpec = Packages.javax.crypto.spec.SecretKeySpec;
-            var URLEncoder = Packages.java.net.URLEncoder;
-            var JavaString = Packages.java.lang.String;
-            var Base64 = Packages.android.util.Base64;
+            var aly = new JavaImporter(Packages.javax.crypto.Mac, Packages.javax.crypto.spec.SecretKeySpec, Packages.java.net.URLEncoder, Packages.java.lang.String, Packages.android.util.Base64);
+            with (aly) {
                 function percentEncode(value) {
-                    if (value == null) throw new Error('percentEncode received ' + value);
-                    return String(URLEncoder.encode(value, "UTF-8")).replace(/\+/g, "%20")
-                        .replace(/\*/g, "%2A").replace(/%7E/g, "~")
+                    return URLEncoder.encode(value, "UTF-8").replace("+", "%20")
+                        .replace("*", "%2A").replace("%7E", "~")
                 }
             
                 function sign(stringToSign, accessKeySecret) {
                     var mac = Mac.getInstance('HmacSHA1');
-                    mac.init(new SecretKeySpec(new JavaString(accessKeySecret + '&').getBytes("UTF-8"), "HmacSHA1"));
-                    var signData = mac.doFinal(new JavaString(stringToSign).getBytes("UTF-8"));
+                    mac.init(new SecretKeySpec(String(accessKeySecret + '&').getBytes("UTF-8"), "HmacSHA1"));
+                    var signData = mac.doFinal(String(stringToSign).getBytes("UTF-8"));
                     var signBase64 = Base64.encodeToString(signData, Base64.NO_WRAP);
                     var signUrlEncode = percentEncode(signBase64);
                     return signUrlEncode;
                 }
+            }
             var query = 'AccessKeyId=' + accessKeyId + '&Action=CreateToken&Format=JSON&RegionId=cn-shanghai&SignatureMethod=HMAC-SHA1&SignatureNonce=' + "xxccrr" + '&SignatureVersion=1.0&Timestamp=' + percentEncode(timestamp) + '&Version=2019-02-28';
             var signStr = sign('GET&' + percentEncode('/') + '&' + percentEncode(query), accessKeySecret);
             var queryStringWithSign = "Signature=" + signStr + "&" + query;

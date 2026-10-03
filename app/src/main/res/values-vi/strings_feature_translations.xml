@@ -238,4 +238,7 @@
     <string name="ai_thinking_save_failed">Không lưu được cài đặt suy luận</string>
     <string name="ai_thinking_hint">Lưu riêng cho từng nhà cung cấp và mô hình. Mặc định mô hình dùng cài đặt của nhà cung cấp. Các mức và khả năng tắt suy luận tùy thuộc mô hình.</string>
     <string name="ai_thinking_qwen_hint">Qwen dùng ngân sách token: tối thiểu 512, thấp 1024, vừa 4096, cao 8192, rất cao 16384, tối đa 32768. Mô hình phải hỗ trợ.</string>
+    <string-array name="ai_thinking_modes"><item>Mặc định mô hình</item><item>Bật</item><item>Tắt</item></string-array>
+    <string-array name="ai_thinking_efforts"><item>Mặc định mô hình</item><item>Tối thiểu</item><item>Thấp</item><item>Vừa</item><item>Cao</item><item>Rất cao</item><item>Tối đa</item></string-array>
+    <string-array name="ai_thinking_formats"><item>Tự động</item><item>Tương thích OpenAI</item><item>Tương thích DeepSeek / GLM</item><item>Tương thích Qwen</item></string-array>
 </resources>
