@@ -3,11 +3,14 @@ package io.legado.app.ui.book.search
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import android.util.AttributeSet
 import android.view.Menu
 import android.view.MenuItem
+import android.view.View
 import android.view.View.GONE
 import android.view.View.VISIBLE
 import android.widget.TextView
+import android.widget.RadioButton
 import androidx.activity.viewModels
 import androidx.appcompat.widget.SearchView
 import androidx.core.os.bundleOf
@@ -90,6 +93,19 @@ class SearchActivity : VMBaseActivity<ActivityBookSearchBinding, SearchViewModel
     private var booksFlowJob: Job? = null
     private var precisionSearchMenuItem: MenuItem? = null
     private var isManualStopSearch = false
+
+    override fun onCreateView(
+        parent: View?,
+        name: String,
+        context: Context,
+        attrs: AttributeSet
+    ): View? = super.onCreateView(parent, name, context, attrs)?.apply {
+        if (this is RadioButton && id == androidx.appcompat.R.id.radio) {
+            // 菜单圆点默认只有末尾留白；平分两侧留白，与复选框中心对齐。
+            val horizontalPadding = (paddingStart + paddingEnd) / 2
+            setPaddingRelative(horizontalPadding, paddingTop, horizontalPadding, paddingBottom)
+        }
+    }
 
     override fun onActivityCreated(savedInstanceState: Bundle?) {
         binding.llInputHelp.setBackgroundColor(backgroundColor)
