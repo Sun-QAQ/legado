@@ -117,18 +117,24 @@ class ReadRecordActivity : BaseActivity<ActivityReadRecordBinding>() {
 
     override fun onCompatCreateOptionsMenu(menu: Menu): Boolean {
         menuInflater.inflate(R.menu.book_read_record, menu)
+        updateMenuCheckedState(menu)
         initSearchView(menu.findItem(R.id.menu_search))
         return super.onCompatCreateOptionsMenu(menu)
     }
 
     override fun onMenuOpened(featureId: Int, menu: Menu): Boolean {
-        menu.findItem(R.id.menu_enable_record)?.isChecked = AppConfig.enableReadRecord
-        when (sortMode) {
-            1 -> menu.findItem(R.id.menu_sort_read_long)?.isChecked = true
-            2 -> menu.findItem(R.id.menu_sort_read_time)?.isChecked = true
-            else -> menu.findItem(R.id.menu_sort_name)?.isChecked = true
-        }
+        updateMenuCheckedState(menu)
         return super.onMenuOpened(featureId, menu)
+    }
+
+    private fun updateMenuCheckedState(menu: Menu) {
+        menu.findItem(R.id.menu_enable_record)?.isChecked = AppConfig.enableReadRecord
+        val selectedSortId = when (sortMode) {
+            1 -> R.id.menu_sort_read_long
+            2 -> R.id.menu_sort_read_time
+            else -> R.id.menu_sort_name
+        }
+        menu.findItem(selectedSortId)?.isChecked = true
     }
 
     override fun onCompatOptionsItemSelected(item: MenuItem): Boolean {
