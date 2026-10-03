@@ -192,7 +192,7 @@ class MyFragment() : BaseFragment(R.layout.fragment_my_config), MainFragmentInte
                 editView.setText(context.getPrefString(PreferKey.userNickname) ?: "")
                 editView.setAccentCursor()
                 // 清除 AutoCompleteTextView 自带的强调色背景着色, 用强调色边框包裹输入框
-                editView.supportBackgroundTintList = null
+                androidx.core.view.ViewCompat.setBackgroundTintList(editView, null)
                 editView.backgroundTintList = null
                 val inputBg = GradientDrawable().apply {
                     setColor(Color.TRANSPARENT)

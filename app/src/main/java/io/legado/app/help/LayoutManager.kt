@@ -1,6 +1,5 @@
 package io.legado.app.help
 
-import androidx.annotation.IntDef
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -13,10 +12,6 @@ object LayoutManager {
         fun create(recyclerView: RecyclerView): RecyclerView.LayoutManager
     }
 
-    @IntDef(LinearLayoutManager.HORIZONTAL, LinearLayoutManager.VERTICAL)
-    @Retention(AnnotationRetention.SOURCE)
-    annotation class Orientation
-
     fun linear(): LayoutManagerFactory {
         return object : LayoutManagerFactory {
             override fun create(recyclerView: RecyclerView): RecyclerView.LayoutManager {
@@ -26,7 +21,7 @@ object LayoutManager {
     }
 
 
-    fun linear(@Orientation orientation: Int, reverseLayout: Boolean): LayoutManagerFactory {
+    fun linear(@RecyclerView.Orientation orientation: Int, reverseLayout: Boolean): LayoutManagerFactory {
         return object : LayoutManagerFactory {
             override fun create(recyclerView: RecyclerView): RecyclerView.LayoutManager {
                 return LinearLayoutManager(recyclerView.context, orientation, reverseLayout)
@@ -46,7 +41,7 @@ object LayoutManager {
 
     fun grid(
         spanCount: Int,
-        @Orientation orientation: Int,
+        @RecyclerView.Orientation orientation: Int,
         reverseLayout: Boolean
     ): LayoutManagerFactory {
         return object : LayoutManagerFactory {
@@ -62,7 +57,7 @@ object LayoutManager {
     }
 
 
-    fun staggeredGrid(spanCount: Int, @Orientation orientation: Int): LayoutManagerFactory {
+    fun staggeredGrid(spanCount: Int, @RecyclerView.Orientation orientation: Int): LayoutManagerFactory {
         return object : LayoutManagerFactory {
             override fun create(recyclerView: RecyclerView): RecyclerView.LayoutManager {
                 return StaggeredGridLayoutManager(spanCount, orientation)

@@ -25,7 +25,8 @@ export default defineConfig(({ mode }) => {
             prefix: "Icon",
           }),
         ],
-        dts: "./src/auto-imports.d.ts",
+        // 构建与类型检查并行时使用已提交的声明，避免写入同一份源码文件。
+        dts: mode === "development" ? "./src/auto-imports.d.ts" : false,
       }),
       Components({
         resolvers: [
@@ -34,7 +35,7 @@ export default defineConfig(({ mode }) => {
             enabledCollections: ["ep"],
           }),
         ],
-        dts: "./src/components.d.ts",
+        dts: mode === "development" ? "./src/components.d.ts" : false,
       }),
       Icons({
         autoInstall: true,
