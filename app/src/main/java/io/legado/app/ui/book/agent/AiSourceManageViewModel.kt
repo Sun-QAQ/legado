@@ -49,15 +49,23 @@ class AiSourceManageViewModel(application: Application) : BaseViewModel(applicat
         }
     }
 
-    fun fetchModels(aiSource: AiSource) {
-        execute {
-            AiSourceHelper.fetchModels(aiSource)
-        }.onSuccess { models ->
+    fun fetchModels(
+        aiSource: AiSource,
+        success: (List<String>) -> Unit,
+        error: (Throwable) -> Unit
+    ) {
+        executeLazy {
+            val models = AiSourceHelper.fetchModels(aiSource)
             appDb.aiSourceDao.update(aiSource.copy(
                 models = GSON.toJson(models),
                 lastUpdateTime = System.currentTimeMillis()
             ))
-        }
+            models
+        }.onSuccess {
+            success(it)
+        }.onError {
+            error(it)
+        }.start()
     }
 
 }

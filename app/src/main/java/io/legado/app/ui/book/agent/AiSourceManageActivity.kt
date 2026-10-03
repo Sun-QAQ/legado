@@ -87,7 +87,18 @@ class AiSourceManageActivity :
     }
 
     override fun fetchModels(aiSource: AiSource) {
-        viewModel.fetchModels(aiSource)
+        viewModel.fetchModels(
+            aiSource,
+            success = { models ->
+                toastOnUi(getString(R.string.fetch_models_success, models.size))
+            },
+            error = { throwable ->
+                toastOnUi(getString(
+                    R.string.fetch_models_fail,
+                    throwable.localizedMessage ?: throwable.javaClass.simpleName
+                ))
+            }
+        )
     }
 
     override fun delete(aiSource: AiSource) {
