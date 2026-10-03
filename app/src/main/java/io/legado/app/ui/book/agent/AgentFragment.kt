@@ -77,7 +77,10 @@ class AgentFragment() : BaseFragment(R.layout.fragment_agent), MainFragmentInter
         viewModel.startConversationHistory()
         binding.btnSend.backgroundTintList = ColorStateList.valueOf(requireContext().accentColor)
         binding.llInput.applyAgentInputInsets()
-        binding.recyclerView.layoutManager = LinearLayoutManager(requireContext())
+        binding.recyclerView.layoutManager = LinearLayoutManager(requireContext()).apply {
+            // 键盘改变列表高度时，以底部消息为锚点，保持最新对话可见。
+            stackFromEnd = true
+        }
         binding.recyclerView.addItemDecoration(VerticalDivider(requireContext()))
         binding.recyclerView.adapter = adapter
         binding.btnSend.setOnClickListener {
