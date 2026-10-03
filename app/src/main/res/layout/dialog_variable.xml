@@ -28,29 +28,34 @@
             app:popupTheme="@style/AppTheme.PopupOverlay"
             app:titleTextAppearance="@style/ToolbarTitle" />
 
-        <io.legado.app.ui.widget.text.AccentTextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:padding="3dp"
-            android:text="variable"
-            tools:ignore="HardcodedText" />
-
-        <io.legado.app.lib.theme.view.ThemeEditText
-            android:id="@+id/tv_variable"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            tools:ignore="SpeakableTextPresentCheck,TouchTargetSizeCheck" />
-
         <androidx.core.widget.NestedScrollView
+            android:id="@+id/variable_scroll"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-
+            android:layout_weight="1"
+            android:clipToPadding="false"
+            android:paddingBottom="8dp"
             android:overScrollMode="ifContentScrolls">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical">
+
+                <io.legado.app.ui.widget.text.AccentTextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:padding="3dp"
+                    android:text="variable"
+                    tools:ignore="HardcodedText" />
+
+                <io.legado.app.lib.theme.view.ThemeEditText
+                    android:id="@+id/tv_variable"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="textMultiLine"
+                    android:gravity="top|start"
+                    tools:ignore="SpeakableTextPresentCheck,TouchTargetSizeCheck" />
 
                 <io.legado.app.ui.widget.text.AccentTextView
                     android:layout_width="match_parent"
