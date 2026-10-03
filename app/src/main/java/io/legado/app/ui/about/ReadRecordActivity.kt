@@ -299,7 +299,7 @@ class ReadRecordActivity : BaseActivity<ActivityReadRecordBinding>() {
                 .coerceAtLeast(6.dpToPx())
             weekBarViews[index].apply {
                 layoutParams = layoutParams.apply { height = barHeight }
-                background = roundedBackground(accent, 7)
+                background = roundedBackground(accent, 3)
             }
             weekDayViews[index].apply {
                 text = getString(
