@@ -147,7 +147,8 @@ class SearchActivity : VMBaseActivity<ActivityBookSearchBinding, SearchViewModel
                 viewModel.searchScope.update("")
                 allSourceMenu.isChecked = true
             }
-            menu.setGroupCheckable(R.id.menu_group_1, true, false)
+            // 使用圆形选中标记，已选范围仍由 searchScope 管理（可包含多个分组）。
+            menu.setGroupCheckable(R.id.menu_group_1, true, true)
             menu.setGroupCheckable(R.id.menu_group_2, true, true)
         }
         return super.onMenuOpened(featureId, menu)
