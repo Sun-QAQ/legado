@@ -5,6 +5,7 @@ import android.util.AttributeSet
 import android.view.LayoutInflater
 import android.view.View
 import android.widget.FrameLayout
+import android.widget.TextView
 import androidx.annotation.ColorRes
 import io.legado.app.R
 import io.legado.app.databinding.ViewLoadMoreBinding
@@ -100,7 +101,7 @@ class LoadMoreView(context: Context, attrs: AttributeSet? = null) : FrameLayout(
                     onClickListener?.onClick(view)
                 }
             }
-        }
+        }.findViewById<TextView>(android.R.id.message)?.setTextIsSelectable(true)
         return true
     }
 
