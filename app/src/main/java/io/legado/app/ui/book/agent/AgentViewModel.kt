@@ -682,10 +682,11 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
     private fun finalizeLive(
         text: String,
         books: List<SearchBook> = emptyList(),
-        canLoadMore: Boolean = false
+        canLoadMore: Boolean = false,
+        reasoningContent: String? = null
     ) {
         val reply = liveReply ?: return
-        history.add(AgentChatTurn(ROLE_ASSISTANT, text))
+        history.add(AgentChatTurn(ROLE_ASSISTANT, text, reasoningContent = reasoningContent))
         _messages.value = _messages.value.filterNot { it.streaming } +
             reply.copy(
                 text = text,
@@ -871,6 +872,7 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
                     }
                 }
                 val content = message.get("content")?.takeIf { !it.isJsonNull }?.asString.orEmpty()
+                val reasoningContent = message.get("reasoning_content")?.takeIf { !it.isJsonNull }?.asString
                 if (content.isNotBlank()) {
                     finalText = content
                 }
@@ -883,7 +885,7 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
                     //书源创建尚未完成时，若模型中途停下解释而不继续调用工具，则注入继续提示强制其继续
                     if (inSourceCreationFlow && !hasSavedSource && round < maxRounds() - 1) {
                         if (content.isNotBlank()) {
-                            history.add(AgentChatTurn(ROLE_ASSISTANT, content))
+                            history.add(AgentChatTurn(ROLE_ASSISTANT, content, reasoningContent = reasoningContent))
                         }
                         liveReply = liveReply?.copy(text = "")
                         _streamingText.value = null
@@ -894,7 +896,8 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
                     finalizeLive(
                         finalText,
                         if (hasBooks) lastBooks else emptyList(),
-                        hasBooks && canLoadMoreSearch
+                        hasBooks && canLoadMoreSearch,
+                        reasoningContent = reasoningContent
                     )
                     finished = true
                     break
@@ -910,7 +913,8 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
                     AgentChatTurn(
                         ROLE_ASSISTANT,
                         content,
-                        toolCalls = message.get("tool_calls")
+                        toolCalls = message.get("tool_calls"),
+                        reasoningContent = reasoningContent
                     )
                 )
                 for (call: JsonElement in toolCalls.asJsonArray) {
@@ -2159,6 +2163,9 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
                 JsonObject().apply {
                     addProperty("role", turn.role)
                     addProperty("content", turn.content)
+                    if (supplier.getModelThinking().resolveFormat(supplier.baseUrl, supplier.model) == "thinking") {
+                        turn.reasoningContent?.let { addProperty("reasoning_content", it) }
+                    }
                     if (turn.role == ROLE_TOOL) {
                         addProperty("tool_call_id", turn.toolCallId.orEmpty())
                     }
@@ -2179,6 +2186,7 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
         supplier: io.legado.app.data.entities.AiSource,
         body: JsonObject
     ): JsonObject {
+        supplier.getModelThinking().applyTo(body, supplier.baseUrl, supplier.model)
         val client = okHttpClient.newBuilder()
             .callTimeout(180, TimeUnit.SECONDS)
             .readTimeout(180, TimeUnit.SECONDS)
@@ -2284,6 +2292,7 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
         body: JsonObject,
         onDelta: (String) -> Unit
     ): JsonObject {
+        supplier.getModelThinking().applyTo(body, supplier.baseUrl, supplier.model)
         val client = okHttpClient.newBuilder()
             .callTimeout(180, TimeUnit.SECONDS)
             .readTimeout(180, TimeUnit.SECONDS)
@@ -2317,6 +2326,7 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
                 throw AiApiException(parseApiError(response.code))
             }
             val contentBuilder = StringBuilder()
+            val reasoningBuilder = StringBuilder()
             val toolCallAccumulator = StreamingToolCallAccumulator()
             try {
                 response.body?.let { respBody ->
@@ -2353,6 +2363,9 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
                             contentBuilder.append(content)
                             onDelta(content)
                         }
+                        delta.get("reasoning_content")?.takeIf { !it.isJsonNull }?.asString?.let {
+                            reasoningBuilder.append(it)
+                        }
                         val toolCalls = delta.get("tool_calls")
                             ?.takeIf { it.isJsonArray }
                             ?.asJsonArray
@@ -2366,6 +2379,9 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
             }
             return JsonObject().apply {
                 addProperty("content", contentBuilder.toString())
+                if (reasoningBuilder.isNotEmpty()) {
+                    addProperty("reasoning_content", reasoningBuilder.toString())
+                }
                 if (toolCallAccumulator.isNotEmpty()) {
                     add("tool_calls", toolCallAccumulator.toJsonArray())
                 }

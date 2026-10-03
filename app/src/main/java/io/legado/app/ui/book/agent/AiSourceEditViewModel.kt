@@ -5,6 +5,7 @@ import android.os.Bundle
 import io.legado.app.base.BaseViewModel
 import io.legado.app.data.appDb
 import io.legado.app.data.entities.AiSource
+import io.legado.app.data.entities.AiModelThinking
 import io.legado.app.utils.GSON
 
 /**
@@ -36,6 +37,24 @@ class AiSourceEditViewModel(app: Application) : BaseViewModel(app) {
         }.onSuccess {
             success?.invoke()
         }
+    }
+
+    fun saveModelThinking(
+        sourceId: Long,
+        model: String,
+        config: AiModelThinking,
+        success: () -> Unit,
+        error: (Throwable) -> Unit
+    ) {
+        executeLazy {
+            val source = appDb.aiSourceDao.get(sourceId) ?: throw IllegalStateException("供应商不存在")
+            val configs = source.getModelThinkingMap().toMutableMap()
+            configs[model] = config
+            appDb.aiSourceDao.update(source.copy(
+                modelThinking = GSON.toJson(configs),
+                lastUpdateTime = System.currentTimeMillis()
+            ))
+        }.onSuccess { success() }.onError { error(it) }.start()
     }
 
     /**

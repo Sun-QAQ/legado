@@ -32,8 +32,18 @@ data class AiSource(
     // 获取到的模型列表，json 格式
     var models: String? = null,
     // 最后更新时间
-    var lastUpdateTime: Long = System.currentTimeMillis()
+    var lastUpdateTime: Long = System.currentTimeMillis(),
+    // 按模型 ID 保存的思考配置，json 格式
+    var modelThinking: String? = null
 ) : Parcelable {
+
+    fun getModelThinking(model: String = this.model): AiModelThinking =
+        getModelThinkingMap()[model] ?: AiModelThinking()
+
+    fun getModelThinkingMap(): Map<String, AiModelThinking> =
+        modelThinking?.let {
+            GSON.fromJsonObject<Map<String, AiModelThinking>>(it).getOrDefault(emptyMap())
+        }.orEmpty()
 
     fun getModelList(): List<String> {
         val json = models ?: return emptyList()

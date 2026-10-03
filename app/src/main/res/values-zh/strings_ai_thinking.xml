@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="ai_model_thinking">模型思考设置</string>
+    <string name="ai_thinking_mode">是否开启思考</string>
+    <string name="ai_thinking_effort">思考强度</string>
+    <string name="ai_thinking_format">供应商兼容格式</string>
+    <string name="ai_thinking_save_failed">思考设置保存失败</string>
+    <string name="ai_thinking_hint">设置按供应商和模型分别保存。“模型默认”使用服务端默认设置。可用强度及是否允许关闭思考取决于模型支持。</string>
+    <string name="ai_thinking_qwen_hint">千问强度对应思考预算：极低 512、低 1024、中 4096、高 8192、极高 16384、最大 32768 个 token，需模型支持。</string>
+    <string-array name="ai_thinking_modes"><item>模型默认</item><item>开启</item><item>关闭</item></string-array>
+    <string-array name="ai_thinking_efforts"><item>模型默认</item><item>极低</item><item>低</item><item>中</item><item>高</item><item>极高</item><item>最大</item></string-array>
+    <string-array name="ai_thinking_formats"><item>自动识别</item><item>OpenAI 兼容</item><item>DeepSeek / GLM 兼容</item><item>千问兼容</item></string-array>
+</resources>

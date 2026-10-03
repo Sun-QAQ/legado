@@ -101,6 +101,18 @@ class AiSourceManageActivity :
         )
     }
 
+    override fun configureThinking(aiSource: AiSource) {
+        val models = (listOf(aiSource.model) + aiSource.getModelList())
+            .filter { it.isNotBlank() }.distinct()
+        if (models.isEmpty()) {
+            toastOnUi(R.string.ai_source_no_models)
+            return
+        }
+        selector(getString(R.string.ai_source_select_model), models) { _, index ->
+            showDialogFragment(AiModelThinkingDialog(aiSource.id, models[index]))
+        }
+    }
+
     override fun delete(aiSource: AiSource) {
         alert(R.string.draw) {
             setMessage(getString(R.string.sure_del_any, aiSource.name))

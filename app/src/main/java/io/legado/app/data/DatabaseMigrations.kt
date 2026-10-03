@@ -10,6 +10,10 @@ import io.legado.app.constant.BookType
 
 object DatabaseMigrations {
 
+    // Room 自动为 aiSources 添加可空的 modelThinking 字段，已有供应商使用模型默认行为。
+    @Suppress("ClassName")
+    class Migration_82_83 : AutoMigrationSpec
+
     val migrations: Array<Migration> by lazy {
         arrayOf(
             migration_10_11, migration_11_12, migration_12_13, migration_13_14,

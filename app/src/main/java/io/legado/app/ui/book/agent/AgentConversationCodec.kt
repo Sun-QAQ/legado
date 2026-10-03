@@ -8,7 +8,8 @@ data class AgentChatTurn(
     val role: String,
     val content: String,
     val toolCallId: String? = null,
-    val toolCalls: JsonElement? = null
+    val toolCalls: JsonElement? = null,
+    val reasoningContent: String? = null
 )
 
 internal object AgentConversationCodec {

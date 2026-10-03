@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="ai_model_thinking">Model thinking settings</string>
+    <string name="ai_thinking_mode">Thinking</string>
+    <string name="ai_thinking_effort">Thinking effort</string>
+    <string name="ai_thinking_format">Provider compatibility</string>
+    <string name="ai_thinking_save_failed">Failed to save thinking settings</string>
+    <string name="ai_thinking_hint">Saved separately for each provider and model. Model default uses the provider’s defaults. Available effort levels and disabling thinking depend on model support.</string>
+    <string name="ai_thinking_qwen_hint">Qwen effort levels use token budgets: minimal 512, low 1024, medium 4096, high 8192, extra high 16384, maximum 32768. Model support is required.</string>
+    <string-array name="ai_thinking_modes"><item>Model default</item><item>Enabled</item><item>Disabled</item></string-array>
+    <string-array name="ai_thinking_efforts"><item>Model default</item><item>Minimal</item><item>Low</item><item>Medium</item><item>High</item><item>Extra high</item><item>Maximum</item></string-array>
+    <string-array name="ai_thinking_formats"><item>Automatic</item><item>OpenAI compatible</item><item>DeepSeek / GLM compatible</item><item>Qwen compatible</item></string-array>
+</resources>

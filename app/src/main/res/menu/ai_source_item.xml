@@ -10,6 +10,10 @@
         android:title="@string/fetch_models" />
 
     <item
+        android:id="@+id/menu_model_thinking"
+        android:title="@string/ai_model_thinking" />
+
+    <item
         android:id="@+id/menu_del"
         android:title="@string/delete" />
 

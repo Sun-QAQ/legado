@@ -31,7 +31,8 @@ class AgentConversationCodecTest {
             AgentChatTurn(
                 role = "assistant",
                 content = "",
-                toolCalls = JsonParser.parseString("[{\"id\":\"call-1\"}]")
+                toolCalls = JsonParser.parseString("[{\"id\":\"call-1\"}]"),
+                reasoningContent = "需要先调用搜索工具"
             )
         )
 

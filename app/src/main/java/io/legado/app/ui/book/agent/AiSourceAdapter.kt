@@ -83,6 +83,7 @@ class AiSourceAdapter(
             when (menuItem.itemId) {
                 R.id.menu_select_source_model -> callBack.select(source)
                 R.id.menu_fetch_models -> callBack.fetchModels(source)
+                R.id.menu_model_thinking -> callBack.configureThinking(source)
                 R.id.menu_del -> callBack.delete(source)
             }
             true
@@ -95,6 +96,7 @@ class AiSourceAdapter(
         fun edit(aiSource: AiSource)
         fun select(aiSource: AiSource)
         fun fetchModels(aiSource: AiSource)
+        fun configureThinking(aiSource: AiSource)
         fun delete(aiSource: AiSource)
     }
 
