@@ -23,12 +23,14 @@ class VariableDialog() : BaseDialogFragment(R.layout.dialog_variable, true),
     private val binding by viewBinding(DialogVariableBinding::bind)
     private val viewModel by viewModels<ViewModel>()
 
-    constructor(title: String, key: String, variable: String?, comment: String) : this() {
+    constructor(title: String, key: String, variable: String?, comment: String,
+                editableComment: Boolean = false) : this() {
         arguments = Bundle().apply {
             putString("title", title)
             putString("key", key)
             putString("variable", variable)
             putString("comment", comment)
+            putBoolean("editableComment", editableComment)
         }
     }
 
@@ -43,8 +45,12 @@ class VariableDialog() : BaseDialogFragment(R.layout.dialog_variable, true),
         arguments?.let {
             binding.toolBar.title = it.getString("title")
             viewModel.init(it) {
-                binding.tvComment.text = viewModel.comment
+                binding.tvComment.setText(viewModel.comment)
                 binding.tvVariable.setText(viewModel.variable)
+            }
+            if (!it.getBoolean("editableComment")) {
+                binding.tvComment.keyListener = null
+                binding.tvComment.setTextIsSelectable(true)
             }
         } ?: let {
             dismiss()
@@ -62,6 +68,9 @@ class VariableDialog() : BaseDialogFragment(R.layout.dialog_variable, true),
                     viewModel.key ?: "",
                     binding.tvVariable.text?.toString()
                 )
+                if (arguments?.getBoolean("editableComment") == true) {
+                    callback?.setVariableComment(viewModel.key.orEmpty(), binding.tvComment.text?.toString())
+                }
                 dismissAllowingStateLoss()
             }
         }
@@ -92,6 +101,8 @@ class VariableDialog() : BaseDialogFragment(R.layout.dialog_variable, true),
     interface Callback {
 
         fun setVariable(key: String, variable: String?)
+
+        fun setVariableComment(key: String, comment: String?) {}
 
     }
 

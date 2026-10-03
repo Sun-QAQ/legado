@@ -66,6 +66,16 @@ class RssSortViewModel(application: Application) : BaseViewModel(application) {
         }
     }
 
+    fun saveVariableComment(key: String, comment: String?) {
+        execute {
+            val source = appDb.rssSourceDao.getByKey(key) ?: return@execute
+            source.variableComment = comment
+            appDb.rssSourceDao.update(source)
+        }.onSuccess {
+            if (rssSource?.sourceUrl == key) rssSource?.variableComment = comment
+        }
+    }
+
     fun getRecords(): List<RssReadRecord> {
         return appDb.rssReadRecordDao.getRecords()
     }

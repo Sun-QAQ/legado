@@ -120,15 +120,15 @@ class RssSortActivity : VMBaseActivity<ActivityRssArtivlesBinding, RssSortViewMo
                 toastOnUi("源不存在")
                 return@launch
             }
-            val comment =
-                source.getDisplayVariableComment("源变量可在js中通过source.getVariable()获取")
+            val comment = source.variableComment.orEmpty()
             val variable = withContext(Dispatchers.IO) { source.getVariable() }
             showDialogFragment(
                 VariableDialog(
                     getString(R.string.set_source_variable),
                     source.getKey(),
                     variable,
-                    comment
+                    comment,
+                    editableComment = true
                 )
             )
         }
@@ -136,6 +136,10 @@ class RssSortActivity : VMBaseActivity<ActivityRssArtivlesBinding, RssSortViewMo
 
     override fun setVariable(key: String, variable: String?) {
         viewModel.rssSource?.setVariable(variable)
+    }
+
+    override fun setVariableComment(key: String, comment: String?) {
+        viewModel.saveVariableComment(key, comment)
     }
 
     private inner class TabFragmentPageAdapter :
