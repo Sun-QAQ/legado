@@ -10,6 +10,7 @@ import android.view.ViewConfiguration
 import android.widget.LinearLayout
 import io.legado.app.R
 import io.legado.app.utils.dpToPx
+import io.legado.app.utils.getCompatColor
 import kotlin.math.abs
 
 /** [LinearLayout] 版本的左滑删除容器，供横向列表项使用。 */
@@ -24,10 +25,10 @@ class SwipeDeleteLinearLayout @JvmOverloads constructor(
     private val revealWidth = 76.dpToPx()
     private val touchSlop = ViewConfiguration.get(context).scaledTouchSlop
     private val deletePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = context.getColor(R.color.error)
+        color = context.getCompatColor(R.color.error)
     }
     private val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = context.getColor(android.R.color.white)
+        color = context.getCompatColor(android.R.color.white)
         textSize = 14.dpToPx().toFloat()
         typeface = Typeface.DEFAULT_BOLD
         textAlign = Paint.Align.CENTER

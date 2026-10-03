@@ -171,8 +171,13 @@ private fun tintDrawableRecursively(drawable: Drawable, @ColorInt accent: Int) {
     DrawableCompat.setTintList(drawable.mutate(), ColorStateList.valueOf(accent))
     when (drawable) {
         is StateListDrawable -> {
-            for (i in 0 until drawable.stateCount) {
-                drawable.getStateDrawable(i)?.let { tintDrawableRecursively(it, accent) }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                for (i in 0 until drawable.stateCount) {
+                    drawable.getStateDrawable(i)?.let { tintDrawableRecursively(it, accent) }
+                }
+            } else {
+                drawable.current?.takeIf { it !== drawable }
+                    ?.let { tintDrawableRecursively(it, accent) }
             }
         }
 
