@@ -101,8 +101,10 @@ class SearchActivity : VMBaseActivity<ActivityBookSearchBinding, SearchViewModel
         attrs: AttributeSet
     ): View? = super.onCreateView(parent, name, context, attrs)?.apply {
         if (this is RadioButton && id == androidx.appcompat.R.id.radio) {
-            // 菜单圆点默认只有末尾留白；平分两侧留白，与复选框中心对齐。
-            val horizontalPadding = (paddingStart + paddingEnd) / 2
+            // 圆形图标比菜单控件的最小宽度小，补齐两侧留白，与复选框中心对齐。
+            val buttonWidth = buttonDrawable?.intrinsicWidth?.coerceAtLeast(0) ?: 0
+            val controlWidth = maxOf(minimumWidth, buttonWidth + paddingStart + paddingEnd)
+            val horizontalPadding = (controlWidth - buttonWidth) / 2
             setPaddingRelative(horizontalPadding, paddingTop, horizontalPadding, paddingBottom)
         }
     }
