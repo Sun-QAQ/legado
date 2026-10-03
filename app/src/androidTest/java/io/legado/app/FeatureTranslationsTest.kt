@@ -16,12 +16,14 @@ class FeatureTranslationsTest {
     @Test
     fun localizedFeaturesKeepPlaceholdersAndJsonExamples() {
         val context = ApplicationProvider.getApplicationContext<Context>()
-        for (language in listOf("ja-JP", "es-ES", "pt-BR", "vi", "zh-CN")) {
+        for (language in listOf("en-US", "ja-JP", "es-ES", "pt-BR", "vi", "zh-CN")) {
             val configuration = Configuration(context.resources.configuration).apply {
                 setLocale(Locale.forLanguageTag(language))
             }
             val localized = context.createConfigurationContext(configuration)
-            assertFalse(language, localized.getString(R.string.ai_source_manage) == "AI suppliers")
+            if (language != "en-US") {
+                assertFalse(language, localized.getString(R.string.ai_source_manage) == "AI suppliers")
+            }
             val result = localized.getString(R.string.agent_ai_book_done, "TITLE", "AUTHOR", 3, 1234)
             for (value in listOf("TITLE", "AUTHOR", "3", "1234")) {
                 assertTrue("$language: $result", result.contains(value))
@@ -30,7 +32,9 @@ class FeatureTranslationsTest {
             assertTrue(language, localized.getString(R.string.ai_source_headers_hint)
                 .contains("{\"Authorization\":\"...\"}"))
             assertEquals(language, 7, localized.resources.getStringArray(R.array.ai_thinking_efforts).size)
-            assertFalse(language, localized.resources.getStringArray(R.array.ai_thinking_modes)[0] == "Model default")
+            if (language != "en-US") {
+                assertFalse(language, localized.resources.getStringArray(R.array.ai_thinking_modes)[0] == "Model default")
+            }
         }
     }
 }

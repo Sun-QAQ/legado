@@ -658,7 +658,7 @@
     <string name="ai_search_api_key_helper">每行一个，配置多个时按顺序轮询使用</string>
     <string name="ai_source_model">默认模型</string>
     <string name="ai_source_headers">自定义请求头</string>
-    <string name="ai_source_headers_hint">JSON格式，例如 {"Authorization":"..."}</string>
+    <string name="ai_source_headers_hint">JSON格式，例如 {\"Authorization\":\"...\"}</string>
     <string name="fetch_models">获取模型列表</string>
     <string name="fetch_models_success">获取模型列表成功，共%d个模型</string>
     <string name="fetch_models_fail">获取模型列表失败：%s</string>

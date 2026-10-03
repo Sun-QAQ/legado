@@ -665,7 +665,7 @@
     <string name="ai_search_api_key_helper">One per line; multiple keys are used in rotation</string>
     <string name="ai_source_model">Default model</string>
     <string name="ai_source_headers">Custom headers</string>
-    <string name="ai_source_headers_hint">JSON format, e.g. {"Authorization":"..."}</string>
+    <string name="ai_source_headers_hint">JSON format, e.g. {\"Authorization\":\"...\"}</string>
     <string name="fetch_models">Fetch model list</string>
     <string name="fetch_models_success">Model list fetched: %d models</string>
     <string name="fetch_models_fail">Fetch model list failed: %s</string>
