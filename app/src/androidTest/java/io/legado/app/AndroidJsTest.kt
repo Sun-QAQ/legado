@@ -26,6 +26,7 @@ class AndroidJsTest {
             var JavaString = Packages.java.lang.String;
             var Base64 = Packages.android.util.Base64;
                 function percentEncode(value) {
+                    if (value == null) throw new Error('percentEncode received ' + value);
                     return String(URLEncoder.encode(value, "UTF-8")).replace(/\+/g, "%20")
                         .replace(/\*/g, "%2A").replace(/%7E/g, "~")
                 }
