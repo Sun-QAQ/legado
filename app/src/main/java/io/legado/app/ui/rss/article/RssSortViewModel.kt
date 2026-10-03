@@ -58,17 +58,6 @@ class RssSortViewModel(application: Application) : BaseViewModel(application) {
         }
     }
 
-    fun clearArticles() {
-        execute {
-            url?.let {
-                appDb.rssArticleDao.delete(it)
-            }
-            order = System.currentTimeMillis()
-        }.onSuccess {
-
-        }
-    }
-
     fun clearSortCache(onFinally: () -> Unit) {
         execute {
             rssSource?.removeSortCache()

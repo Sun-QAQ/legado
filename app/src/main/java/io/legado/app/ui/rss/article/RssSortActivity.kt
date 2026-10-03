@@ -86,12 +86,6 @@ class RssSortActivity : VMBaseActivity<ActivityRssArtivlesBinding, RssSortViewMo
                 }
             }
 
-            R.id.menu_clear -> {
-                viewModel.url?.let {
-                    viewModel.clearArticles()
-                }
-            }
-
             R.id.menu_switch_layout -> {
                 viewModel.switchLayout()
                 upFragments()
