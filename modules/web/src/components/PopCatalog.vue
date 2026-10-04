@@ -8,7 +8,7 @@
       data-key="index"
       wrap-class="data-wrapper"
       item-class="cata"
-      :data-sources="virtualListdata"
+      :data-sources="catalog"
       :data-component="CatalogItem"
       :estimate-size="40"
       :extra-props="{ gotoChapter, currentChapterIndex }"
@@ -24,49 +24,20 @@ import type { BookChapter } from '@/book'
 
 const store = useBookStore()
 
-const { catalog, popCataVisible, miniInterface } = storeToRefs(store)
+const { catalog, popCataVisible } = storeToRefs(store)
 
 //主题
 const isNight = computed(() => store.isNight)
-//虚拟列表 数据源
-const virtualListdata = computed(() => {
-  const catalogValue = catalog.value
-  if (miniInterface.value) return catalogValue
-
-  // pc端 virtualListIitem有2个章节
-  const length = Math.ceil(catalogValue.length / 2)
-  const virtualListDataSource = new Array<{
-    index: number
-    catas: BookChapter[]
-  }>(length)
-
-  let i = 0
-  while (i < length) {
-    virtualListDataSource[i] = {
-      index: i,
-      catas: catalogValue.slice(2 * i, 2 * i + 2),
-    }
-    i++
-  }
-  return virtualListDataSource
-})
-
 //打开目录 计算当前章节对应的虚拟列表位置
 const virtualListRef = ref()
 const currentChapterIndex = computed({
   get: () => store.readingBook.chapterIndex,
   set: value => (store.readingBook.chapterIndex = value),
 })
-const virtualListIndex = computed(() => {
-  const index = currentChapterIndex.value
-  if (miniInterface.value) return index
-  // pc端 virtualListIitem有2个章节
-  return Math.floor(index / 2)
-})
 onUpdated(() => {
   // dom更新触发ResizeObserver，更新虚拟列表内部的sizes Map
   if (!popCataVisible.value) return
-  virtualListRef.value.scrollToIndex(virtualListIndex.value)
+  virtualListRef.value.scrollToIndex(currentChapterIndex.value)
 })
 
 // 点击加载对应章节内容
@@ -98,7 +69,6 @@ const gotoChapter = (chapter: BookChapter) => {
   }
   :deep(.data-wrapper) {
     .cata {
-      /*width: 50%;*/
       height: 40px;
       cursor: pointer;
       font:
