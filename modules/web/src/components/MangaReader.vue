@@ -4,6 +4,7 @@
       class="manga-stage"
       @touchstart.passive="onTouchStart"
       @touchend.passive="onTouchEnd"
+      @touchcancel.passive="onTouchCancel"
     >
       <img
         v-if="currentPage && !failed"
@@ -12,6 +13,7 @@
         :src="imageUrl"
         :alt="`${title} · 第 ${pageIndex + 1} 页`"
         @error="failed = true"
+        @click="onImageClick"
         draggable="false"
       />
       <div v-else-if="failed" class="manga-empty">
@@ -102,9 +104,18 @@ const retryImage = () => {
   failed.value = false
 }
 let touchStart: { x: number; y: number } | undefined
+let suppressClickUntil = 0
+const onImageClick = (event: MouseEvent) => {
+  if (Date.now() < suppressClickUntil) return
+  const image = event.currentTarget as HTMLImageElement
+  const bounds = image.getBoundingClientRect()
+  turnPage(event.clientX < bounds.left + bounds.width / 2 ? -1 : 1)
+}
 const onTouchStart = (event: TouchEvent) => {
+  suppressClickUntil = 0
   if (event.touches.length !== 1) {
     touchStart = undefined
+    suppressClickUntil = Date.now() + 500
     return
   }
   touchStart = { x: event.touches[0].clientX, y: event.touches[0].clientY }
@@ -112,11 +123,20 @@ const onTouchStart = (event: TouchEvent) => {
 const onTouchEnd = (event: TouchEvent) => {
   const start = touchStart
   touchStart = undefined
-  if (!start || event.changedTouches.length !== 1) return
+  if (!start || event.changedTouches.length !== 1) {
+    suppressClickUntil = Date.now() + 500
+    return
+  }
   const dx = event.changedTouches[0].clientX - start.x
   const dy = event.changedTouches[0].clientY - start.y
+  if (Math.abs(dx) > 10 || Math.abs(dy) > 10)
+    suppressClickUntil = Date.now() + 500
   if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.3)
     turnPage(dx < 0 ? 1 : -1)
+}
+const onTouchCancel = () => {
+  touchStart = undefined
+  suppressClickUntil = Date.now() + 500
 }
 defineExpose({ turnPage })
 </script>
@@ -130,6 +150,7 @@ defineExpose({ turnPage })
   touch-action: pan-y pinch-zoom;
 }
 .manga-image {
+  cursor: pointer;
   display: block;
   width: 100%;
   height: 100%;
