@@ -10,10 +10,13 @@
         v-if="currentPage && !failed"
         :key="imageUrl"
         class="manga-image"
+        :class="{ 'manga-image-previous': hoverDirection === -1 }"
         :src="imageUrl"
         :alt="`${title} · 第 ${pageIndex + 1} 页`"
         @error="failed = true"
         @click="onImageClick"
+        @mouseenter="onImageHover"
+        @mousemove="onImageHover"
         draggable="false"
       />
       <div v-else-if="failed" class="manga-empty">
@@ -105,6 +108,13 @@ const retryImage = () => {
 }
 let touchStart: { x: number; y: number } | undefined
 let suppressClickUntil = 0
+const hoverDirection = ref<-1 | 1>(1)
+const onImageHover = (event: MouseEvent) => {
+  const bounds = (
+    event.currentTarget as HTMLImageElement
+  ).getBoundingClientRect()
+  hoverDirection.value = event.clientX < bounds.left + bounds.width / 2 ? -1 : 1
+}
 const onImageClick = (event: MouseEvent) => {
   if (Date.now() < suppressClickUntil) return
   const image = event.currentTarget as HTMLImageElement
@@ -150,11 +160,20 @@ defineExpose({ turnPage })
   touch-action: pan-y pinch-zoom;
 }
 .manga-image {
-  cursor: pointer;
+  cursor:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Cpath d='M29 16 17 5v7H3v8h14v7Z' fill='%23222' stroke='white' stroke-width='2' stroke-linejoin='round'/%3E%3C/svg%3E")
+      16 16,
+    e-resize;
   display: block;
   width: 100%;
   height: 100%;
   object-fit: contain;
+}
+.manga-image-previous {
+  cursor:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Cpath d='M3 16 15 5v7h14v8H15v7Z' fill='%23222' stroke='white' stroke-width='2' stroke-linejoin='round'/%3E%3C/svg%3E")
+      16 16,
+    w-resize;
 }
 .manga-stage .el-button {
   position: absolute;
