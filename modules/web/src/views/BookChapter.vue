@@ -18,7 +18,7 @@
         <el-button @click="popCataVisible = true">目录</el-button
         ><el-button :disabled="noPoint" @click="readSettingsVisible = true"
           >阅读设置</el-button
-        ><el-button :aria-pressed="focusMode" @click="focusMode = !focusMode">{{
+        ><el-button :aria-pressed="focusMode" @click="toggleFocusMode">{{
           focusMode ? '退出专注' : '专注阅读'
         }}</el-button>
       </div>
@@ -237,6 +237,13 @@ const chapterTheme = computed(() => {
   }
 })
 const focusMode = ref(false)
+const toggleFocusMode = () => {
+  focusMode.value = !focusMode.value
+  if (focusMode.value) ElMessage.info('按esc退出专注模式')
+}
+const onFocusEscape = (event: KeyboardEvent) => {
+  if (event.key === 'Escape') focusMode.value = false
+}
 /**
  * pc移动端判断 最大阅读宽度修正
  * 阅读宽度最小为640px 加上工具栏 68px 52px 取较大值 为 776px
@@ -512,6 +519,7 @@ const ignoreKeyPress = (event: KeyboardEvent) => {
 }
 
 onMounted(async () => {
+  window.addEventListener('keydown', onFocusEscape)
   await store.loadWebConfig()
   //获取书籍数据
   const bookUrl = sessionStorage.getItem('bookUrl')
@@ -569,6 +577,7 @@ onMounted(async () => {
 })
 
 onUnmounted(() => {
+  window.removeEventListener('keydown', onFocusEscape)
   window.removeEventListener('keyup', handleKeyPress)
   window.removeEventListener('keydown', ignoreKeyPress)
   window.removeEventListener('resize', onResize)
@@ -703,8 +712,28 @@ onBeforeRouteLeave(async (to, from, next) => {
 .manga-mode .reader-navigation {
   margin: 12px auto;
 }
+.chapter-wrapper.manga-mode.focus-mode {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  height: 100dvh;
+  min-height: 0;
+  padding: 0;
+  overflow: hidden;
+}
+.manga-mode.focus-mode .reader-toolbar,
+.manga-mode.focus-mode :deep(.manga-caption) {
+  display: none;
+}
+.manga-mode.focus-mode .chapter {
+  width: 100% !important;
+  height: 100%;
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+}
 .manga-mode.focus-mode :deep(.manga-stage) {
-  height: max(240px, calc(100dvh - 140px));
+  height: 100dvh;
 }
 .reader-toolbar .inline-actions {
   gap: 8px;
