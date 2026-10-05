@@ -131,13 +131,30 @@
               </p>
             </details>
             <template
-              v-for="(part, partIndex) in messageParts(message.text)"
+              v-for="(part, partIndex) in chatMessageParts(message.text)"
               :key="partIndex"
             >
               <pre
                 v-if="part.code"
                 class="message-code"
               ><code>{{ part.text }}</code></pre>
+              <div v-else-if="part.imageUrl" class="message-image">
+                <img
+                  v-if="!failedImages.has(part.imageUrl)"
+                  :src="API.getProxyCoverUrl(part.imageUrl)"
+                  :alt="part.text || 'AI 回复图片'"
+                  loading="lazy"
+                  @error="failedImages.add(part.imageUrl)"
+                />
+                <a
+                  v-else
+                  :href="part.imageUrl"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  {{ part.text || '图片' }}（图片加载失败，查看原图）
+                </a>
+              </div>
               <div v-else class="message-text">{{ part.text }}</div>
             </template>
             <span v-if="message.streaming && !message.text" class="reply-status"
@@ -311,6 +328,7 @@ import {
   type ChatState,
 } from '@/api/aiChat'
 import { isCancel } from 'axios'
+import { chatMessageParts } from '@/utils/chatMessageParts'
 
 const state = ref<ChatState>({
   conversationId: null,
@@ -329,6 +347,7 @@ const draft = ref('')
 const loading = ref(true)
 const commandBusy = ref(false)
 const error = ref('')
+const failedImages = ref(new Set<string>())
 const history = ref<ChatHistory[]>([])
 const historyVisible = ref(false)
 const historyLoading = ref(false)
@@ -475,10 +494,6 @@ let timer: ReturnType<typeof setTimeout> | undefined
 let revision = 0
 let followReply = true
 
-const messageParts = (text: string) =>
-  text
-    .split(/```(?:[^\n]*\n)?([\s\S]*?)(?:```|$)/g)
-    .map((text, index) => ({ code: index % 2 === 1, text }))
 const onScroll = () => {
   const el = conversation.value
   if (el) followReply = el.scrollHeight - el.scrollTop - el.clientHeight < 100
@@ -807,6 +822,20 @@ onBeforeUnmount(() => {
   flex: 1;
   font-size: 15px;
   line-height: 1.8;
+  overflow-wrap: anywhere;
+}
+.message-image {
+  margin: 12px 0;
+}
+.message-image img {
+  display: block;
+  max-width: min(100%, 480px);
+  max-height: 480px;
+  object-fit: contain;
+  border-radius: 12px;
+}
+.message-image a {
+  color: var(--web-primary);
   overflow-wrap: anywhere;
 }
 .message-text {
