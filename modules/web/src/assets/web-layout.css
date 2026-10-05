@@ -263,6 +263,29 @@ select {
   font-size: 10px;
   letter-spacing: 1px;
 }
+.web-main.chat-main {
+  padding: 0;
+  margin: 0;
+  width: 100%;
+  max-width: none;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+.chat-shell {
+  height: 100dvh;
+  min-height: 0;
+  overflow: hidden;
+}
+.chat-shell .web-workspace {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100dvh;
+}
+.chat-shell .web-topbar {
+  flex-shrink: 0;
+}
 .web-footer > span:last-child {
   margin-left: auto;
 }
@@ -370,6 +393,17 @@ select {
   }
 }
 @media (max-width: 600px) {
+  .web-shell.chat-shell {
+    display: flex;
+    flex-direction: column;
+  }
+  .chat-shell .web-sidebar {
+    flex-shrink: 0;
+  }
+  .chat-shell .web-workspace {
+    flex: 1;
+    height: auto;
+  }
   .sidebar-toggle.el-button {
     top: 20px;
     right: 16px;

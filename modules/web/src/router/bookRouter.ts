@@ -2,6 +2,11 @@ import { createWebHashHistory, createRouter } from 'vue-router'
 
 export const bookRoutes = [
   {
+    path: '/chat',
+    name: 'chat',
+    component: () => import('../views/AiChat.vue'),
+  },
+  {
     path: '/upload',
     name: 'upload',
     component: () => import('../views/BookUpload.vue'),

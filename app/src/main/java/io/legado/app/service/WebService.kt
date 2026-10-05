@@ -134,6 +134,7 @@ class WebService : BaseService() {
         }
         networkChangedListener.unRegister()
         isRun = false
+        httpServer?.closeChat()
         if (httpServer?.isAlive == true) {
             httpServer?.stop()
         }
@@ -145,6 +146,7 @@ class WebService : BaseService() {
     }
 
     private fun upWebServer() {
+        httpServer?.closeChat()
         if (httpServer?.isAlive == true) {
             httpServer?.stop()
         }

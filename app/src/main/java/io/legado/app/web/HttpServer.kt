@@ -4,6 +4,7 @@ import android.graphics.Bitmap
 import fi.iki.elonen.NanoHTTPD
 import io.legado.app.api.ReturnData
 import io.legado.app.api.controller.BookController
+import io.legado.app.api.controller.AiChatController
 import io.legado.app.api.controller.BookSourceController
 import io.legado.app.api.controller.ReplaceRuleController
 import io.legado.app.api.controller.RssSourceController
@@ -23,6 +24,9 @@ import java.io.File
 
 class HttpServer(port: Int) : NanoHTTPD("::", port) {
     private val assetsWeb = AssetsWeb("web")
+    private val aiChat = AiChatController()
+
+    fun closeChat() = aiChat.close()
 
     override fun serve(session: IHTTPSession): Response {
         WebService.serve()
@@ -54,6 +58,7 @@ class HttpServer(port: Int) : NanoHTTPD("::", port) {
 
                     returnData = runBlocking {
                         when (uri) {
+                            "/aiChat" -> aiChat.action(postData)
                             "/saveBookSource" -> BookSourceController.saveSource(postData)
                             "/saveBookSources" -> BookSourceController.saveSources(postData)
                             "/deleteBookSources" -> BookSourceController.deleteSources(postData)
@@ -77,6 +82,9 @@ class HttpServer(port: Int) : NanoHTTPD("::", port) {
                     val parameters = session.parameters
 
                     returnData = when (uri) {
+                        "/getAiChatConfig" -> runBlocking { aiChat.config() }
+                        "/getAiChat" -> runBlocking { aiChat.state() }
+                        "/getAiChatHistory" -> runBlocking { aiChat.history() }
                         "/getBookSource" -> BookSourceController.getSource(parameters)
                         "/getBookSources" -> BookSourceController.sources
                         "/getBookSourceGroups" -> BookSourceController.enabledGroups
@@ -137,6 +145,9 @@ class HttpServer(port: Int) : NanoHTTPD("::", port) {
                 }
             }
             response.addHeader("Access-Control-Allow-Methods", "GET, POST")
+            if (uri == "/aiChat" || uri.startsWith("/getAiChat")) {
+                response.addHeader("Cache-Control", "no-store")
+            }
             response.addHeader("Access-Control-Allow-Origin", session.headers["origin"])
             LogUtils.d(TAG) {
                 "${session.method.name} - $uri - ${session.queryParameterString} - End($startAt)"

@@ -1,7 +1,11 @@
 <template>
   <div
     class="web-shell"
-    :class="{ 'reading-shell': reading, 'sidebar-collapsed': sidebarCollapsed }"
+    :class="{
+      'reading-shell': reading,
+      'sidebar-collapsed': sidebarCollapsed,
+      'chat-shell': route.name === 'chat',
+    }"
   >
     <a class="skip-link" href="#web-main">跳到主要内容</a>
     <aside v-if="!reading" class="web-sidebar">
@@ -64,6 +68,14 @@
           ><span class="nav-label">书源管理</span></router-link
         >
         <router-link
+          to="/chat"
+          :class="{ active: route.name === 'chat' }"
+          aria-label="AI 对话"
+          title="AI 对话"
+          ><el-icon><ChatDotRound /></el-icon
+          ><span class="nav-label">AI 对话</span></router-link
+        >
+        <router-link
           to="/rssSource"
           :class="{ active: route.name === 'rss-home' }"
           aria-label="订阅源管理"
@@ -115,10 +127,14 @@
           />
         </div>
       </header>
-      <main id="web-main" class="web-main" :class="{ 'reader-main': reading }">
+      <main
+        id="web-main"
+        class="web-main"
+        :class="{ 'reader-main': reading, 'chat-main': route.name === 'chat' }"
+      >
         <slot />
       </main>
-      <footer v-if="!reading" class="web-footer">
+      <footer v-if="!reading && route.name !== 'chat'" class="web-footer">
         <span>LEGADO · 阅读</span><span>让阅读回到内容本身</span>
       </footer>
     </div>
@@ -126,6 +142,7 @@
 </template>
 <script setup lang="ts">
 import {
+  ChatDotRound,
   Collection,
   Search,
   Connection,
@@ -154,6 +171,7 @@ const title = computed(
       'rss-home': '订阅源管理',
       settings: '连接与设置',
       upload: '传书',
+      chat: 'AI 对话',
     })[route.name as string] || '阅读',
 )
 const toggleTheme = async () => {

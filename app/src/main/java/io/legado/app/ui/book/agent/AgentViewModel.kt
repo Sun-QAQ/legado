@@ -42,6 +42,7 @@ import io.legado.app.utils.toastOnUi
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.isActive
@@ -70,7 +71,11 @@ import kotlin.math.max
 /**
  * Agent 对话
  */
-class AgentViewModel(application: Application) : BaseViewModel(application), AgentToolContext {
+class AgentViewModel @JvmOverloads constructor(
+    application: Application,
+    private val conversationPreferenceKey: String = PreferKey.aiConversationId,
+    private val restoreLatestConversation: Boolean = true
+) : BaseViewModel(application), AgentToolContext {
 
     private val _messages = MutableStateFlow<List<AgentMessage>>(emptyList())
     val messages: StateFlow<List<AgentMessage>> = _messages
@@ -202,18 +207,19 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
         }
     }
 
-    fun startConversationHistory() {
-        if (conversationHistoryStarted) return
+    fun startConversationHistory(): Job? {
+        if (conversationHistoryStarted) return null
         conversationHistoryStarted = true
         conversationHistoryEnabled = true
-        viewModelScope.launch {
-            val rememberedId = context.getPrefString(PreferKey.aiConversationId)
+        return viewModelScope.launch {
+            val rememberedId = context.getPrefString(conversationPreferenceKey)
             val conversation = withContext(Dispatchers.IO) {
                 if (rememberedId.isNullOrEmpty()) {
                     // 空串表示上次退出时处于新对话状态，保持空白；null 为旧版本无记录，兼容恢复最近会话
-                    if (rememberedId == null) appDb.aiConversationDao.latest() else null
+                    if (rememberedId == null && restoreLatestConversation) appDb.aiConversationDao.latest() else null
                 } else {
-                    appDb.aiConversationDao.get(rememberedId) ?: appDb.aiConversationDao.latest()
+                    appDb.aiConversationDao.get(rememberedId)
+                        ?: if (restoreLatestConversation) appDb.aiConversationDao.latest() else null
                 }
             }
             if (_messages.value.isEmpty()) {
@@ -230,20 +236,20 @@ class AgentViewModel(application: Application) : BaseViewModel(application), Age
      * 记录当前对话，保证重启后能回到同一会话；空值表示停留在新对话状态
      */
     private fun rememberConversationId(id: String?) {
-        context.putPrefString(PreferKey.aiConversationId, id ?: "")
+        context.putPrefString(conversationPreferenceKey, id ?: "")
     }
 
-    fun newConversation() {
-        viewModelScope.launch {
+    fun newConversation(): Job {
+        return viewModelScope.launch {
             stopActiveRequest()
             persistConversationNow()
             resetConversationState()
         }
     }
 
-    fun openConversation(id: String) {
-        if (id == _currentConversationId.value) return
-        viewModelScope.launch {
+    fun openConversation(id: String): Job? {
+        if (id == _currentConversationId.value) return null
+        return viewModelScope.launch {
             stopActiveRequest()
             persistConversationNow()
             val conversation = withContext(Dispatchers.IO) {
