@@ -190,11 +190,15 @@ const debug = (
  */
 const getProxyCoverUrl = (coverUrl: string) => {
   const proxyEndpoint = new URL('cover', legado_http_entry_point).toString()
-  if (coverUrl.startsWith(proxyEndpoint + '?')) return coverUrl
-  return new URL(
-    'cover?path=' + encodeURIComponent(coverUrl),
-    legado_http_entry_point,
-  ).toString()
+  const url = coverUrl.startsWith(proxyEndpoint + '?')
+    ? new URL(coverUrl)
+    : new URL(
+        'cover?path=' + encodeURIComponent(coverUrl),
+        legado_http_entry_point,
+      )
+  // 固定版本绕过旧首帧缓存，后续仍使用浏览器缓存。
+  url.searchParams.set('v', 'original2')
+  return url.toString()
 }
 /**
  * 正文图片统一通过阅读 App 获取，沿用书源请求头、缓存及解密逻辑。

@@ -71,9 +71,10 @@ object BookController {
     fun getWebCover(parameters: Map<String, List<String>>): ReturnData {
         val target = ImageLoader.loadFile(appCtx, parameters["path"]?.firstOrNull()).submit()
         return try {
-            ReturnData().setData(target.get(3, TimeUnit.SECONDS))
+            ReturnData().setData(target.get(30, TimeUnit.SECONDS))
         } catch (e: Exception) {
-            getCover(parameters)
+            // 原图失败时不能回退 Bitmap：它只保留动图首帧。
+            ReturnData().setErrorMsg(e.localizedMessage ?: "图片原文件加载失败")
         } finally {
             Glide.with(appCtx).clear(target)
         }

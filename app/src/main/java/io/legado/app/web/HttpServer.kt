@@ -145,6 +145,9 @@ class HttpServer(port: Int) : NanoHTTPD("::", port) {
                 }
             }
             response.addHeader("Access-Control-Allow-Methods", "GET, POST")
+            if (uri == "/cover" && coverFile == null) {
+                response.addHeader("Cache-Control", "no-store")
+            }
             if (uri == "/aiChat" || uri.startsWith("/getAiChat")) {
                 response.addHeader("Cache-Control", "no-store")
             }
