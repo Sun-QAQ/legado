@@ -9,7 +9,8 @@ data class AgentChatTurn(
     val content: String,
     val toolCallId: String? = null,
     val toolCalls: JsonElement? = null,
-    val reasoningContent: String? = null
+    val reasoningContent: String? = null,
+    val attachments: List<AgentAttachment>? = null
 )
 
 internal object AgentConversationCodec {
@@ -21,7 +22,7 @@ internal object AgentConversationCodec {
 
     fun decodeMessages(json: String): List<AgentMessage> = runCatching {
         GSON.fromJson<List<AgentMessage>>(json, messageListType).orEmpty().map {
-            it.copy(generatedImages = it.generatedImages.orEmpty())
+            it.copy(generatedImages = it.generatedImages.orEmpty(), attachments = it.attachments.orEmpty())
         }
     }.getOrDefault(emptyList())
 

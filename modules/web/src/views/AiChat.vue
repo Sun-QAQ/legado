@@ -89,6 +89,28 @@
             ><el-icon><ChatDotRound /></el-icon
           ></span>
           <div class="message-body">
+            <div
+              v-if="message.attachments?.length"
+              class="attachment-list sent-attachments"
+            >
+              <div
+                v-for="(file, fileIndex) in message.attachments"
+                :key="fileIndex"
+                class="attachment-card"
+              >
+                <img
+                  v-if="file.imagePath"
+                  :src="API.getProxyCoverUrl(file.imagePath)"
+                  :alt="file.name"
+                  loading="lazy"
+                />
+                <el-icon v-else><Document /></el-icon>
+                <span :title="file.name"
+                  >{{ file.name
+                  }}<small>{{ formatSize(file.size) }}</small></span
+                >
+              </div>
+            </div>
             <details
               v-if="message.steps.length"
               class="tool-steps"
@@ -157,7 +179,43 @@
         class="chat-composer"
         :class="{ 'composer-bottom': state.messages.length }"
         @submit.prevent="send"
+        @dragover.prevent
+        @drop.prevent="onDrop"
       >
+        <input
+          ref="fileInput"
+          class="attachment-input"
+          type="file"
+          multiple
+          :accept="attachmentAccept"
+          aria-label="选择图片或文本文件"
+          @change="onFilesSelected"
+        />
+        <div
+          v-if="attachments.length"
+          class="attachment-list"
+          aria-label="待发送附件"
+        >
+          <div
+            v-for="file in attachments"
+            :key="file.id"
+            class="attachment-card"
+          >
+            <img v-if="file.image" :src="file.dataUrl" :alt="file.name" />
+            <el-icon v-else><Document /></el-icon>
+            <span :title="file.name"
+              >{{ file.name }}<small>{{ formatSize(file.size) }}</small></span
+            >
+            <el-button
+              :icon="Close"
+              circle
+              size="small"
+              :aria-label="`移除附件 ${file.name}`"
+              :disabled="commandBusy || attachmentBusy"
+              @click="removeAttachment(file.id)"
+            />
+          </div>
+        </div>
         <textarea
           v-model="draft"
           ref="input"
@@ -165,12 +223,25 @@
           placeholder="想问什么都可以"
           rows="3"
           maxlength="32000"
-          :disabled="loading || commandBusy"
+          :disabled="loading || commandBusy || attachmentBusy"
           @keydown="onInputKeydown"
+          @paste="onPaste"
         />
         <div class="composer-actions">
+          <el-button
+            :icon="Paperclip"
+            circle
+            aria-label="添加图片或文件"
+            title="添加图片或文本文件（最多4个，图片5MB，文本256KB）"
+            :disabled="locked || attachmentBusy || attachments.length >= 4"
+            @click="fileInput?.click()"
+          />
           <span>{{
-            state.waiting ? '正在生成回复' : 'Enter 发送 · Shift + Enter 换行'
+            attachmentBusy
+              ? '正在读取附件…'
+              : state.waiting
+                ? '正在生成回复'
+                : 'Enter 发送 · Shift + Enter 换行'
           }}</span>
           <el-button
             v-if="state.waiting"
@@ -192,8 +263,9 @@
             :disabled="
               loading ||
               commandBusy ||
+              attachmentBusy ||
               !selectedModel ||
-              !draft.trim() ||
+              (!draft.trim() && !attachments.length) ||
               !!error
             "
           />
@@ -222,7 +294,15 @@
   </section>
 </template>
 <script setup lang="ts">
-import { ChatDotRound, Clock, Close, Plus, Top } from '@element-plus/icons-vue'
+import {
+  ChatDotRound,
+  Clock,
+  Close,
+  Plus,
+  Top,
+  Paperclip,
+  Document,
+} from '@element-plus/icons-vue'
 import API from '@api'
 import {
   chatAction,
@@ -257,8 +337,119 @@ const historyVisible = ref(false)
 const historyLoading = ref(false)
 const conversation = ref<HTMLDivElement>()
 const input = ref<HTMLTextAreaElement>()
+const fileInput = ref<HTMLInputElement>()
+interface DraftAttachment {
+  id: number
+  name: string
+  size: number
+  image: boolean
+  dataUrl: string
+}
+const attachments = ref<DraftAttachment[]>([])
+const attachmentBusy = ref(false)
+let attachmentId = 0
+const textExtensions = [
+  'txt',
+  'md',
+  'csv',
+  'json',
+  'log',
+  'xml',
+  'html',
+  'htm',
+  'yaml',
+  'yml',
+  'js',
+  'ts',
+  'py',
+  'kt',
+  'java',
+  'css',
+  'sql',
+]
+const imageExtensions = ['png', 'jpg', 'jpeg', 'gif', 'webp']
+const attachmentAccept = [...imageExtensions, ...textExtensions]
+  .map(ext => '.' + ext)
+  .join(',')
+const formatSize = (size: number) =>
+  size >= 1024 * 1024
+    ? `${(size / (1024 * 1024)).toFixed(1)} MB`
+    : `${Math.max(1, Math.ceil(size / 1024))} KB`
+const readFile = (file: File): Promise<string> =>
+  new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(String(reader.result))
+    reader.onerror = () => reject(new Error(`无法读取 ${file.name}`))
+    reader.readAsDataURL(file)
+  })
+const addFiles = async (files: File[]) => {
+  if (locked.value || attachmentBusy.value) return
+  attachmentBusy.value = true
+  try {
+    for (const file of files) {
+      const ext = file.name.split('.').pop()?.toLowerCase() || ''
+      const image = imageExtensions.includes(ext)
+      if (!image && !textExtensions.includes(ext)) {
+        ElMessage.warning(
+          '支持 PNG、JPEG、GIF、WebP 图片及 TXT、Markdown、CSV、JSON 等文本文件',
+        )
+        continue
+      }
+      if (!file.size || file.size > (image ? 5 * 1024 * 1024 : 256 * 1024)) {
+        ElMessage.warning(
+          `${file.name}：${image ? '图片不能超过 5 MB' : '文本文件不能超过 256 KB'}，且文件不能为空`,
+        )
+        continue
+      }
+      if (
+        attachments.value.length >= 4 ||
+        attachments.value.reduce((sum, item) => sum + item.size, 0) +
+          file.size >
+          10 * 1024 * 1024
+      ) {
+        ElMessage.warning('最多 4 个附件，总大小不能超过 10 MB')
+        break
+      }
+      const dataUrl = await readFile(file)
+      if (lifetime.signal.aborted) return
+      attachments.value.push({
+        id: ++attachmentId,
+        name: file.name,
+        size: file.size,
+        image,
+        dataUrl,
+      })
+    }
+  } catch (e) {
+    ElMessage.error(e instanceof Error ? e.message : '附件读取失败')
+  } finally {
+    attachmentBusy.value = false
+  }
+}
+const onFilesSelected = (event: Event) => {
+  const el = event.target as HTMLInputElement
+  const files = Array.from(el.files || [])
+  el.value = ''
+  addFiles(files)
+}
+const onDrop = (event: DragEvent) =>
+  addFiles(Array.from(event.dataTransfer?.files || []))
+const onPaste = (event: ClipboardEvent) => {
+  const files = Array.from(event.clipboardData?.files || [])
+  if (files.length) {
+    event.preventDefault()
+    addFiles(files)
+  }
+}
+const removeAttachment = (id: number) => {
+  attachments.value = attachments.value.filter(file => file.id !== id)
+}
 const locked = computed(
-  () => loading.value || commandBusy.value || state.value.waiting,
+  () =>
+    loading.value ||
+    commandBusy.value ||
+    attachmentBusy.value ||
+    state.value.waiting,
 )
 const selectedModel = computed(
   () =>
@@ -327,7 +518,10 @@ const initialize = async () => {
     loading.value = false
   }
 }
-const runAction = async (action: string, data: Record<string, string> = {}) => {
+const runAction = async (
+  action: string,
+  data: Record<string, unknown> = {},
+) => {
   if (commandBusy.value) return false
   stopPolling()
   commandBusy.value = true
@@ -347,15 +541,24 @@ const runAction = async (action: string, data: Record<string, string> = {}) => {
 const send = async () => {
   if (
     locked.value ||
+    attachmentBusy.value ||
     !selectedModel.value ||
     error.value ||
-    !draft.value.trim()
+    (!draft.value.trim() && !attachments.value.length)
   )
     return
   const text = draft.value.trim()
+  const files = attachments.value.slice()
   draft.value = ''
   followReply = true
-  if (!(await runAction('send', { text }))) draft.value = text
+  if (
+    await runAction('send', {
+      text,
+      attachments: files.map(({ name, dataUrl }) => ({ name, dataUrl })),
+    })
+  )
+    attachments.value = []
+  else draft.value = text
   await nextTick()
   input.value?.focus()
 }
@@ -370,6 +573,7 @@ const selectPersona = (id: string) => runAction('persona', { id })
 const newChat = async () => {
   if (await runAction('new')) {
     draft.value = ''
+    attachments.value = []
     followReply = true
     input.value?.focus()
   }
@@ -388,7 +592,11 @@ const openHistory = async () => {
 }
 const selectHistory = async (id: string) => {
   followReply = true
-  if (await runAction('open', { id })) historyVisible.value = false
+  if (await runAction('open', { id })) {
+    historyVisible.value = false
+    draft.value = ''
+    attachments.value = []
+  }
 }
 onMounted(initialize)
 onBeforeUnmount(() => {
@@ -487,8 +695,62 @@ onBeforeUnmount(() => {
   gap: 12px;
 }
 .composer-actions > span {
+  flex: 1;
   font-size: 11px;
   color: var(--web-muted);
+}
+.attachment-input {
+  display: none;
+}
+.attachment-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  max-height: 180px;
+  overflow-y: auto;
+  margin-bottom: 12px;
+}
+.attachment-card {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  min-width: 0;
+  max-width: 100%;
+  border: 1px solid var(--web-line);
+  background: var(--web-surface);
+  border-radius: 12px;
+  box-sizing: border-box;
+}
+.attachment-card img {
+  width: 48px;
+  height: 48px;
+  object-fit: cover;
+  border-radius: 8px;
+}
+.attachment-card > .el-icon {
+  font-size: 24px;
+  color: var(--web-primary);
+}
+.attachment-card > span {
+  min-width: 0;
+  max-width: 160px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 12px;
+}
+.attachment-card small {
+  display: block;
+  color: var(--web-muted);
+  font-size: 10px;
+}
+.attachment-card .el-button {
+  flex-shrink: 0;
+  margin: 0;
+}
+.sent-attachments {
+  max-height: none;
 }
 .composer-bottom {
   position: sticky;

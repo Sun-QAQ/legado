@@ -2,6 +2,12 @@ import ajax from './axios'
 import type { LeagdoApiResponse } from './api'
 
 export interface ChatMessage {
+  attachments?: {
+    name: string
+    mimeType: string
+    size: number
+    imagePath?: string
+  }[]
   isUser: boolean
   text: string
   streaming: boolean
@@ -55,7 +61,7 @@ export const getChatHistory = async (signal: AbortSignal) =>
   )
 export const chatAction = async (
   action: string,
-  data: Record<string, string>,
+  data: Record<string, unknown>,
   signal: AbortSignal,
 ) =>
   unwrap(

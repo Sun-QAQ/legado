@@ -16,6 +16,10 @@ internal object AiChatPayload {
         "canLoadMore" to message.canLoadMore,
         "steps" to message.steps.map { mapOf("id" to it.id, "title" to it.title, "state" to it.state.name, "summary" to it.summary) },
         "books" to message.books.map { mapOf("name" to it.name, "author" to it.author, "originName" to it.originName) },
-        "images" to message.generatedImages
+        "images" to message.generatedImages,
+        "attachments" to message.attachments.orEmpty().map {
+            mapOf("name" to it.name, "mimeType" to it.mimeType, "size" to it.size,
+                "imagePath" to if (it.mimeType.startsWith("image/")) it.path else null)
+        }
     )
 }

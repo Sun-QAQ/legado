@@ -6,6 +6,8 @@ import com.google.gson.JsonParser
 import io.legado.app.api.ReturnData
 import io.legado.app.data.appDb
 import io.legado.app.ui.book.agent.AgentViewModel
+import io.legado.app.ui.book.agent.AgentAttachments
+import io.legado.app.ui.book.agent.AgentAttachmentUpload
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.sync.Mutex
@@ -74,17 +76,22 @@ class AiChatController {
     }
 
     suspend fun action(body: String?): ReturnData = withAgent { agent ->
+        require((body?.length ?: 0) <= 15 * 1024 * 1024) { "附件请求过大" }
         val json = JsonParser.parseString(body ?: "{}").asJsonObject
         fun text(key: String) = json.get(key)?.takeUnless { it.isJsonNull }?.asString.orEmpty()
         when (text("action")) {
             "send" -> {
                 check(!agent.waiting.value) { "请等待当前回复完成或停止生成" }
-                val message = text("text").trim()
-                require(message.isNotEmpty() && message.length <= 32000) { "请输入不超过 32000 字的消息" }
+                val uploads = json.getAsJsonArray("attachments")?.map { item ->
+                    AgentAttachmentUpload(item.asJsonObject.get("name").asString, item.asJsonObject.get("dataUrl").asString)
+                }.orEmpty()
+                val prepared = withContext(Dispatchers.IO) { AgentAttachments.prepare(uploads) }
+                val message = text("text").trim().ifEmpty { if (prepared.isNotEmpty()) "请分析这些附件。" else "" }
+                require(message.isNotEmpty() && message.length <= 32000) { "请输入消息或添加附件，文字不超过 32000 字" }
                 refreshSelection(agent)
                 val source = withContext(Dispatchers.IO) { appDb.aiSourceDao.get(agent.currentSupplierId.value) }
                 check(source != null && source.enabled && source.model.isNotBlank()) { "请先在 App 中配置并启用 AI 供应商和默认模型" }
-                agent.send(message)
+                if (prepared.isEmpty()) agent.send(message) else agent.sendAttachments(message, prepared)
             }
             "cancel" -> agent.cancel()
             "new" -> agent.newConversation().join()

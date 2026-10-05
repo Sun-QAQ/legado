@@ -437,11 +437,33 @@ class AgentViewModel @JvmOverloads constructor(
         )
     }
 
-    fun send(text: String) {
+    internal suspend fun sendAttachments(text: String, prepared: List<PreparedAgentAttachment>) {
+        check(!_waiting.value) { "请等待当前回复完成" }
+        val id = _currentConversationId.value ?: UUID.randomUUID().toString()
+        val files = arrayListOf<AgentAttachment>()
+        try {
+            withContext(Dispatchers.IO) {
+                prepared.forEach {
+                    files.add(AgentAttachment(it.name, it.mimeType, AgentImageStorage.save(context, id, it.bytes), it.bytes.size))
+                }
+            }
+        } catch (e: Exception) {
+            withContext(Dispatchers.IO) { files.forEach { java.io.File(it.path).delete() } }
+            throw e
+        }
+        if (_currentConversationId.value == null) {
+            _currentConversationId.value = id
+            conversationCreatedAt = System.currentTimeMillis()
+            rememberConversationId(id)
+        }
+        send(text, files)
+    }
+
+    fun send(text: String, attachments: List<AgentAttachment> = emptyList()) {
         val key = text.trim()
         if (key.isEmpty() || _waiting.value) return
         cancelRequested = false
-        addUserMessage(key)
+        addUserMessage(key, attachments)
         requestTracker.track(viewModelScope.launch {
             val supplier = if (selectedSupplierId > 0) {
                 appDb.aiSourceDao.get(selectedSupplierId)
@@ -554,10 +576,10 @@ class AgentViewModel @JvmOverloads constructor(
         })
     }
 
-    private fun addUserMessage(text: String) {
-        history.add(AgentChatTurn(ROLE_USER, text))
+    private fun addUserMessage(text: String, attachments: List<AgentAttachment> = emptyList()) {
+        history.add(AgentChatTurn(ROLE_USER, text, attachments = attachments))
         _messages.value = _messages.value.map { it.copy(canLoadMore = false) } +
-            AgentMessage(true, text)
+            AgentMessage(true, text, attachments = attachments)
         scheduleConversationSave()
     }
 
@@ -871,7 +893,7 @@ class AgentViewModel @JvmOverloads constructor(
                     },
                     "model=${supplier.model}"
                 )
-                val request = buildChatRequest(supplier)
+                val request = withContext(Dispatchers.IO) { buildChatRequest(supplier) }
                 val message = withContext(Dispatchers.IO) {
                     chatCompletionStream(supplier, request) { delta ->
                         appendLiveText(delta)
@@ -2168,7 +2190,7 @@ class AgentViewModel @JvmOverloads constructor(
             messages.add(
                 JsonObject().apply {
                     addProperty("role", turn.role)
-                    addProperty("content", turn.content)
+                    add("content", AgentAttachments.content(turn))
                     if (supplier.getModelThinking().resolveFormat(supplier.baseUrl, supplier.model) == "thinking") {
                         turn.reasoningContent?.let { addProperty("reasoning_content", it) }
                     }
