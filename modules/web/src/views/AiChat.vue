@@ -2,21 +2,18 @@
   <section class="ai-chat" aria-label="AI 对话" :aria-busy="loading">
     <header class="chat-toolbar">
       <el-select
-        :model-value="state.supplierId === '0' ? undefined : state.supplierId"
+        :model-value="selectedModelKey"
+        filterable
         aria-label="AI 供应商与模型"
         :disabled="locked"
         placeholder="默认模型"
         @change="selectSupplier"
       >
         <el-option
-          v-for="source in config.suppliers"
-          :key="source.id"
-          :value="source.id"
-          :label="
-            source.model
-              ? `${source.name} · ${source.model}`
-              : `${source.name} · 未配置模型`
-          "
+          v-for="option in modelOptions"
+          :key="option.value"
+          :value="option.value"
+          :label="option.label"
         />
       </el-select>
       <div class="chat-actions">
@@ -453,8 +450,24 @@ const locked = computed(
 )
 const selectedModel = computed(
   () =>
+    state.value.model ||
     config.value.suppliers.find(item => item.id === state.value.supplierId)
       ?.model,
+)
+const selectedModelKey = computed(() =>
+  state.value.supplierId === '0' || !selectedModel.value
+    ? undefined
+    : JSON.stringify([state.value.supplierId, selectedModel.value]),
+)
+const modelOptions = computed(() =>
+  config.value.suppliers.flatMap(source =>
+    [...new Set([source.model, ...(source.models || [])])]
+      .filter(Boolean)
+      .map(model => ({
+        value: JSON.stringify([source.id, model]),
+        label: `${source.name} · ${model}`,
+      })),
+  ),
 )
 const lifetime = new AbortController()
 let polling: AbortController | undefined
@@ -509,6 +522,11 @@ const initialize = async () => {
   error.value = ''
   try {
     config.value = await getChatConfig(lifetime.signal)
+    const failed = config.value.suppliers.filter(source => source.modelError)
+    if (failed.length)
+      ElMessage.warning(
+        failed.map(source => `${source.name}：${source.modelError}`).join('；'),
+      )
     await applyState(await getChatState(lifetime.signal))
     schedulePoll()
   } catch (e) {
@@ -568,7 +586,10 @@ const onInputKeydown = (event: KeyboardEvent) => {
     send()
   }
 }
-const selectSupplier = (id: string) => runAction('supplier', { id })
+const selectSupplier = (value: string) => {
+  const [id, model] = JSON.parse(value) as [string, string]
+  return runAction('supplier', { id, model })
+}
 const selectPersona = (id: string) => runAction('persona', { id })
 const newChat = async () => {
   if (await runAction('new')) {

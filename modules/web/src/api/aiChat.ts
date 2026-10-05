@@ -20,11 +20,18 @@ export interface ChatState {
   conversationId: string | null
   waiting: boolean
   supplierId: string
+  model?: string
   personaId: string
   messages: ChatMessage[]
 }
 export interface ChatConfig {
-  suppliers: { id: string; name: string; model: string }[]
+  suppliers: {
+    id: string
+    name: string
+    model: string
+    models?: string[]
+    modelError?: string
+  }[]
   personas: { id: string; name: string }[]
   supplierId: string
   personaId: string

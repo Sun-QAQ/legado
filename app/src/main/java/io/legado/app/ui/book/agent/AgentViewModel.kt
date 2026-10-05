@@ -437,7 +437,7 @@ class AgentViewModel @JvmOverloads constructor(
         )
     }
 
-    internal suspend fun sendAttachments(text: String, prepared: List<PreparedAgentAttachment>) {
+    internal suspend fun sendAttachments(text: String, prepared: List<PreparedAgentAttachment>, modelOverride: String? = null) {
         check(!_waiting.value) { "请等待当前回复完成" }
         val id = _currentConversationId.value ?: UUID.randomUUID().toString()
         val files = arrayListOf<AgentAttachment>()
@@ -456,10 +456,10 @@ class AgentViewModel @JvmOverloads constructor(
             conversationCreatedAt = System.currentTimeMillis()
             rememberConversationId(id)
         }
-        send(text, files)
+        send(text, files, modelOverride)
     }
 
-    fun send(text: String, attachments: List<AgentAttachment> = emptyList()) {
+    fun send(text: String, attachments: List<AgentAttachment> = emptyList(), modelOverride: String? = null) {
         val key = text.trim()
         if (key.isEmpty() || _waiting.value) return
         cancelRequested = false
@@ -470,10 +470,10 @@ class AgentViewModel @JvmOverloads constructor(
             } else {
                 appDb.aiSourceDao.allEnabled.firstOrNull()
             }
-            if (supplier == null || supplier.model.isBlank()) {
+            if (supplier == null || (modelOverride ?: supplier.model).isBlank()) {
                 addAgentMessage(getString(R.string.ai_not_configured))
             } else {
-                agentLoop(supplier, key)
+                agentLoop(if (modelOverride.isNullOrBlank()) supplier else supplier.copy(model = modelOverride), key)
             }
         })
     }

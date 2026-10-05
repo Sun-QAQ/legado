@@ -14,11 +14,22 @@ class AiChatPayloadTest {
             apiKey = "private-api-key", baseUrl = "https://private-endpoint.invalid",
             headers = "{\"Authorization\":\"private-token\"}")
         val payload = AiChatPayload.supplier(source)
-        assertEquals(setOf("id", "name", "model"), payload.keys)
+        assertEquals(setOf("id", "name", "model", "models", "modelError"), payload.keys)
         assertEquals("42", payload["id"])
         val json = GSON.toJson(payload)
         assertFalse(json.contains("private-"))
         assertFalse(json.contains("Authorization"))
+    }
+
+    @Test
+    fun modelOptionsIncludeConfiguredModelAndDeduplicateFetchedModels() {
+        val source = AiSource(id = 42, name = "测试供应商", model = "configured")
+        val payload = AiChatPayload.supplier(source, listOf("vision", "text", "vision", "", "configured"))
+        assertEquals(listOf("configured", "vision", "text"), payload["models"])
+        assertNull(payload["modelError"])
+        val fallback = AiChatPayload.supplier(source, emptyList(), "获取失败")
+        assertEquals(listOf("configured"), fallback["models"])
+        assertEquals("获取失败", fallback["modelError"])
     }
 
     @Test

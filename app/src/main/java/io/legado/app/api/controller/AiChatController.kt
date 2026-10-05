@@ -8,6 +8,12 @@ import io.legado.app.data.appDb
 import io.legado.app.ui.book.agent.AgentViewModel
 import io.legado.app.ui.book.agent.AgentAttachments
 import io.legado.app.ui.book.agent.AgentAttachmentUpload
+import io.legado.app.ui.book.agent.AiSourceHelper
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.sync.Mutex
@@ -21,6 +27,8 @@ class AiChatController {
     private val mutex = Mutex()
     private var model: AgentViewModel? = null
     private var closed = false
+    private val availableModels = mutableMapOf<Long, List<String>>()
+    private val selectedModels = mutableMapOf<Long, String>()
 
     private suspend fun <T : Any> withAgent(block: suspend (AgentViewModel) -> T): ReturnData =
         try {
@@ -57,8 +65,28 @@ class AiChatController {
         val (sources, personas) = withContext(Dispatchers.IO) {
             appDb.aiSourceDao.allEnabled to appDb.aiPersonaDao.all
         }
+        val suppliers = withContext(Dispatchers.IO) {
+            sources.map { source -> async {
+                var modelError: String? = null
+                val models = try {
+                    withTimeout(15000) { AiSourceHelper.fetchModels(source) }.also {
+                        check(it.isNotEmpty()) { "供应商未返回模型列表" }
+                    }
+                } catch (e: Exception) {
+                    if (e is CancellationException && e !is TimeoutCancellationException) throw e
+                    modelError = "模型列表获取失败，显示已保存的模型：${e.localizedMessage ?: "请求失败"}"
+                    source.getModelList()
+                }
+                AiChatPayload.supplier(source, models, modelError)
+            } }.awaitAll()
+        }
+        suppliers.forEach { payload ->
+            @Suppress("UNCHECKED_CAST")
+            val models = payload["models"] as List<String>
+            availableModels[(payload["id"] as String).toLong()] = models
+        }
         mapOf(
-            "suppliers" to sources.map(AiChatPayload::supplier),
+            "suppliers" to suppliers,
             "personas" to personas.map { mapOf("id" to it.id.toString(), "name" to it.name) },
             "supplierId" to agent.currentSupplierId.value.toString(),
             "personaId" to agent.currentPersonaId.value.toString()
@@ -90,8 +118,9 @@ class AiChatController {
                 require(message.isNotEmpty() && message.length <= 32000) { "请输入消息或添加附件，文字不超过 32000 字" }
                 refreshSelection(agent)
                 val source = withContext(Dispatchers.IO) { appDb.aiSourceDao.get(agent.currentSupplierId.value) }
-                check(source != null && source.enabled && source.model.isNotBlank()) { "请先在 App 中配置并启用 AI 供应商和默认模型" }
-                if (prepared.isEmpty()) agent.send(message) else agent.sendAttachments(message, prepared)
+                val selectedModel = source?.let { selectedModels[it.id] ?: it.model }
+                check(source != null && source.enabled && !selectedModel.isNullOrBlank()) { "请先选择 AI 供应商和模型" }
+                if (prepared.isEmpty()) agent.send(message, modelOverride = selectedModel) else agent.sendAttachments(message, prepared, selectedModel)
             }
             "cancel" -> agent.cancel()
             "new" -> agent.newConversation().join()
@@ -104,6 +133,11 @@ class AiChatController {
                 check(!agent.waiting.value) { "生成时不能切换供应商" }
                 val source = withContext(Dispatchers.IO) { appDb.aiSourceDao.get(text("id").toLong()) }
                 check(source != null && source.enabled) { "供应商未启用或已删除" }
+                val requestedModel = text("model")
+                if (requestedModel.isNotBlank()) {
+                    check(requestedModel in availableModels[source.id].orEmpty() || requestedModel == source.model) { "模型列表已变更，请刷新页面重新选择" }
+                    selectedModels[source.id] = requestedModel
+                }
                 agent.selectSupplier(source.id, source.name)
             }
             "persona" -> {
@@ -124,10 +158,13 @@ class AiChatController {
         snapshot(agent)
     }
 
-    private fun snapshot(agent: AgentViewModel): Map<String, Any?> = mapOf(
+    private suspend fun snapshot(agent: AgentViewModel): Map<String, Any?> = mapOf(
         "conversationId" to agent.currentConversationId.value,
         "waiting" to agent.waiting.value,
         "supplierId" to agent.currentSupplierId.value.toString(),
+        "model" to (selectedModels[agent.currentSupplierId.value] ?: withContext(Dispatchers.IO) {
+            appDb.aiSourceDao.get(agent.currentSupplierId.value)?.model.orEmpty()
+        }),
         "personaId" to agent.currentPersonaId.value.toString(),
         "messages" to agent.messages.value.map { AiChatPayload.message(it, agent.streamingText.value) }
     )

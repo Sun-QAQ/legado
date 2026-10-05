@@ -5,8 +5,10 @@ import io.legado.app.ui.book.agent.AgentMessage
 
 /** 显式白名单，避免供应商密钥、请求头及工具调试详情出现在 Web 响应中。 */
 internal object AiChatPayload {
-    fun supplier(source: AiSource): Map<String, String> = mapOf(
-        "id" to source.id.toString(), "name" to source.name, "model" to source.model
+    fun supplier(source: AiSource, models: List<String> = source.getModelList(), modelError: String? = null): Map<String, Any?> = mapOf(
+        "id" to source.id.toString(), "name" to source.name, "model" to source.model,
+        "models" to (listOf(source.model) + models).filter { it.isNotBlank() }.distinct(),
+        "modelError" to modelError
     )
 
     fun message(message: AgentMessage, streamingText: String?): Map<String, Any?> = mapOf(
