@@ -1,6 +1,7 @@
 <template>
   <div
     class="chapter-wrapper"
+    @wheel="onMangaWheel"
     :style="bodyTheme"
     :class="{
       night: isNight,
@@ -124,6 +125,7 @@ import { useLoading } from '@/hooks/loading'
 import { useThrottleFn } from '@vueuse/shared'
 import { isNullOrBlank } from '@/utils/utils'
 import { getMangaPages } from '@/utils/mangaPages'
+import { createMangaWheelTurner } from '@/utils/mangaWheel'
 import MangaReader from '@/components/MangaReader.vue'
 
 const content = ref()
@@ -173,6 +175,21 @@ watch(
 // 无限滚动
 const mangaMode = computed(() => store.config.mangaMode)
 const mangaRef = ref<InstanceType<typeof MangaReader>>()
+const wheelTurner = createMangaWheelTurner()
+const onMangaWheel = (event: WheelEvent) => {
+  if (
+    !mangaMode.value ||
+    event.ctrlKey ||
+    Math.abs(event.deltaY) <= Math.abs(event.deltaX)
+  )
+    return
+  event.preventDefault()
+  if (isLoading.value || noPoint.value || !mangaRef.value) return
+  const unit =
+    event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? window.innerHeight : 1
+  const direction = wheelTurner(event.deltaY * unit, performance.now())
+  if (direction) mangaRef.value.turnPage(direction)
+}
 const infiniteLoading = computed(
   () => store.config.infiniteLoading && !mangaMode.value,
 )
