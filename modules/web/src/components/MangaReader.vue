@@ -1,5 +1,16 @@
 <template>
   <section class="manga-reader" aria-label="漫画阅读">
+    <img
+      v-for="url in preloadImageUrls"
+      :key="url"
+      :src="url"
+      hidden
+      alt=""
+      aria-hidden="true"
+      loading="eager"
+      decoding="async"
+      fetchpriority="low"
+    />
     <div
       class="manga-stage"
       @touchstart.passive="onTouchStart"
@@ -81,6 +92,18 @@ const imageUrl = computed(() =>
         props.imageWidth,
       )
     : '',
+)
+// 使用与当前页相同的代理地址，让翻页直接复用浏览器图片缓存。
+const preloadImageUrls = computed(() =>
+  [
+    ...new Set(
+      props.pages
+        .slice(pageIndex.value + 1, pageIndex.value + 6)
+        .map(page =>
+          API.getProxyImageUrl(props.bookUrl, page.src, props.imageWidth),
+        ),
+    ),
+  ].filter(url => url !== imageUrl.value),
 )
 const failed = ref(false)
 const canPrevious = computed(
