@@ -157,7 +157,7 @@ defineExpose({ turnPage })
   align-items: center;
   justify-content: center;
   height: max(240px, calc(100dvh - 220px));
-  touch-action: pan-y pinch-zoom;
+  touch-action: pinch-zoom;
 }
 .manga-image {
   cursor:

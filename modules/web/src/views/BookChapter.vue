@@ -711,6 +711,44 @@ onBeforeRouteLeave(async (to, from, next) => {
 }
 .manga-mode .reader-navigation {
   margin: 12px auto;
+  width: 100%;
+  flex-shrink: 0;
+}
+.chapter-wrapper.manga-mode {
+  box-sizing: border-box;
+  height: 100dvh;
+  min-height: 0;
+  padding-bottom: 12px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+.manga-mode .reader-toolbar {
+  flex-shrink: 0;
+}
+.manga-mode .manga-chapter {
+  box-sizing: border-box;
+  flex: 1;
+  min-height: 0;
+  margin: 0 auto;
+  overflow: hidden;
+}
+.manga-chapter .content,
+.manga-chapter :deep(.manga-reader) {
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.manga-chapter :deep(.manga-stage) {
+  flex: 1;
+  height: auto;
+  min-height: 0;
+  overflow: hidden;
+}
+.manga-chapter :deep(.manga-caption) {
+  flex-shrink: 0;
 }
 .chapter-wrapper.manga-mode.focus-mode {
   position: fixed;
@@ -733,7 +771,7 @@ onBeforeRouteLeave(async (to, from, next) => {
   border-radius: 0;
 }
 .manga-mode.focus-mode :deep(.manga-stage) {
-  height: 100dvh;
+  height: auto;
 }
 .reader-toolbar .inline-actions {
   gap: 8px;
