@@ -13,9 +13,7 @@ import io.legado.app.exception.NoStackTraceException
 import io.legado.app.help.coroutine.Coroutine
 import io.legado.app.help.http.addHeaders
 import io.legado.app.help.http.okHttpClient
-import io.legado.app.help.http.okHttpClientManga
 import io.legado.app.help.source.SourceHelp
-import io.legado.app.model.ReadManga
 import io.legado.app.model.analyzeRule.AnalyzeUrl
 import io.legado.app.utils.ImageUtils
 import io.legado.app.utils.isWifiConnect
@@ -41,7 +39,6 @@ class OkHttpStreamFetcher(
     private var responseBody: ResponseBody? = null
     private var callback: DataFetcher.DataCallback<in InputStream>? = null
     private var source: BaseSource? = null
-    private val manga = options.get(OkHttpModelLoader.mangaOption) == true
     private val coroutineContext = SupervisorJob()
     private val coroutineScope = CoroutineScope(coroutineContext)
     private lateinit var analyzedUrl: GlideUrl
@@ -78,11 +75,7 @@ class OkHttpStreamFetcher(
         requestBuilder.addHeaders(analyzedUrl.headers)
         val request: Request = requestBuilder.build()
         this.callback = callback
-        call = if (manga) {
-            okHttpClientManga.newCall(request)
-        } else {
-            okHttpClient.newCall(request)
-        }
+        call = okHttpClient.newCall(request)
         call?.enqueue(this)
     }
 
@@ -115,32 +108,20 @@ class OkHttpStreamFetcher(
     override fun onResponse(call: Call, response: Response) {
         responseBody = response.body
         if (!response.isSuccessful) {
-            if (!manga) {
-                failUrl.add(url.toStringUrl())
-            }
+            failUrl.add(url.toStringUrl())
             callback?.onLoadFailed(HttpException(response.message, response.code))
             return
         }
-        if (ImageUtils.skipDecode(source, !manga)) {
+        if (ImageUtils.skipDecode(source, true)) {
             onStreamReady(responseBody!!.byteStream())
             return
         }
         Coroutine.async(coroutineScope, executeContext = IO) {
             val decodeResult = runScriptWithContext(coroutineContext) {
-                if (manga) {
-                    ImageUtils.decode(
-                        url.toString(),
-                        responseBody!!.bytes(),
-                        isCover = false,
-                        source,
-                        ReadManga.book
-                    )?.inputStream()
-                } else {
-                    ImageUtils.decode(
-                        analyzedUrl.toStringUrl(), responseBody!!.byteStream(),
-                        isCover = true, source
-                    )
-                }
+                ImageUtils.decode(
+                    analyzedUrl.toStringUrl(), responseBody!!.byteStream(),
+                    isCover = true, source
+                )
             }
             onStreamReady(decodeResult)
         }
@@ -148,9 +129,7 @@ class OkHttpStreamFetcher(
 
     private fun onStreamReady(inputStream: InputStream?) {
         if (inputStream == null) {
-            if (!manga) {
-                failUrl.add(url.toStringUrl())
-            }
+            failUrl.add(url.toStringUrl())
             callback?.onLoadFailed(NoStackTraceException("封面二次解密失败"))
         } else {
             val contentLength: Long =
