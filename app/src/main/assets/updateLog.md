@@ -44,9 +44,3 @@
 * 更新 kotlin->1.9.22 ksp->1.0.17
 * 界面绘制优化
 * Bug修复和其他优化
-
-----
-
-* [2023年日志](https://github.com/gedoor/legado/blob/record2023/app/src/main/assets/updateLog.md)
-* [2022年日志](https://github.com/gedoor/legado/blob/record2022/app/src/main/assets/updateLog.md)
-* [2021年日志](https://github.com/gedoor/legado/blob/record2021/app/src/main/assets/updateLog.md)
