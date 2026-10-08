@@ -101,7 +101,13 @@ interface BaseSource : JsExtensions {
     /**
      * 解析header规则
      */
-    fun getHeaderMap(hasLoginHeader: Boolean = false) = HashMap<String, String>().apply {
+    fun getHeaderMap(hasLoginHeader: Boolean = false) =
+        getHeaderMap(hasLoginHeader, AppConfig.userAgent)
+
+    fun getHeaderMap(
+        hasLoginHeader: Boolean,
+        defaultUserAgent: String
+    ) = HashMap<String, String>().apply {
         header?.let {
             try {
                 val json = when {
@@ -123,7 +129,7 @@ interface BaseSource : JsExtensions {
             }
         }
         if (!has(AppConst.UA_NAME, true)) {
-            put(AppConst.UA_NAME, AppConfig.userAgent)
+            put(AppConst.UA_NAME, defaultUserAgent)
         }
         if (hasLoginHeader) {
             getLoginHeaderMap()?.let {

@@ -5,6 +5,7 @@ import android.content.Intent
 import android.net.Uri
 import android.util.Base64
 import android.webkit.URLUtil
+import android.webkit.WebSettings
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewModelScope
 import com.script.rhino.runScriptWithContext
@@ -83,10 +84,17 @@ class ReadRssViewModel(application: Application) : BaseViewModel(application) {
     }
 
     private suspend fun loadUrl(url: String, baseUrl: String) {
+        // 网页由 WebView 执行，默认 UA 必须与实际内核一致；源显式指定的 UA 仍优先。
+        val webUserAgent = WebSettings.getDefaultUserAgent(context)
+        val webHeaders = runScriptWithContext {
+            rssSource?.getHeaderMap(hasLoginHeader = false, defaultUserAgent = webUserAgent)
+                ?: hashMapOf(AppConst.UA_NAME to webUserAgent)
+        }
         val analyzeUrl = AnalyzeUrl(
             mUrl = url,
             baseUrl = baseUrl,
             source = rssSource,
+            headerMapF = webHeaders,
             coroutineContext = coroutineContext,
             hasLoginHeader = false
         )
