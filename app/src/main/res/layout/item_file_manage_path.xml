@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="wrap_content" android:layout_height="match_parent"
+    android:gravity="center_vertical" android:paddingStart="12dp" android:paddingEnd="4dp"
+    android:clickable="true" android:focusable="true">
+    <TextView android:id="@+id/text_view"
+        android:layout_width="wrap_content" android:layout_height="wrap_content"
+        android:maxWidth="180dp" android:maxLines="1" android:ellipsize="middle" android:textSize="14sp" />
+    <ImageView android:id="@+id/image_view"
+        android:layout_width="20dp" android:layout_height="20dp"
+        android:layout_marginStart="4dp" android:src="@drawable/ic_arrow_right"
+        android:importantForAccessibility="no" />
+</LinearLayout>

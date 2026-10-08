@@ -1,6 +1,8 @@
 package io.legado.app.ui.file
 
-import android.annotation.SuppressLint
+import android.content.res.ColorStateList
+import android.graphics.drawable.GradientDrawable
+import android.graphics.drawable.RippleDrawable
 import android.os.Bundle
 import android.view.View
 import android.view.ViewGroup
@@ -17,14 +19,14 @@ import io.legado.app.base.adapter.ItemViewHolder
 import io.legado.app.base.adapter.RecyclerAdapter
 import io.legado.app.constant.AppConst
 import io.legado.app.databinding.ActivityFileManageBinding
-import io.legado.app.databinding.ItemFileBinding
-import io.legado.app.databinding.ItemPathPickerBinding
+import io.legado.app.databinding.ItemFileManageBinding
+import io.legado.app.databinding.ItemFileManagePathBinding
+import io.legado.app.lib.theme.ThemePalette
 import io.legado.app.lib.theme.primaryTextColor
-import io.legado.app.ui.file.utils.FilePickerIcon
-import io.legado.app.ui.widget.recycler.VerticalDivider
 import io.legado.app.utils.ConvertUtils
 import io.legado.app.utils.applyNavigationBarPadding
 import io.legado.app.utils.applyTint
+import io.legado.app.utils.dpToPx
 import io.legado.app.utils.openFileUri
 import io.legado.app.utils.viewbindingdelegate.viewBinding
 import java.io.File
@@ -33,9 +35,9 @@ class FileManageActivity : VMBaseActivity<ActivityFileManageBinding, FileManageV
 
     override val binding by viewBinding(ActivityFileManageBinding::inflate)
     override val viewModel by viewModels<FileManageViewModel>()
-    private val dirParent = ".."
+    private val palette by lazy { ThemePalette(this) }
     private val searchView: SearchView by lazy {
-        binding.titleBar.findViewById(R.id.search_view)
+        binding.searchView
     }
     private val pathAdapter by lazy {
         PathAdapter()
@@ -52,10 +54,15 @@ class FileManageActivity : VMBaseActivity<ActivityFileManageBinding, FileManageV
     }
 
     private fun initView() {
+        binding.root.setBackgroundColor(palette.background)
+        binding.titleBar.elevation = 0f
+        binding.searchView.background = roundedBackground(palette.surface, 16)
+        binding.tvFileCount.setTextColor(palette.secondaryText)
+        binding.tvEmptyMsg.setTextColor(palette.secondaryText)
         binding.rvPath.layoutManager = LinearLayoutManager(this, RecyclerView.HORIZONTAL, false)
         binding.rvPath.adapter = pathAdapter
         binding.recyclerView.layoutManager = LinearLayoutManager(this)
-        binding.recyclerView.addItemDecoration(VerticalDivider(this))
+
         binding.recyclerView.adapter = fileAdapter
         binding.recyclerView.applyNavigationBarPadding()
         onBackPressedDispatcher.addCallback(this) {
@@ -69,8 +76,8 @@ class FileManageActivity : VMBaseActivity<ActivityFileManageBinding, FileManageV
 
     private fun initSearchView() {
         searchView.applyTint(primaryTextColor)
-        searchView.queryHint = getString(R.string.screen) + " • " + getString(R.string.file_manage)
-        searchView.isSubmitButtonEnabled = true
+        searchView.queryHint = getString(R.string.file_manage_filter)
+        searchView.isSubmitButtonEnabled = false
         searchView.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
             override fun onQueryTextSubmit(query: String?): Boolean {
                 return false
@@ -83,16 +90,29 @@ class FileManageActivity : VMBaseActivity<ActivityFileManageBinding, FileManageV
         })
     }
 
+    private fun roundedBackground(color: Int, radius: Int) = GradientDrawable().apply {
+        setColor(color)
+        cornerRadius = radius.dpToPx().toFloat()
+    }
+
+    private fun itemBackground(color: Int) = RippleDrawable(
+        ColorStateList.valueOf(palette.accentContainerPressed),
+        roundedBackground(color, 16),
+        roundedBackground(android.graphics.Color.WHITE, 16)
+    )
+
     private fun updateFiles() {
-        if (searchView.query.isNotEmpty()) {
-            currentFiles.filter {
-                it.name == dirParent || it.name.contains(searchView.query)
-            }.let {
-                fileAdapter.setItems(it)
-            }
-        } else {
-            fileAdapter.setItems(currentFiles)
+        val query = searchView.query.toString()
+        val files = currentFiles.filter {
+            it == viewModel.lastDir || it.name.contains(query, ignoreCase = true)
         }
+        fileAdapter.setItems(files)
+        val count = files.count { it != viewModel.lastDir }
+        binding.tvFileCount.text = getString(R.string.file_manage_count, count)
+        binding.tvEmptyMsg.text = getString(
+            if (query.isEmpty()) R.string.file_manage_empty else R.string.file_manage_no_results
+        )
+        binding.tvEmptyMsg.visibility = if (count == 0) View.VISIBLE else View.GONE
     }
 
     private fun gotoLastDir() {
@@ -110,17 +130,20 @@ class FileManageActivity : VMBaseActivity<ActivityFileManageBinding, FileManageV
         }
     }
 
-    @SuppressLint("SetTextI18n")
     inner class PathAdapter :
-        RecyclerAdapter<File, ItemPathPickerBinding>(this@FileManageActivity) {
+        RecyclerAdapter<File, ItemFileManagePathBinding>(this@FileManageActivity) {
 
-        private val arrowIcon = ConvertUtils.toDrawable(FilePickerIcon.getArrow())
+        private fun stylePath(binding: ItemFileManagePathBinding) {
+            binding.textView.setTextColor(palette.text)
+            binding.imageView.imageTintList = ColorStateList.valueOf(palette.secondaryText)
+            binding.root.background = itemBackground(palette.background)
+        }
 
         init {
             addHeaderView {
-                ItemPathPickerBinding.inflate(inflater, it, false).apply {
-                    textView.text = "root"
-                    imageView.setImageDrawable(arrowIcon)
+                ItemFileManagePathBinding.inflate(inflater, it, false).apply {
+                    textView.setText(R.string.file_manage_root)
+                    stylePath(this)
                     root.setOnClickListener {
                         viewModel.subDocs.clear()
                         setItems(viewModel.subDocs)
@@ -130,23 +153,25 @@ class FileManageActivity : VMBaseActivity<ActivityFileManageBinding, FileManageV
             }
         }
 
-        override fun getViewBinding(parent: ViewGroup): ItemPathPickerBinding {
-            return ItemPathPickerBinding.inflate(inflater, parent, false).apply {
-                imageView.setImageDrawable(arrowIcon)
+        override fun getViewBinding(parent: ViewGroup): ItemFileManagePathBinding {
+            return ItemFileManagePathBinding.inflate(inflater, parent, false).apply {
+                stylePath(this)
             }
         }
 
-        override fun registerListener(holder: ItemViewHolder, binding: ItemPathPickerBinding) {
+        override fun registerListener(holder: ItemViewHolder, binding: ItemFileManagePathBinding) {
             binding.root.setOnClickListener {
-                viewModel.subDocs = viewModel.subDocs.subList(0, holder.layoutPosition)
+                val position = holder.bindingAdapterPosition
+                if (position == RecyclerView.NO_POSITION) return@setOnClickListener
+                viewModel.subDocs = viewModel.subDocs.take(position).toMutableList()
                 setItems(viewModel.subDocs)
-                viewModel.upFiles(viewModel.subDocs.lastOrNull())
+                viewModel.upFiles(viewModel.lastDir)
             }
         }
 
         override fun convert(
             holder: ItemViewHolder,
-            binding: ItemPathPickerBinding,
+            binding: ItemFileManagePathBinding,
             item: File,
             payloads: MutableList<Any>
         ) {
@@ -155,16 +180,19 @@ class FileManageActivity : VMBaseActivity<ActivityFileManageBinding, FileManageV
 
     }
 
-    inner class FileAdapter : RecyclerAdapter<File, ItemFileBinding>(this@FileManageActivity) {
-        private val upIcon = ConvertUtils.toDrawable(FilePickerIcon.getUpDir())!!
-        private val folderIcon = ConvertUtils.toDrawable(FilePickerIcon.getFolder())!!
-        private val fileIcon = ConvertUtils.toDrawable(FilePickerIcon.getFile())!!
-
-        override fun getViewBinding(parent: ViewGroup): ItemFileBinding {
-            return ItemFileBinding.inflate(inflater, parent, false)
+    inner class FileAdapter : RecyclerAdapter<File, ItemFileManageBinding>(this@FileManageActivity) {
+        override fun getViewBinding(parent: ViewGroup): ItemFileManageBinding {
+            return ItemFileManageBinding.inflate(inflater, parent, false).apply {
+                root.background = itemBackground(palette.surface)
+                imageView.background = roundedBackground(palette.accentContainer, 14)
+                imageView.imageTintList = ColorStateList.valueOf(palette.text)
+                textView.setTextColor(palette.text)
+                tvDetail.setTextColor(palette.secondaryText)
+                ivArrow.imageTintList = ColorStateList.valueOf(palette.secondaryText)
+            }
         }
 
-        override fun registerListener(holder: ItemViewHolder, binding: ItemFileBinding) {
+        override fun registerListener(holder: ItemViewHolder, binding: ItemFileManageBinding) {
             binding.root.setOnClickListener {
                 val item = getItemByLayoutPosition(holder.layoutPosition)
                 item?.let {
@@ -173,6 +201,7 @@ class FileManageActivity : VMBaseActivity<ActivityFileManageBinding, FileManageV
                     } else if (item.isDirectory) {
                         viewModel.subDocs.add(item)
                         pathAdapter.setItems(viewModel.subDocs)
+                        this@FileManageActivity.binding.rvPath.smoothScrollToPosition(pathAdapter.itemCount - 1)
                         viewModel.upFiles(item)
                     } else {
                         openFileUri(
@@ -199,18 +228,22 @@ class FileManageActivity : VMBaseActivity<ActivityFileManageBinding, FileManageV
 
         override fun convert(
             holder: ItemViewHolder,
-            binding: ItemFileBinding,
+            binding: ItemFileManageBinding,
             item: File,
             payloads: MutableList<Any>
         ) {
+            binding.ivArrow.visibility = if (item.isDirectory) View.VISIBLE else View.INVISIBLE
             if (item == viewModel.lastDir) {
-                binding.imageView.setImageDrawable(upIcon)
-                binding.textView.text = dirParent
+                binding.imageView.setImageResource(R.drawable.ic_arrow_back)
+                binding.textView.setText(R.string.file_manage_parent)
+                binding.tvDetail.setText(R.string.file_manage_parent_hint)
             } else if (item.isDirectory) {
-                binding.imageView.setImageDrawable(folderIcon)
+                binding.tvDetail.setText(R.string.file_manage_folder)
+                binding.imageView.setImageResource(R.drawable.ic_folder_outline)
                 binding.textView.text = item.name
             } else {
-                binding.imageView.setImageDrawable(fileIcon)
+                binding.tvDetail.text = ConvertUtils.formatFileSize(item.length())
+                binding.imageView.setImageResource(R.drawable.ic_file_document)
                 binding.textView.text = item.name
             }
         }

@@ -1,0 +1,10 @@
+<resources>
+    <string name="file_manage_root">App storage</string>
+    <string name="file_manage_filter">Filter files in this folder</string>
+    <string name="file_manage_folder">Folder</string>
+    <string name="file_manage_parent">Parent folder</string>
+    <string name="file_manage_parent_hint">Return to the previous folder</string>
+    <string name="file_manage_count">%1$d items</string>
+    <string name="file_manage_empty">This folder is empty</string>
+    <string name="file_manage_no_results">No matching files</string>
+</resources>

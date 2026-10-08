@@ -1,0 +1,10 @@
+<resources>
+    <string name="file_manage_root">应用目录</string>
+    <string name="file_manage_filter">筛选当前目录的文件</string>
+    <string name="file_manage_folder">文件夹</string>
+    <string name="file_manage_parent">上一级目录</string>
+    <string name="file_manage_parent_hint">返回上一层文件夹</string>
+    <string name="file_manage_count">%1$d 个项目</string>
+    <string name="file_manage_empty">此文件夹为空</string>
+    <string name="file_manage_no_results">没有匹配的文件</string>
+</resources>
