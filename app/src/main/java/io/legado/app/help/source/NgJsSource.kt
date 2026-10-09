@@ -14,6 +14,7 @@ import io.legado.app.data.entities.rule.TocRule
 import io.legado.app.utils.GSON
 import org.mozilla.javascript.CompilerEnvirons
 import org.mozilla.javascript.Context
+import org.mozilla.javascript.ContextFactory
 import org.mozilla.javascript.Parser
 import org.mozilla.javascript.Token
 import org.mozilla.javascript.ast.*
@@ -40,8 +41,16 @@ object NgJsSource {
         for (name in listOf("search", "getBookInfo", "getChapters", "getContent")) {
             require(name in functions) { "NG JS 书源缺少 $name 函数" }
         }
-        // 只读取字面量，导入预览不会执行脚本、登录或发起网络请求。
-        val source = GSON.fromJson(literal(config), BookSource::class.java)
+        val metadata = runCatching { literal(config).asJsonObject }.getOrElse {
+            evaluateConfig(config, nodes.filterIsInstance<FunctionNode>())
+        }
+        // NG 的发现列表和请求头也可以直接返回数组/对象，数据库字段保存 JSON 字符串。
+        for (key in listOf("header", "exploreUrl", "jsLib")) {
+            metadata[key]?.takeIf { it.isJsonArray || it.isJsonObject }?.let {
+                metadata.addProperty(key, it.toString())
+            }
+        }
+        val source = GSON.fromJson(metadata, BookSource::class.java)
         require(!source.bookSourceUrl.isNullOrBlank() && !source.bookSourceName.isNullOrBlank()) {
             "NG JS config 缺少书源地址或名称"
         }
@@ -69,6 +78,40 @@ object NgJsSource {
         source.enabledExplore = "explore" in functions && !source.exploreUrl.isNullOrBlank()
         return source
     }
+
+    /** 仅加载函数声明并求值 config，不运行脚本其余顶层语句，也不暴露任何宿主接口。 */
+    private fun evaluateConfig(config: ObjectLiteral, functions: List<FunctionNode>): JsonObject {
+        val deadline = System.nanoTime() + 1_000_000_000L
+        val factory = object : ContextFactory() {
+            override fun makeContext(): Context = super.makeContext().apply {
+                languageVersion = Context.VERSION_ES6
+                optimizationLevel = -1
+                instructionObserverThreshold = 10_000
+                setClassShutter { false }
+            }
+
+            override fun observeInstructionCount(cx: Context, instructionCount: Int) {
+                if (System.nanoTime() > deadline) throw ConfigTimeout()
+            }
+        }
+        return try {
+            factory.enterContext().use { cx ->
+                val scope = cx.initSafeStandardObjects()
+                val declarations = functions.joinToString("\n") { it.toSource() }
+                val json = cx.evaluateString(scope,
+                    "$declarations\nJSON.stringify((${config.toSource()}));", "NG config", 1, null
+                ).toString()
+                require(json.length <= 2 * 1024 * 1024) { "config 配置不能超过 2 MB" }
+                com.google.gson.JsonParser.parseString(json).asJsonObject
+            }
+        } catch (e: Exception) {
+            throw IllegalStateException("config 配置求值失败：${e.localizedMessage}（导入时不支持 APP、网络或 Java 接口）", e)
+        } catch (e: ConfigTimeout) {
+            error("config 配置计算超时")
+        }
+    }
+
+    private class ConfigTimeout : Error()
 
     private fun literal(node: AstNode): JsonElement = when (node) {
         is StringLiteral -> JsonPrimitive(node.value)

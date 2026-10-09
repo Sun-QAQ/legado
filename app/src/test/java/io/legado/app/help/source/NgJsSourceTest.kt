@@ -50,4 +50,38 @@ class NgJsSourceTest {
             NgJsSource.parse(script.replace("bookSourceName:'测试'", "bookSourceName:null"))
         }
     }
+
+    @Test fun importsComputedConfigWithoutRunningTopLevelCode() {
+        val computed = script.replace("bookSourceName:'测试'",
+            "bookSourceName:name(),header:JSON.stringify({UA:'test'}),exploreUrl:kinds(),jsLib:lib()") + """
+            function name() { return '动态' + '书源'; }
+            function kinds() { return [{title:'发现',url:'https://example.org/all'}]; }
+            function lib() { return search.toString(); }
+        """.trimIndent()
+        val source = NgJsSource.parse(computed)
+        assertEquals("动态书源", source.bookSourceName)
+        assertEquals("{\"UA\":\"test\"}", source.header)
+        assertTrue(source.exploreUrl!!.contains("发现"))
+        assertTrue(source.jsLib!!.endsWith(computed))
+    }
+
+    @Test fun computedConfigCannotAccessHostOrLoopForever() {
+        for (expression in listOf("java.ajax('https://example.org')",
+            "Packages.java.lang.System.getProperty('user.home')",
+            "(function(){while(true){}})()")) {
+            assertThrows(IllegalStateException::class.java) {
+                NgJsSource.parse(script.replace("bookSourceName:'测试'", "bookSourceName:$expression"))
+            }
+        }
+    }
+
+    @Test fun importsSuppliedComputedSource() {
+        val path = System.getenv("NG_JS_COMPUTED_SOURCE_FIXTURE")
+        org.junit.Assume.assumeTrue(path != null && java.io.File(path).isFile)
+        val source = BookSourceParser.parse(java.io.File(path!!).readText()).single()
+        assertEquals("起点正版 · NG JS", source.bookSourceName)
+        assertTrue(source.header!!.contains("Accept-Language"))
+        assertTrue(source.exploreUrl!!.contains("个人书架"))
+        assertTrue(NgJsSource.isNg(source))
+    }
 }
