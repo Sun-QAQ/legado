@@ -15,12 +15,22 @@ class NgJsBridge(
 ) : JsExtensions {
     override fun getSource() = source
 
-    override fun ajax(url: Any): String? {
+    override fun ajax(url: Any): String? = ajaxRequest(url, null)
+
+    /** NG 的第二个参数是毫秒，限制整个请求以及单次读取的等待时间。 */
+    fun ajax(url: Any, timeout: Long): String? {
+        require(timeout > 0) { "NG JS ajax 超时时间必须大于 0 毫秒" }
+        return ajaxRequest(url, timeout)
+    }
+
+    private fun ajaxRequest(url: Any, timeout: Long?): String? {
         val urlStr = if (url is List<*>) url.firstOrNull().toString() else url.toString()
         val requestSource = if (bypassRateLimit) source.copy(concurrentRate = null) else source
         return kotlin.runCatching {
-            val body = AnalyzeUrl(urlStr, source = requestSource).getStrResponse().body
-            qmFirstChapterFallback(urlStr, body, requestSource)
+            require(urlStr.isNotBlank()) { "NG JS 请求地址不能为空" }
+            val body = AnalyzeUrl(urlStr, source = requestSource,
+                readTimeout = timeout, callTimeout = timeout).getStrResponse().body
+            qmFirstChapterFallback(urlStr, body, requestSource, timeout)
         }.getOrElse { it.stackTraceToString() }
     }
 
@@ -31,7 +41,8 @@ class NgJsBridge(
     private fun qmFirstChapterFallback(
         url: String,
         body: String?,
-        requestSource: BookSource
+        requestSource: BookSource,
+        timeout: Long?
     ): String? {
         if (body.isNullOrBlank() || !body.contains("17010104") ||
             !url.startsWith("https://api-ks.wtzw.com/api/v1/chapter/content")) {
@@ -49,7 +60,9 @@ class NgJsBridge(
         )
         val fallback = AnalyzeUrl(
             "$fallbackUrl,$options",
-            source = requestSource
+            source = requestSource,
+            readTimeout = timeout,
+            callTimeout = timeout
         ).getStrResponse().body ?: return body
         val book = runCatching {
             JsonParser.parseString(fallback).asJsonObject

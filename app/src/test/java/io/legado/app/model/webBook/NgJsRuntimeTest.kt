@@ -2,6 +2,7 @@ package io.legado.app.model.webBook
 
 import com.script.ScriptBindings
 import io.legado.app.help.source.NgJsSource
+import io.legado.app.data.entities.BookSource
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.*
 import org.junit.Assume.assumeTrue
@@ -25,6 +26,26 @@ class NgJsRuntimeTest {
         assertThrows(IllegalArgumentException::class.java) { NgJsBook.requireList("[null]", "search", "name") }
         assertThrows(IllegalArgumentException::class.java) { NgJsBook.requireObject("[]", "getBookInfo") }
         NgJsBook.requireList("[]", "search", "name")
+    }
+
+    @Test fun ajaxAcceptsScriptNumericTimeoutAndKeepsSingleArgumentCall() = runBlocking {
+        val bindings = ScriptBindings().apply { put("java", NgJsBridge(BookSource())) }
+        val result = NgJsRuntime.evaluateScript("", """
+            JSON.stringify([
+                String(java.ajax('')).indexOf('请求地址不能为空') >= 0,
+                String(java.ajax('', 15000)).indexOf('请求地址不能为空') >= 0
+            ])
+        """.trimIndent(), bindings, "")
+        assertEquals("[true,true]", result)
+    }
+
+    @Test fun ajaxRejectsNonPositiveTimeoutBeforeRequest() {
+        val bridge = NgJsBridge(BookSource())
+        for (timeout in listOf(0L, -1L)) {
+            assertThrows(IllegalArgumentException::class.java) {
+                bridge.ajax("https://example.org", timeout)
+            }
+        }
     }
 
     /** 本地验收附件；CI 没有附件时跳过，不把第三方书源和密钥提交到仓库。 */
