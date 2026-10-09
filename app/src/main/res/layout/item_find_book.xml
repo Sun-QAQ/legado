@@ -53,8 +53,7 @@
                 android:maxLines="1"
                 android:textColor="@color/primaryText"
                 android:textSize="15sp"
-                android:textStyle="bold"
-                tools:text="起点中文网" />
+                android:textStyle="bold" />
 
             <TextView
                 android:id="@+id/tv_detail"
