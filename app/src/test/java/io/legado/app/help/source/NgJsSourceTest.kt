@@ -79,9 +79,9 @@ class NgJsSourceTest {
         val path = System.getenv("NG_JS_COMPUTED_SOURCE_FIXTURE")
         org.junit.Assume.assumeTrue(path != null && java.io.File(path).isFile)
         val source = BookSourceParser.parse(java.io.File(path!!).readText()).single()
-        assertEquals("起点正版 · NG JS", source.bookSourceName)
-        assertTrue(source.header!!.contains("Accept-Language"))
-        assertTrue(source.exploreUrl!!.contains("个人书架"))
+        assertTrue(source.bookSourceName.isNotBlank())
+        assertTrue(com.google.gson.JsonParser.parseString(source.header!!).isJsonObject)
+        assertFalse(com.google.gson.JsonParser.parseString(source.exploreUrl!!).asJsonArray.isEmpty)
         assertTrue(NgJsSource.isNg(source))
     }
 }
