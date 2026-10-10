@@ -40,10 +40,6 @@ import java.io.File
 @Suppress("ConstPropertyName")
 @Keep
 object ReadBookConfig {
-    var eyePageTurnEnabled: Boolean
-        get() = appCtx.getPrefBoolean("eyePageTurnEnabled", false)
-        set(value) = appCtx.putPrefBoolean("eyePageTurnEnabled", value)
-
     var eyePageTurnHelpShown: Boolean
         get() = appCtx.getPrefBoolean("eyePageTurnHelpShown", false)
         set(value) = appCtx.putPrefBoolean("eyePageTurnHelpShown", value)

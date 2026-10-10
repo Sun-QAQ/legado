@@ -217,6 +217,8 @@ class ReadBookActivity : BaseReadBookActivity(),
     }
     private var menu: Menu? = null
     private var eyePageTurner: EyePageTurner? = null
+    // Enablement belongs to this reading session; only the first-use explanation is saved.
+    private var eyePageTurnEnabled = false
     private var readerResumed = false
     private val eyeCameraPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
         if (granted) {
@@ -323,6 +325,7 @@ class ReadBookActivity : BaseReadBookActivity(),
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
+        setEyePageTurnEnabled(false)
         viewModel.initData(intent)
     }
 
@@ -408,6 +411,11 @@ class ReadBookActivity : BaseReadBookActivity(),
         networkChangedListener.unRegister()
     }
 
+    override fun onStop() {
+        if (eyePageTurnEnabled) setEyePageTurnEnabled(false)
+        super.onStop()
+    }
+
     override fun onCompatCreateOptionsMenu(menu: Menu): Boolean {
         menuInflater.inflate(R.menu.book_read, menu)
         menu.iconItemOnLongClick(R.id.menu_change_source) {
@@ -436,7 +444,7 @@ class ReadBookActivity : BaseReadBookActivity(),
 
     override fun onMenuOpened(featureId: Int, menu: Menu): Boolean {
         eyePageTurner?.resetGesture()
-        menu.findItem(R.id.menu_eye_page_turn)?.isChecked = ReadBookConfig.eyePageTurnEnabled
+        menu.findItem(R.id.menu_eye_page_turn)?.isChecked = eyePageTurnEnabled
         menu.findItem(R.id.menu_same_title_removed)?.isChecked =
             ReadBook.curTextChapter?.sameTitleRemoved == true
         return super.onMenuOpened(featureId, menu)
@@ -447,7 +455,7 @@ class ReadBookActivity : BaseReadBookActivity(),
      */
     private fun upMenu() {
         val menu = menu ?: return
-        menu.findItem(R.id.menu_eye_page_turn)?.isChecked = ReadBookConfig.eyePageTurnEnabled
+        menu.findItem(R.id.menu_eye_page_turn)?.isChecked = eyePageTurnEnabled
         val book = ReadBook.book ?: return
         val onLine = !book.isLocal
         for (i in 0 until menu.size) {
@@ -1007,7 +1015,7 @@ class ReadBookActivity : BaseReadBookActivity(),
     }
 
     private fun toggleEyePageTurn() {
-        if (ReadBookConfig.eyePageTurnEnabled) {
+        if (eyePageTurnEnabled) {
             setEyePageTurnEnabled(false)
             return
         }
@@ -1035,7 +1043,7 @@ class ReadBookActivity : BaseReadBookActivity(),
     }
 
     private fun setEyePageTurnEnabled(enabled: Boolean) {
-        ReadBookConfig.eyePageTurnEnabled = enabled
+        eyePageTurnEnabled = enabled
         menu?.findItem(R.id.menu_eye_page_turn)?.isChecked = enabled
         if (enabled) {
             autoPageStop()
@@ -1049,7 +1057,7 @@ class ReadBookActivity : BaseReadBookActivity(),
     }
 
     private fun startEyePageTurner() {
-        if (!readerResumed || !ReadBookConfig.eyePageTurnEnabled) return
+        if (!readerResumed || !eyePageTurnEnabled) return
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) {
             setEyePageTurnEnabled(false)
             return
@@ -1180,7 +1188,7 @@ class ReadBookActivity : BaseReadBookActivity(),
      */
     override fun pageChanged() {
         eyePageTurner?.resetGesture()
-        if (ReadBookConfig.eyePageTurnEnabled) {
+        if (eyePageTurnEnabled) {
             AppLog.putDebug("眼动阅读页面已变化：chapter=${ReadBook.durChapterIndex} page=${ReadBook.durPageIndex}")
         }
         pageChanged = true
@@ -1262,7 +1270,7 @@ class ReadBookActivity : BaseReadBookActivity(),
         if (isAutoPage) {
             autoPageStop()
         } else {
-            if (ReadBookConfig.eyePageTurnEnabled) setEyePageTurnEnabled(false)
+            if (eyePageTurnEnabled) setEyePageTurnEnabled(false)
             binding.readView.autoPager.start()
             binding.readMenu.setAutoPage(true)
             screenTimeOut = -1L
@@ -1847,7 +1855,7 @@ class ReadBookActivity : BaseReadBookActivity(),
      */
     override fun screenOffTimerStart() {
         handler.post {
-            if (screenTimeOut < 0 || (readerResumed && ReadBookConfig.eyePageTurnEnabled)) {
+            if (screenTimeOut < 0 || (readerResumed && eyePageTurnEnabled)) {
                 handler.removeCallbacks(screenOffRunnable)
                 keepScreenOn(true)
                 return@post
