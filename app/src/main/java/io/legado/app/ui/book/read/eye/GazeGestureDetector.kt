@@ -94,7 +94,7 @@ internal class GazeGestureDetector {
             return false
         }
         // Enter at the lower part of the page; retain the dwell across small gaze jitter.
-        val bottomThreshold = if (bottomPose == null) 0.72f else 0.60f
+        val bottomThreshold = if (bottomPose == null) 0.72f else 0.65f
         if (position in bottomThreshold..1.5f) {
             if (bottomPose == null) {
                 bottomPose = sample
