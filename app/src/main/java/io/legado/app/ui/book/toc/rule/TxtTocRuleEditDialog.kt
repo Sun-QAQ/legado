@@ -42,6 +42,7 @@ class TxtTocRuleEditDialog() : BaseDialogFragment(R.layout.dialog_toc_regex_edit
     }
 
     override fun onFragmentCreated(view: View, savedInstanceState: Bundle?) {
+        binding.dialogContent.applyDialogRoundedBackground()
         binding.toolBar.setBackgroundColor(backgroundColor)
         initMenu()
         viewModel.initData(arguments?.getLong("id")) {
