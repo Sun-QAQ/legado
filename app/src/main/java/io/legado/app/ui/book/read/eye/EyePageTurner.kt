@@ -109,11 +109,11 @@ class EyePageTurner(
     private fun showCalibration() {
         calibration.reset()
         calibratingBottom = false
-        val background = activity.bottomBackground
-        val textColor = activity.getPrimaryTextColor(ColorUtils.isColorLight(background))
+        val backgroundColor = activity.bottomBackground
+        val textColor = activity.getPrimaryTextColor(ColorUtils.isColorLight(backgroundColor))
         val accent = activity.accentColor
         val panel = FrameLayout(activity).apply {
-            setBackgroundColor(background)
+            setBackgroundColor(backgroundColor)
             isClickable = true
             // Block manual page turns while learning the two targets.
             isFocusable = true
