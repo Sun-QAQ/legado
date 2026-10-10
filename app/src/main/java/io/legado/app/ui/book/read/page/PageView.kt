@@ -6,6 +6,7 @@ import android.graphics.drawable.LayerDrawable
 import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.widget.FrameLayout
+import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.content.ContextCompat
 import androidx.core.graphics.drawable.toDrawable
 import androidx.core.view.ViewCompat
@@ -56,6 +57,7 @@ class PageView(context: Context) : FrameLayout(context) {
     private var tvTimeBattery: BatteryView? = null
     private var tvTimeBatteryP: BatteryView? = null
     private var isMainView = false
+    private var eyePageHintVisible = false
     var isScroll = false
 
     val headerHeight: Int
@@ -120,6 +122,29 @@ class PageView(context: Context) : FrameLayout(context) {
         }
         upTime()
         upBattery(battery)
+        upEyePageHint()
+    }
+
+    /** A transient footer overlay; it never changes pagination or saved footer settings. */
+    fun setEyePageHint(visible: Boolean) {
+        if (eyePageHintVisible == visible) return
+        eyePageHintVisible = visible
+        upEyePageHint()
+    }
+
+    private fun upEyePageHint() = binding.run {
+        tvEyePageHint.isGone = !eyePageHintVisible
+        tvEyePageHint.setTextColor(with(ReadTipConfig) {
+            if (tipColor == 0) ReadBookConfig.textColor else tipColor
+        })
+        tvEyePageHint.backgroundColor = ReadBookConfig.bgMeanColor
+        tvEyePageHint.typeface = ChapterProvider.typeface
+        val params = tvEyePageHint.layoutParams as ConstraintLayout.LayoutParams
+        params.bottomMargin = ReadBookConfig.footerPaddingBottom.dpToPx()
+        tvEyePageHint.layoutParams = params
+        // The existing center information remains up to date underneath the hint.
+        tvFooterMiddle.isGone = ReadTipConfig.tipFooterMiddle == ReadTipConfig.none
+        if (!tvFooterMiddle.isGone) tvFooterMiddle.isInvisible = eyePageHintVisible
     }
 
     /**

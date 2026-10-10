@@ -164,6 +164,8 @@ dependencies {
     //kotlin
     //noinspection GradleDependency,DifferentStdlibGradleVersion
     implementation(libs.kotlin.stdlib)
+    // On-device iris landmarks for optional eye-controlled page turning (Android 7+).
+    implementation 'com.google.mediapipe:tasks-vision:0.10.32'
     //Kotlin反射
     //noinspection GradleDependency,DifferentStdlibGradleVersion
     //implementation(libs.kotlin.reflect)

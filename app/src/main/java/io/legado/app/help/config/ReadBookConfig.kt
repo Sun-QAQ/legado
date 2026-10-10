@@ -26,10 +26,12 @@ import io.legado.app.utils.getFile
 import io.legado.app.utils.getMeanColor
 import io.legado.app.utils.getPrefBoolean
 import io.legado.app.utils.getPrefInt
+import io.legado.app.utils.getPrefString
 import io.legado.app.utils.hexString
 import io.legado.app.utils.printOnDebug
 import io.legado.app.utils.putPrefBoolean
 import io.legado.app.utils.putPrefInt
+import io.legado.app.utils.putPrefString
 import io.legado.app.utils.resizeAndRecycle
 import splitties.init.appCtx
 import java.io.File
@@ -40,6 +42,14 @@ import java.io.File
 @Suppress("ConstPropertyName")
 @Keep
 object ReadBookConfig {
+    var eyePageTurnHelpShown: Boolean
+        get() = appCtx.getPrefBoolean("eyePageTurnHelpShown", false)
+        set(value) = appCtx.putPrefBoolean("eyePageTurnHelpShown", value)
+
+    var eyePageCalibration: String?
+        get() = appCtx.getPrefString("eyePageCalibration")
+        set(value) = appCtx.putPrefString("eyePageCalibration", value)
+
     const val configFileName = "readConfig.json"
     const val shareConfigFileName = "shareReadConfig.json"
     val configFilePath = FileUtils.getPath(appCtx.filesDir, configFileName)
