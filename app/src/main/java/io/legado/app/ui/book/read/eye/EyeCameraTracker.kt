@@ -188,10 +188,15 @@ internal class EyeCameraTracker(
     private fun toBitmap(image: Image): Bitmap {
         val planes = image.planes
         val pixels = IntArray(image.width * image.height)
-        val positions = planes.map { it.buffer.position() }
+        // Read each plane once. Per-pixel access to the native direct ByteBuffer is
+        // expensive on some devices and can make otherwise usable samples stale.
+        val bytes = planes.map { plane ->
+            val buffer = plane.buffer.duplicate()
+            ByteArray(buffer.remaining()).also { buffer.get(it) }
+        }
         fun value(plane: Int, x: Int, y: Int): Int {
             val p = planes[plane]
-            return p.buffer.get(positions[plane] + y * p.rowStride + x * p.pixelStride).toInt() and 255
+            return bytes[plane][y * p.rowStride + x * p.pixelStride].toInt() and 255
         }
         for (y in 0 until image.height) for (x in 0 until image.width) {
             val luma = (value(0, x, y) - 16).coerceAtLeast(0)

@@ -19,6 +19,7 @@ import io.legado.app.lib.theme.accentColor
 import io.legado.app.lib.theme.bottomBackground
 import io.legado.app.lib.theme.getPrimaryTextColor
 import io.legado.app.utils.ColorUtils
+import io.legado.app.utils.setTextIfNotEqual
 import kotlin.math.abs
 import java.util.Locale
 
@@ -83,7 +84,7 @@ class EyePageTurner(
         if (SystemClock.uptimeMillis() - time > 350L) {
             staleFrames++
             lastIssue = R.string.eye_page_processing_slow
-            status?.setText(lastIssue)
+            status?.setTextIfNotEqual(activity.getString(lastIssue))
             detector.reset()
             calibration.reset()
             return
@@ -104,9 +105,10 @@ class EyePageTurner(
                 observation.state != GazeTrackingState.TRACKING -> R.string.eye_page_eyes_unclear
                 else -> R.string.eye_page_sampling
             }
-            status?.text = if (lastIssue == R.string.eye_page_sampling) {
+            val feedback = if (lastIssue == R.string.eye_page_sampling) {
                 activity.getString(lastIssue, calibration.progress)
             } else activity.getString(lastIssue)
+            status?.setTextIfNotEqual(feedback)
             if (point == null) return
             AppLog.put("眼动校准采样完成：stage=${stage()} ${describe(point)}")
             calibration.reset()
