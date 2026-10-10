@@ -36,7 +36,7 @@ object ThemePopupMenu {
                     }
                     if (child is ViewGroup) child.children.forEach(::tint)
                 }
-                v.minimumHeight = 48.dpToPx()
+                v.minimumHeight = 44.dpToPx()
                 tint(v)
             }
 
