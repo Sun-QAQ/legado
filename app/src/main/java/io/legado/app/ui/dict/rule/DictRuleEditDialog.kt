@@ -36,6 +36,7 @@ class DictRuleEditDialog() : BaseDialogFragment(R.layout.dialog_dict_rule_edit, 
     }
 
     override fun onFragmentCreated(view: View, savedInstanceState: Bundle?) {
+        binding.dialogContent.applyDialogRoundedBackground()
         binding.toolBar.setBackgroundColor(backgroundColor)
         binding.toolBar.inflateMenu(R.menu.dict_rule_edit)
         binding.toolBar.menu.applyTint(requireContext())
