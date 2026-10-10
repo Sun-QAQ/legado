@@ -4,6 +4,8 @@
 
     <solid android:color="@color/background_menu"/>
 
-    <corners android:radius="2dp"/>
+    <corners android:radius="16dp"/>
+
+    <padding android:top="8dp" android:bottom="8dp"/>
 
 </shape>

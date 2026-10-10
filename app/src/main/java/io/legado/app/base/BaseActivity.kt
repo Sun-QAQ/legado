@@ -24,6 +24,7 @@ import io.legado.app.constant.Theme
 import io.legado.app.help.config.AppConfig
 import io.legado.app.help.config.ThemeConfig
 import io.legado.app.lib.theme.ThemeStore
+import io.legado.app.lib.theme.ThemePopupMenu
 import io.legado.app.lib.theme.backgroundColor
 import io.legado.app.ui.widget.TitleBar
 import io.legado.app.utils.ColorUtils
@@ -72,10 +73,14 @@ abstract class BaseActivity<VB : ViewBinding>(
         context: Context,
         attrs: AttributeSet
     ): View? {
-        if (AppConst.menuViewNames.contains(name) && parent?.parent is FrameLayout) {
-            (parent.parent as View).setBackgroundColor(backgroundColor)
+        val view = super.onCreateView(parent, name, context, attrs)
+        if (AppConst.menuViewNames.contains(name)) {
+            if (parent?.parent is FrameLayout) {
+                ThemePopupMenu.styleBackground(parent.parent as View)
+            }
+            view?.let(ThemePopupMenu::styleItemOnAttach)
         }
-        return super.onCreateView(parent, name, context, attrs)
+        return view
     }
 
     @SuppressLint("ObsoleteSdkInt")
