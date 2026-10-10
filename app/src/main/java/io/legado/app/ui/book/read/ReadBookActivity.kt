@@ -1079,6 +1079,10 @@ class ReadBookActivity : BaseReadBookActivity(),
                     }
                 },
                 canCalibrate = { readerResumed && window.decorView.hasWindowFocus() && !menuLayoutIsVisible },
+                onReadyChanged = { ready ->
+                    binding.readView.curPage.setEyePageHint(ready)
+                    binding.readView.invalidate()
+                },
                 onNextPage = {
                     AppLog.putDebug("眼动翻页请求：chapter=${ReadBook.durChapterIndex} page=${ReadBook.durPageIndex} delegate=${binding.readView.pageDelegate?.javaClass?.simpleName}")
                     keyPage(PageDirection.NEXT)

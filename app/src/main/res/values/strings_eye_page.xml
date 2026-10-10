@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="eye_page_turn">眼动翻页</string>
-    <string name="eye_page_help">开启后使用前置摄像头识别视线，图像仅在设备本地处理，不会保存或上传。\n\n请保持光线充足、手机与头部稳定，按提示依次注视屏幕顶部和底部的圆点完成校准。\n\n自然阅读到屏幕底部，短暂停留后将视线向上移，即可翻到下一页。眨眼或单纯抬头不会触发翻页。退出阅读或进入后台会停止摄像头。\n\n识别效果受光线、眼镜反光与握持姿势影响；姿势变化后可关闭再开启以重新校准。</string>
+    <string name="eye_page_look_up_hint">上看翻页</string>
+    <string name="eye_page_help">开启后使用前置摄像头识别视线，图像仅在设备本地处理，不会保存或上传。\n\n请保持光线充足、手机与头部稳定，按提示依次注视屏幕顶部和底部的圆点完成校准。\n\n自然阅读到屏幕底部，短暂停留，页脚出现“上看翻页”后将视线向上移，即可翻到下一页。眨眼或单纯抬头不会触发翻页。退出阅读或进入后台会停止摄像头。\n\n识别效果受光线、眼镜反光与握持姿势影响；姿势变化后可关闭再开启以重新校准。</string>
     <string name="eye_page_enable">开启并校准</string>
     <string name="eye_page_permission_required">眼动翻页需要摄像头权限，请允许后重新开启</string>
     <string name="eye_page_unsupported">眼动翻页需要 Android 7.0 及以上系统和前置摄像头</string>

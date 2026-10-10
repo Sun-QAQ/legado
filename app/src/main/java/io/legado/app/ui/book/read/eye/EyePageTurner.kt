@@ -29,6 +29,7 @@ class EyePageTurner(
     private val root: FrameLayout,
     private val readingBlockReason: () -> String?,
     private val canCalibrate: () -> Boolean,
+    private val onReadyChanged: (Boolean) -> Unit,
     private val onNextPage: () -> Unit,
     private val onError: (Throwable) -> Unit,
     private val onCancel: () -> Unit
@@ -53,6 +54,11 @@ class EyePageTurner(
     private val readingStates = linkedMapOf<String, Int>()
     private var minPosition = Float.POSITIVE_INFINITY
     private var maxPosition = Float.NEGATIVE_INFINITY
+    private var readyHintVisible = false
+    private val hintTimeout = Runnable {
+        detector.reset(reason = "tracking_timeout")
+        updateReadyHint(false)
+    }
     val isCalibrating: Boolean get() = overlay != null
     private val timeout = Runnable {
         if (overlay != null) {
@@ -73,6 +79,7 @@ class EyePageTurner(
             else -> 0
         }
         detector.reset(SystemClock.uptimeMillis(), cooldown = true)
+        updateReadyHint(false)
         if (!detector.calibrated) showCalibration()
         camera = EyeCameraTracker(activity.applicationContext, degrees, { observation, time ->
             if (current == generation) accept(observation, time)
@@ -90,6 +97,7 @@ class EyePageTurner(
             lastIssue = R.string.eye_page_processing_slow
             status?.setTextIfNotEqual(activity.getString(lastIssue))
             detector.reset()
+            updateReadyHint(false)
             calibration.reset()
             if (overlay == null) recordReading(sample, time, "stale_frame")
             return
@@ -143,11 +151,13 @@ class EyePageTurner(
         val blocked = readingBlockReason()
         if (blocked != null) {
             detector.reset(reason = "paused:$blocked")
+            updateReadyHint(false)
             recordReading(sample, time, detector.state)
             return
         }
         val wasArmed = detector.armed
         val turn = detector.update(sample, time, observation.state == GazeTrackingState.EYES_CLOSED)
+        updateReadyHint(detector.armed)
         if (!wasArmed && detector.armed) {
             AppLog.putDebug("眼动翻页已确认底部注视：dwell=${detector.bottomDwellMs}ms position=${sample?.let(detector::position)}")
         }
@@ -156,6 +166,14 @@ class EyePageTurner(
             AppLog.put("眼动翻页动作已识别：position=${sample?.let(detector::position)}")
             onNextPage()
         }
+    }
+
+    private fun updateReadyHint(visible: Boolean) {
+        handler.removeCallbacks(hintTimeout)
+        if (visible) handler.postDelayed(hintTimeout, 500L)
+        if (readyHintVisible == visible) return
+        readyHintVisible = visible
+        onReadyChanged(visible)
     }
 
     private fun recordReading(sample: GazeSample?, time: Long, state: String) {
@@ -286,7 +304,10 @@ class EyePageTurner(
         calibration.reset()
     }
 
-    fun resetGesture() = detector.reset(SystemClock.uptimeMillis(), cooldown = true)
+    fun resetGesture() {
+        detector.reset(SystemClock.uptimeMillis(), cooldown = true)
+        updateReadyHint(false)
+    }
 
     fun stop() {
         generation++
