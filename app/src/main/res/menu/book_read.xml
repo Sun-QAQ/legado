@@ -60,6 +60,13 @@
         app:showAsAction="never" />
 
     <item
+        android:id="@+id/menu_eye_page_turn"
+        android:checkable="true"
+        android:checked="false"
+        android:title="@string/eye_page_turn"
+        app:showAsAction="never" />
+
+    <item
         android:id="@+id/menu_get_progress"
         android:title="@string/get_book_progress"
         android:visible="false"

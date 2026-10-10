@@ -40,6 +40,14 @@ import java.io.File
 @Suppress("ConstPropertyName")
 @Keep
 object ReadBookConfig {
+    var eyePageTurnEnabled: Boolean
+        get() = appCtx.getPrefBoolean("eyePageTurnEnabled", false)
+        set(value) = appCtx.putPrefBoolean("eyePageTurnEnabled", value)
+
+    var eyePageTurnHelpShown: Boolean
+        get() = appCtx.getPrefBoolean("eyePageTurnHelpShown", false)
+        set(value) = appCtx.putPrefBoolean("eyePageTurnHelpShown", value)
+
     const val configFileName = "readConfig.json"
     const val shareConfigFileName = "shareReadConfig.json"
     val configFilePath = FileUtils.getPath(appCtx.filesDir, configFileName)
