@@ -145,47 +145,45 @@ internal class EyeCameraTracker(
         if (!active) return
         try {
             val image = source.acquireLatestImage() ?: return
-            // Keep frame processing outside the inline use block to avoid an R8
-            // crash on non-local returns combined with nested cleanup handlers.
-            image.use { processFrame(it) }
+            image.use {
+                val now = SystemClock.uptimeMillis()
+                if (now - lastFrame < 100L) return
+                lastFrame = now
+                val bitmap = toBitmap(image)
+                val rotated = if (rotation == 0) bitmap else Bitmap.createBitmap(
+                    bitmap, 0, 0, bitmap.width, bitmap.height,
+                    Matrix().apply { postRotate(rotation.toFloat()) }, true)
+                if (rotated !== bitmap) bitmap.recycle()
+                val input = BitmapImageBuilder(rotated).build()
+                try {
+                    val result = landmarker?.detectForVideo(input, now)
+                    val faces = result?.faceLandmarks().orEmpty()
+                    // Conditional branches avoid an R8 8.13.19 integer-switch
+                    // optimization crash while preserving the face-count cases.
+                    val observation = when {
+                        faces.isEmpty() -> GazeObservation(null, GazeTrackingState.NO_FACE)
+                        faces.size == 1 -> GazeEstimator.estimate(faces[0].map {
+                            GazeLandmark(it.x() * rotated.width, it.y() * rotated.height)
+                        }, rotated.width)
+                        else -> GazeObservation(null, GazeTrackingState.MULTIPLE_FACES)
+                    }
+                    frameCount++
+                    trackingCounts[observation.state] = (trackingCounts[observation.state] ?: 0) + 1
+                    maxProcessingMs = maxOf(maxProcessingMs, SystemClock.uptimeMillis() - now)
+                    if (now - reportAt >= 5000L) {
+                        reportAt = now
+                        AppLog.putDebug("眼动识别统计：frames=$frameCount states=$trackingCounts maxProcessingMs=$maxProcessingMs")
+                    }
+                    main.post { if (active) onSample(observation, now) }
+                } finally {
+                    input.close()
+                    rotated.recycle()
+                }
+            }
         } catch (e: Exception) {
             fail(e)
         } catch (e: LinkageError) {
             fail(e)
-        }
-    }
-
-    private fun processFrame(image: Image) {
-        val now = SystemClock.uptimeMillis()
-        if (now - lastFrame < 100L) return
-        lastFrame = now
-        val bitmap = toBitmap(image)
-        val rotated = if (rotation == 0) bitmap else Bitmap.createBitmap(
-            bitmap, 0, 0, bitmap.width, bitmap.height,
-            Matrix().apply { postRotate(rotation.toFloat()) }, true)
-        if (rotated !== bitmap) bitmap.recycle()
-        val input = BitmapImageBuilder(rotated).build()
-        try {
-            val result = landmarker?.detectForVideo(input, now)
-            val faces = result?.faceLandmarks().orEmpty()
-            val observation = when (faces.size) {
-                0 -> GazeObservation(null, GazeTrackingState.NO_FACE)
-                1 -> GazeEstimator.estimate(faces[0].map {
-                    GazeLandmark(it.x() * rotated.width, it.y() * rotated.height)
-                }, rotated.width)
-                else -> GazeObservation(null, GazeTrackingState.MULTIPLE_FACES)
-            }
-            frameCount++
-            trackingCounts[observation.state] = (trackingCounts[observation.state] ?: 0) + 1
-            maxProcessingMs = maxOf(maxProcessingMs, SystemClock.uptimeMillis() - now)
-            if (now - reportAt >= 5000L) {
-                reportAt = now
-                AppLog.putDebug("眼动识别统计：frames=$frameCount states=$trackingCounts maxProcessingMs=$maxProcessingMs")
-            }
-            main.post { if (active) onSample(observation, now) }
-        } finally {
-            input.close()
-            rotated.recycle()
         }
     }
 
