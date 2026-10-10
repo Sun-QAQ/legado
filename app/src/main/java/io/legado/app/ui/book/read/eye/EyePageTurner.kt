@@ -27,7 +27,7 @@ import java.util.Locale
 class EyePageTurner(
     private val activity: Activity,
     private val root: FrameLayout,
-    private val canRead: () -> Boolean,
+    private val readingBlockReason: () -> String?,
     private val canCalibrate: () -> Boolean,
     private val onNextPage: () -> Unit,
     private val onError: (Throwable) -> Unit,
@@ -49,6 +49,10 @@ class EyePageTurner(
     private var lastIssue = R.string.eye_page_camera_starting
     private var staleFrames = 0
     private var receivedFrames = 0
+    private var lastReadingLog = 0L
+    private val readingStates = linkedMapOf<String, Int>()
+    private var minPosition = Float.POSITIVE_INFINITY
+    private var maxPosition = Float.NEGATIVE_INFINITY
     val isCalibrating: Boolean get() = overlay != null
     private val timeout = Runnable {
         if (overlay != null) {
@@ -87,6 +91,7 @@ class EyePageTurner(
             status?.setTextIfNotEqual(activity.getString(lastIssue))
             detector.reset()
             calibration.reset()
+            if (overlay == null) recordReading(sample, time, "stale_frame")
             return
         }
         if (overlay != null) {
@@ -135,11 +140,39 @@ class EyePageTurner(
             }
             return
         }
-        if (!canRead()) {
-            detector.reset()
+        val blocked = readingBlockReason()
+        if (blocked != null) {
+            detector.reset(reason = "paused:$blocked")
+            recordReading(sample, time, detector.state)
             return
         }
-        if (detector.update(sample, time)) onNextPage()
+        val wasArmed = detector.armed
+        val turn = detector.update(sample, time, observation.state == GazeTrackingState.EYES_CLOSED)
+        if (!wasArmed && detector.armed) {
+            AppLog.putDebug("眼动翻页已确认底部注视：dwell=${detector.bottomDwellMs}ms position=${sample?.let(detector::position)}")
+        }
+        recordReading(sample, time, detector.state)
+        if (turn) {
+            AppLog.put("眼动翻页动作已识别：position=${sample?.let(detector::position)}")
+            onNextPage()
+        }
+    }
+
+    private fun recordReading(sample: GazeSample?, time: Long, state: String) {
+        readingStates[state] = (readingStates[state] ?: 0) + 1
+        sample?.let {
+            val position = detector.position(it)
+            if (position.isFinite()) {
+                minPosition = minOf(minPosition, position)
+                maxPosition = maxOf(maxPosition, position)
+            }
+        }
+        if (time - lastReadingLog < 5000L) return
+        lastReadingLog = time
+        AppLog.putDebug("眼动阅读统计：states=$readingStates positionRange=$minPosition..$maxPosition armed=${detector.armed} bottomDwell=${detector.bottomDwellMs} stale=$staleFrames pose=${sample?.let { "pitch=${it.headPitch} yaw=${it.headYaw} scale=${it.faceScale}" }}")
+        readingStates.clear()
+        minPosition = Float.POSITIVE_INFINITY
+        maxPosition = Float.NEGATIVE_INFINITY
     }
 
     private fun showCalibration() {

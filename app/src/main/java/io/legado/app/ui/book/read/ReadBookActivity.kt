@@ -1061,16 +1061,26 @@ class ReadBookActivity : BaseReadBookActivity(),
         }
         if (eyePageTurner == null) {
             eyePageTurner = EyePageTurner(this, binding.root,
-                canRead = {
-                    readerResumed && window.decorView.hasWindowFocus() && !menuLayoutIsVisible
-                            && isInitFinish && !isAutoPage && !BaseReadAloudService.isPlay()
-                            && !binding.readView.isTextSelected && !textActionMenu.isShowing && !popupAction.isShowing
-                            && binding.readView.pageDelegate?.isRunning == false
-                            && !binding.readView.curPage.textPage.isMsgPage
-                            && binding.readView.curPage.textPage.lines.isNotEmpty()
+                readingBlockReason = {
+                    when {
+                        !readerResumed -> "not_resumed"
+                        !window.decorView.hasWindowFocus() -> "window_unfocused"
+                        menuLayoutIsVisible -> "menu_visible"
+                        !isInitFinish -> "initializing"
+                        isAutoPage -> "auto_paging"
+                        BaseReadAloudService.isPlay() -> "read_aloud"
+                        binding.readView.isTextSelected -> "text_selected"
+                        textActionMenu.isShowing || popupAction.isShowing -> "text_menu"
+                        binding.readView.pageDelegate == null -> "no_page_delegate"
+                        binding.readView.pageDelegate?.isRunning == true -> "page_animation"
+                        binding.readView.curPage.textPage.isMsgPage -> "message_page"
+                        binding.readView.curPage.textPage.lines.isEmpty() -> "empty_page"
+                        else -> null
+                    }
                 },
                 canCalibrate = { readerResumed && window.decorView.hasWindowFocus() && !menuLayoutIsVisible },
                 onNextPage = {
+                    AppLog.putDebug("眼动翻页请求：chapter=${ReadBook.durChapterIndex} page=${ReadBook.durPageIndex} delegate=${binding.readView.pageDelegate?.javaClass?.simpleName}")
                     keyPage(PageDirection.NEXT)
                     screenOffTimerStart()
                 },
@@ -1166,6 +1176,9 @@ class ReadBookActivity : BaseReadBookActivity(),
      */
     override fun pageChanged() {
         eyePageTurner?.resetGesture()
+        if (ReadBookConfig.eyePageTurnEnabled) {
+            AppLog.putDebug("眼动阅读页面已变化：chapter=${ReadBook.durChapterIndex} page=${ReadBook.durPageIndex}")
+        }
         pageChanged = true
         binding.readView.onPageChange()
         handler.post {

@@ -45,7 +45,7 @@ class GazeGestureDetectorTest {
     }
 
     @Test
-    fun blinkOrLostFaceRequiresNewBottomDwell() {
+    fun lostFaceRequiresNewBottomDwell() {
         val detector = detector()
         readBottom(detector)
         assertFalse(detector.update(null, 1900))
@@ -53,6 +53,89 @@ class GazeGestureDetectorTest {
         readBottom(detector, 2600)
         assertFalse(detector.update(sample(0f), 3500))
         assertTrue(detector.update(sample(0f), 3700))
+    }
+
+    @Test
+    fun phoneCalibrationWithBottomJitterAndBlinkStillTurns() {
+        // Calibration endpoints/noise from the attached HONOR log. The per-frame
+        // positions below simulate reading jitter; the log only contains aggregates.
+        val top = -0.06420f
+        val bottom = -0.00439f
+        val detector = GazeGestureDetector()
+        assertTrue(detector.calibrate(top, bottom, 0.01036f))
+        fun phoneSample(position: Float) = GazeSample(top + position * (bottom - top),
+            0.4263f, 0.049f, 0.2677f)
+        val positions = listOf(1f, 0.75f, 0.68f, 0.92f, null, 0.70f, 0.95f, 1.1f, 0.72f, 0.83f, 0.91f)
+        positions.forEachIndexed { index, position ->
+            assertFalse(detector.update(position?.let(::phoneSample), 1000L + index * 100, position == null))
+        }
+        assertTrue(detector.armed)
+        assertFalse(detector.update(phoneSample(0.15f), 2100))
+        assertFalse(detector.update(phoneSample(0.25f), 2200))
+        assertTrue(detector.update(phoneSample(0.12f), 2300))
+    }
+
+    @Test
+    fun naturalBlinkBetweenBottomAndUpDoesNotEraseArming() {
+        val detector = detector()
+        readBottom(detector)
+        assertFalse(detector.update(null, 1900, eyesClosed = true))
+        assertFalse(detector.update(null, 2000, eyesClosed = true))
+        assertFalse(detector.update(sample(0f), 2100))
+        assertFalse(detector.update(sample(0f), 2200))
+        assertTrue(detector.update(sample(0f), 2300))
+    }
+
+    @Test
+    fun closedEyeTimeDoesNotCountAsBottomDwell() {
+        val detector = detector()
+        for (time in 1000L..1300L step 100L) assertFalse(detector.update(sample(1f), time))
+        for (time in 1400L..1600L step 100L) assertFalse(detector.update(null, time, eyesClosed = true))
+        assertFalse(detector.update(sample(1f), 1700))
+        assertEquals(300L, detector.bottomDwellMs)
+        for (time in 1800L..2300L step 100L) assertFalse(detector.update(sample(0f), time))
+    }
+
+    @Test
+    fun prolongedClosedEyesRequireNewBottomDwell() {
+        val detector = detector()
+        readBottom(detector)
+        for (time in 1900L..2600L step 100L) assertFalse(detector.update(null, time, eyesClosed = true))
+        for (time in 2700L..3200L step 100L) assertFalse(detector.update(sample(0f), time))
+    }
+
+    @Test
+    fun reopeningAfterBlinkTimeoutCannotJoinBottomAndUp() {
+        val detector = detector()
+        readBottom(detector)
+        assertFalse(detector.update(null, 2100, eyesClosed = true))
+        for (time in 2400L..2900L step 100L) assertFalse(detector.update(sample(0f), time))
+    }
+
+    @Test
+    fun blinkDuringUpwardGlanceRequiresFreshOpenEyeDwell() {
+        val detector = detector()
+        readBottom(detector)
+        assertFalse(detector.update(sample(0f), 1900))
+        assertFalse(detector.update(null, 2000, eyesClosed = true))
+        assertFalse(detector.update(sample(0f), 2100))
+        assertFalse(detector.update(sample(0f), 2200))
+        assertTrue(detector.update(sample(0f), 2300))
+    }
+
+    @Test
+    fun headMovementDuringBlinkStillCancelsGesture() {
+        val detector = detector()
+        readBottom(detector)
+        assertFalse(detector.update(null, 1900, eyesClosed = true))
+        for (time in 2000L..2500L step 100L) assertFalse(detector.update(sample(0f, pitch = 0.3f), time))
+    }
+
+    @Test
+    fun middleOfPageDoesNotStartBottomDwell() {
+        val detector = detector()
+        for (time in 1000L..2200L step 100L) assertFalse(detector.update(sample(0.65f), time))
+        for (time in 2300L..2800L step 100L) assertFalse(detector.update(sample(0f), time))
     }
 
     @Test
