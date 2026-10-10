@@ -1051,7 +1051,7 @@ class ReadBookActivity : BaseReadBookActivity(),
             startEyePageTurner()
         } else {
             eyePageTurner?.stop()
-            eyePageTurner = null // Re-enabling learns the current phone / head position.
+            eyePageTurner = null // A new controller restores the saved first calibration.
         }
         upScreenTimeOut()
     }

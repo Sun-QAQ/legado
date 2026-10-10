@@ -15,6 +15,7 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import io.legado.app.R
 import io.legado.app.constant.AppLog
+import io.legado.app.help.config.ReadBookConfig
 import io.legado.app.lib.theme.accentColor
 import io.legado.app.lib.theme.bottomBackground
 import io.legado.app.lib.theme.getPrimaryTextColor
@@ -80,7 +81,15 @@ class EyePageTurner(
         }
         detector.reset(SystemClock.uptimeMillis(), cooldown = true)
         updateReadyHint(false)
-        if (!detector.calibrated) showCalibration()
+        if (!detector.calibrated) {
+            val saved = GazeCalibrationProfile.decode(ReadBookConfig.eyePageCalibration)
+            if (saved != null && detector.calibrate(saved.top, saved.bottom, saved.noise)) {
+                detector.reset(SystemClock.uptimeMillis(), cooldown = true)
+                AppLog.putDebug("眼动翻页已复用首次校准：top=${saved.top} bottom=${saved.bottom} noise=${saved.noise}")
+            } else {
+                showCalibration()
+            }
+        }
         camera = EyeCameraTracker(activity.applicationContext, degrees, { observation, time ->
             if (current == generation) accept(observation, time)
         }, { error ->
@@ -139,6 +148,8 @@ class EyePageTurner(
                 val separated = detector.calibrate(top.sample.vertical, point.sample.vertical, noise)
                 AppLog.put("眼动校准比较：top=${describe(top)} bottom=${describe(point)} span=${abs(point.sample.vertical - top.sample.vertical)} requiredSpan=${maxOf(0.008f, noise * 3f)} samePose=$samePose separated=$separated")
                 if (samePose && separated) {
+                    ReadBookConfig.eyePageCalibration = GazeCalibrationProfile(
+                        top.sample.vertical, point.sample.vertical, noise).encode()
                     hideCalibration()
                     detector.reset(time, cooldown = true)
                     android.widget.Toast.makeText(activity, R.string.eye_page_ready, android.widget.Toast.LENGTH_SHORT).show()
