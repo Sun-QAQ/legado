@@ -3,6 +3,8 @@ package io.legado.app.ui.book.read
 import android.annotation.SuppressLint
 import android.app.DatePickerDialog
 import android.content.pm.ActivityInfo
+import android.graphics.drawable.GradientDrawable
+import android.graphics.drawable.StateListDrawable
 import android.os.Build
 import android.os.Bundle
 import android.view.KeyEvent
@@ -10,7 +12,9 @@ import android.view.View
 import android.view.WindowInsets
 import android.view.WindowManager
 import androidx.activity.viewModels
+import androidx.appcompat.widget.AppCompatEditText
 import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.ViewCompat
 import androidx.core.view.isVisible
 import androidx.core.view.updateLayoutParams
 import io.legado.app.R
@@ -27,6 +31,7 @@ import io.legado.app.help.config.ReadBookConfig
 import io.legado.app.lib.dialogs.alert
 import io.legado.app.lib.dialogs.selector
 import io.legado.app.lib.theme.ThemeStore
+import io.legado.app.lib.theme.ThemePalette
 import io.legado.app.utils.applyTint
 import io.legado.app.lib.theme.bottomBackground
 import io.legado.app.model.CacheBook
@@ -39,6 +44,7 @@ import io.legado.app.ui.file.HandleFileContract
 import io.legado.app.utils.ColorUtils
 import io.legado.app.utils.FileDoc
 import io.legado.app.utils.find
+import io.legado.app.utils.dpToPx
 import io.legado.app.utils.getPrefString
 import io.legado.app.utils.gone
 import io.legado.app.utils.isTv
@@ -269,6 +275,23 @@ abstract class BaseReadBookActivity :
         ReadBook.book?.let { book ->
             alert(titleResource = R.string.offline_cache) {
                 val alertBinding = DialogDownloadChoiceBinding.inflate(layoutInflater).apply {
+                    val palette = ThemePalette(root.context)
+                    listOf(editStart, editEnd).forEach { input ->
+                        fun outline(color: Int) = GradientDrawable().apply {
+                            setColor(palette.background)
+                            cornerRadius = 8f.dpToPx()
+                            setStroke(1.dpToPx(), color)
+                        }
+                        // 清除 EditText 自动 tint，让底色与弹窗一致，仅用描边区分输入区域。
+                        ViewCompat.setBackgroundTintList(input, null)
+                        (input as? AppCompatEditText)?.supportBackgroundTintList = null
+                        input.background = StateListDrawable().apply {
+                            addState(intArrayOf(android.R.attr.state_focused), outline(palette.accent))
+                            addState(intArrayOf(), outline(palette.divider))
+                        }
+                        input.setTextColor(palette.text)
+                        input.setHintTextColor(palette.secondaryText)
+                    }
                     editStart.setText((book.durChapterIndex + 1).toString())
                     editEnd.setText(book.totalChapterNum.toString())
                     editStart.setAccentCursor()
