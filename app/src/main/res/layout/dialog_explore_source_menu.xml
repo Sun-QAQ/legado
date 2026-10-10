@@ -35,7 +35,7 @@
             android:textColor="@color/primaryText"
             android:textSize="17sp"
             android:textStyle="bold"
-            tools:text="起点中文网" />
+            tools:text="书源名称" />
 
         <TextView
             android:layout_width="wrap_content"
