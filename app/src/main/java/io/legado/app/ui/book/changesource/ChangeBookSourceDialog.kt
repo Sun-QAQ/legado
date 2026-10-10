@@ -1,10 +1,10 @@
 package io.legado.app.ui.book.changesource
 
 import android.os.Bundle
+import android.graphics.Color
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
-import android.widget.ImageButton
 import androidx.appcompat.widget.SearchView
 import androidx.appcompat.widget.Toolbar
 import androidx.core.os.bundleOf
@@ -27,20 +27,18 @@ import io.legado.app.databinding.DialogBookChangeSourceBinding
 import io.legado.app.help.config.AppConfig
 import io.legado.app.lib.dialogs.alert
 import io.legado.app.lib.theme.elevation
-import io.legado.app.lib.theme.getPrimaryTextColor
 import io.legado.app.lib.theme.backgroundColor
-import io.legado.app.lib.theme.primaryColor
 import io.legado.app.ui.book.read.ReadBookActivity
 import io.legado.app.ui.book.source.edit.BookSourceEditActivity
 import io.legado.app.ui.book.source.manage.BookSourceActivity
 import io.legado.app.ui.widget.dialog.WaitDialog
 import io.legado.app.ui.widget.recycler.VerticalDivider
-import io.legado.app.utils.ColorUtils
 import io.legado.app.utils.StartActivityContract
 import io.legado.app.utils.applyTint
 import io.legado.app.utils.applyDialogRoundedBackground
 import io.legado.app.utils.dpToPx
 import io.legado.app.utils.getCompatDrawable
+import io.legado.app.utils.setTintMutate
 import io.legado.app.utils.observeEvent
 import io.legado.app.utils.setLayout
 import io.legado.app.utils.startActivity
@@ -126,7 +124,9 @@ class ChangeBookSourceDialog() : BaseDialogFragment(R.layout.dialog_book_change_
         binding.toolBar.title = viewModel.name
         binding.toolBar.subtitle = viewModel.author
         binding.toolBar.navigationIcon =
-            getCompatDrawable(androidx.appcompat.R.drawable.abc_ic_ab_back_material)
+            getCompatDrawable(androidx.appcompat.R.drawable.abc_ic_ab_back_material)?.apply {
+                setTintMutate(Color.BLACK)
+            }
         binding.toolBar.elevation = requireContext().elevation
     }
 
@@ -187,21 +187,11 @@ class ChangeBookSourceDialog() : BaseDialogFragment(R.layout.dialog_book_change_
     }
 
     private fun initNavigationView() {
-        binding.toolBar.navigationIcon =
-            getCompatDrawable(androidx.appcompat.R.drawable.abc_ic_ab_back_material)
         binding.toolBar.setNavigationContentDescription(
             androidx.appcompat.R.string.abc_action_bar_up_description
         )
         binding.toolBar.setNavigationOnClickListener {
             dismissAllowingStateLoss()
-        }
-        kotlin.runCatching {
-            val mNavButtonViewField = Toolbar::class.java.getDeclaredField("mNavButtonView")
-            mNavButtonViewField.isAccessible = true
-            val navigationView = mNavButtonViewField.get(binding.toolBar) as ImageButton
-            val isLight = ColorUtils.isColorLight(primaryColor)
-            val textColor = requireContext().getPrimaryTextColor(isLight)
-            navigationView.setColorFilter(textColor)
         }
     }
 
