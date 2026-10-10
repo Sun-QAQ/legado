@@ -116,12 +116,13 @@ class GazeGestureDetectorTest {
     }
 
     @Test
-    fun calibrationWaitsForStableOpenEyesAndResetsOnLostFace() {
+    fun calibrationWaitsForStableOpenEyesAndResetsOnProlongedLostFace() {
         val calibration = GazeCalibration()
         for (time in 1000L..2400L step 100L) assertEquals(null, calibration.add(sample(0f), time))
         assertEquals(null, calibration.add(null, 2500))
-        for (time in 2600L..4700L step 100L) assertEquals(null, calibration.add(sample(0f), time))
-        assertEquals(0.3f, calibration.add(sample(0f), 4800)!!, 0.001f)
+        assertEquals(null, calibration.add(null, 3300))
+        for (time in 3400L..5500L step 100L) assertEquals(null, calibration.add(sample(0f), time))
+        assertEquals(0.3f, calibration.add(sample(0f), 5600)!!.sample.vertical, 0.001f)
     }
 
     @Test
@@ -130,5 +131,48 @@ class GazeGestureDetectorTest {
         for (index in 0..22) {
             assertEquals(null, calibration.add(sample(if (index % 2 == 0) 0f else 1f), 1000L + index * 100))
         }
+    }
+
+    @Test
+    fun naturalBlinkPausesCalibrationWithoutErasingSamples() {
+        val calibration = GazeCalibration()
+        for (time in 1000L..2400L step 100L) assertEquals(null, calibration.add(sample(0f), time))
+        val progressBeforeBlink = calibration.progress
+        assertEquals(null, calibration.add(null, 2500))
+        assertEquals(progressBeforeBlink, calibration.progress)
+        var result: GazeCalibrationPoint? = null
+        for (time in 2600L..3400L step 100L) result = calibration.add(sample(0f), time)
+        assertEquals(0.3f, result!!.sample.vertical, 0.001f)
+        assertTrue(result.sampleCount >= 12)
+    }
+
+    @Test
+    fun calibrationUsesMedianPoseInsteadOfLastFrame() {
+        val calibration = GazeCalibration()
+        for (time in 1000L..3100L step 100L) assertEquals(null, calibration.add(sample(0f, pitch = 0.03f), time))
+        val top = calibration.add(sample(0f, pitch = -0.08f), 3200)!!
+        val bottom = GazeCalibrationPoint(sample(1f, pitch = 0.06f), 0f, 16)
+        assertEquals(0.03f, top.sample.headPitch, 0.001f)
+        assertTrue(top.hasSimilarPose(bottom))
+        assertFalse(top.hasSimilarPose(bottom.copy(sample = sample(1f, pitch = 0.4f))))
+    }
+
+    @Test
+    fun smallStableSignalCanCalibrateButNoisyOrIdenticalTargetsCannot() {
+        val detector = GazeGestureDetector()
+        assertTrue(detector.calibrate(0.02f, 0.032f, 0.001f))
+        assertFalse(detector.calibrate(0.02f, 0.032f, 0.006f))
+        assertFalse(detector.calibrate(0.02f, 0.02f, 0.001f))
+        assertFalse(detector.calibrate(0.02f, 0.032f, Float.NaN))
+    }
+
+    @Test
+    fun noisySamplesEventuallyRecoverAfterGazeStabilizes() {
+        val calibration = GazeCalibration()
+        for (index in 0..30) assertEquals(null,
+            calibration.add(sample(if (index % 2 == 0) 0f else 1f), 1000L + index * 100))
+        var point: GazeCalibrationPoint? = null
+        for (time in 4100L..9500L step 100L) point = calibration.add(sample(0f), time)
+        assertEquals(0.3f, point!!.sample.vertical, 0.001f)
     }
 }

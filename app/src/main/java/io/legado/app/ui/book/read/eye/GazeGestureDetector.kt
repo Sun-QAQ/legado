@@ -1,6 +1,7 @@
 package io.legado.app.ui.book.read.eye
 
 import kotlin.math.abs
+import kotlin.math.max
 
 /** Eye-relative coordinates; head pose is used only to reject movement, never to turn pages. */
 internal data class GazeSample(
@@ -24,8 +25,9 @@ internal class GazeGestureDetector {
     private var blockedUntil = 0L
     private var lastSample = 0L
 
-    fun calibrate(top: Float, bottom: Float): Boolean {
-        calibrated = top.isFinite() && bottom.isFinite() && abs(bottom - top) >= 0.015f
+    fun calibrate(top: Float, bottom: Float, noise: Float = 0f): Boolean {
+        calibrated = top.isFinite() && bottom.isFinite() && noise.isFinite()
+                && abs(bottom - top) >= max(0.008f, 3f * noise)
         this.top = top
         this.bottom = bottom
         reset()
@@ -83,42 +85,71 @@ internal class GazeGestureDetector {
     }
 }
 
-/** Requires consecutive, open-eye samples after allowing time to move to the target. */
+internal data class GazeCalibrationPoint(val sample: GazeSample, val noise: Float, val sampleCount: Int) {
+    fun hasSimilarPose(other: GazeCalibrationPoint): Boolean =
+        abs(sample.headPitch - other.sample.headPitch) <= 0.12f
+                && abs(sample.headYaw - other.sample.headYaw) <= 0.12f
+                && sample.faceScale / other.sample.faceScale in 0.8f..1.2f
+}
+
+/** Accumulate valid observation time; a natural blink pauses rather than erases progress. */
 internal class GazeCalibration {
-    private val values = ArrayList<Float>()
+    private val samples = ArrayList<Pair<Long, GazeSample>>()
     private var startedAt: Long? = null
-    private var lastSample = 0L
+    private var lastValidAt: Long? = null
+    private var previousWasValid = false
+    private var validTime = 0L
     private var pose: GazeSample? = null
+    var unstable = false
+        private set
+    val progress: Int get() = minOf(99, (validTime * 100 / 1500L).toInt(), samples.size * 100 / 12)
 
     fun reset() {
-        values.clear()
+        samples.clear()
         startedAt = null
+        lastValidAt = null
+        previousWasValid = false
+        validTime = 0L
         pose = null
+        unstable = false
     }
 
-    fun add(sample: GazeSample?, now: Long): Float? {
+    fun add(sample: GazeSample?, now: Long): GazeCalibrationPoint? {
+        val last = lastValidAt
+        if (last != null && now - last > 700L) reset()
         if (sample == null || !sample.vertical.isFinite()) {
-            reset()
+            previousWasValid = false
             return null
         }
-        if (lastSample != 0L && now - lastSample > 350L) reset()
-        lastSample = now
         val reference = pose
         if (reference != null && (abs(sample.headPitch - reference.headPitch) > 0.12f
                     || abs(sample.headYaw - reference.headYaw) > 0.12f
                     || sample.faceScale / reference.faceScale !in 0.8f..1.2f)) reset()
         if (pose == null) pose = sample
         val start = startedAt ?: now.also { startedAt = it }
-        if (now - start < 700L) return null
-        values.add(sample.vertical)
-        if (now - start < 2200L || values.size < 12) return null
-        val sorted = values.sorted()
-        val median = sorted[sorted.size / 2]
-        // Unstable gaze must not produce an unusable calibration.
-        if (sorted[sorted.size * 9 / 10] - sorted[sorted.size / 10] > 0.06f) {
-            reset()
-            return null
+        if (now - start >= 700L) {
+            // Don't count blink time or a camera stall as time spent looking at a target.
+            lastValidAt?.let {
+                if (previousWasValid && it >= start + 700L) validTime += (now - it).coerceIn(0L, 250L)
+            }
+            samples.add(now to sample)
+            samples.removeAll { now - it.first > 5000L }
         }
-        return median
+        lastValidAt = now
+        previousWasValid = true
+        if (validTime < 1500L || samples.size < 12) return null
+        fun median(values: List<Float>): Float {
+            val sorted = values.sorted()
+            return (sorted[(sorted.size - 1) / 2] + sorted[sorted.size / 2]) / 2
+        }
+        val values = samples.map { it.second.vertical }.sorted()
+        val vertical = median(values)
+        val noise = max(median(values.map { abs(it - vertical) }) * 1.4826f,
+            (values[values.size * 9 / 10] - values[values.size / 10]) / 2.56f)
+        unstable = noise > 0.025f
+        if (unstable) return null
+        return GazeCalibrationPoint(GazeSample(vertical,
+            median(samples.map { it.second.headPitch }), median(samples.map { it.second.headYaw }),
+            median(samples.map { it.second.faceScale })), noise, samples.size)
     }
 }

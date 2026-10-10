@@ -16,20 +16,17 @@ import android.os.Handler
 import android.os.HandlerThread
 import android.os.Looper
 import android.os.SystemClock
-import android.util.Size
 import com.google.mediapipe.framework.image.BitmapImageBuilder
-import com.google.mediapipe.tasks.components.containers.NormalizedLandmark
 import com.google.mediapipe.tasks.core.BaseOptions
 import com.google.mediapipe.tasks.vision.core.RunningMode
 import com.google.mediapipe.tasks.vision.facelandmarker.FaceLandmarker
-import kotlin.math.abs
-import kotlin.math.hypot
+import io.legado.app.constant.AppLog
 
 /** Owns camera and inference on one worker. Images never leave the device or get saved. */
 internal class EyeCameraTracker(
     private val context: Context,
     private val displayDegrees: Int,
-    private val onSample: (GazeSample?, Long) -> Unit,
+    private val onSample: (GazeObservation, Long) -> Unit,
     private val onError: (Throwable) -> Unit
 ) {
     private val thread = HandlerThread("EyePageTracker").apply { start() }
@@ -42,6 +39,10 @@ internal class EyeCameraTracker(
     private var landmarker: FaceLandmarker? = null
     private var rotation = 0
     private var lastFrame = 0L
+    private var reportAt = 0L
+    private var frameCount = 0
+    private var maxProcessingMs = 0L
+    private val trackingCounts = mutableMapOf<GazeTrackingState, Int>()
 
     init {
         worker.post {
@@ -71,6 +72,7 @@ internal class EyeCameraTracker(
             .maxByOrNull { it.width * it.height }
             ?: sizes.minByOrNull { it.width * it.height }
             ?: error("前置摄像头不支持图像采集")
+        AppLog.put("眼动摄像头准备：camera=$id size=${size.width}x${size.height} rotation=$rotation display=$displayDegrees")
         landmarker = FaceLandmarker.createFromOptions(context,
             FaceLandmarker.FaceLandmarkerOptions.builder()
                 .setBaseOptions(BaseOptions.builder()
@@ -156,9 +158,21 @@ internal class EyeCameraTracker(
                 try {
                     val result = landmarker?.detectForVideo(input, now)
                     val faces = result?.faceLandmarks().orEmpty()
-                    val sample = if (faces.size == 1) gaze(faces[0], Size(rotated.width, rotated.height))
-                        else null
-                    main.post { if (active) onSample(sample, now) }
+                    val observation = when (faces.size) {
+                        0 -> GazeObservation(null, GazeTrackingState.NO_FACE)
+                        1 -> GazeEstimator.estimate(faces[0].map {
+                            GazeLandmark(it.x() * rotated.width, it.y() * rotated.height)
+                        }, rotated.width)
+                        else -> GazeObservation(null, GazeTrackingState.MULTIPLE_FACES)
+                    }
+                    frameCount++
+                    trackingCounts[observation.state] = (trackingCounts[observation.state] ?: 0) + 1
+                    maxProcessingMs = maxOf(maxProcessingMs, SystemClock.uptimeMillis() - now)
+                    if (now - reportAt >= 5000L) {
+                        reportAt = now
+                        AppLog.putDebug("眼动识别统计：frames=$frameCount states=$trackingCounts maxProcessingMs=$maxProcessingMs")
+                    }
+                    main.post { if (active) onSample(observation, now) }
                 } finally {
                     input.close()
                     rotated.recycle()
@@ -169,37 +183,6 @@ internal class EyeCameraTracker(
         } catch (e: LinkageError) {
             fail(e)
         }
-    }
-
-    private fun gaze(points: List<NormalizedLandmark>, size: Size): GazeSample? {
-        if (points.size < 478) return null
-        fun x(i: Int) = points[i].x() * size.width
-        fun y(i: Int) = points[i].y() * size.height
-        fun eye(outer: Int, inner: Int, upper: Int, lower: Int, iris: Int): Float? {
-            val dx = x(inner) - x(outer)
-            val dy = y(inner) - y(outer)
-            val width = hypot(dx, dy)
-            if (width < 8f) return null
-            // Perpendicular eye axis removes the effect of head roll.
-            val nx = -dy / width * if (dx > 0) 1 else -1
-            val ny = abs(dx) / width
-            val aperture = ((x(lower) - x(upper)) * nx + (y(lower) - y(upper)) * ny) / width
-            if (aperture < 0.12f) return null // Closed eye / blink / unreliable iris.
-            return ((x(iris) - (x(upper) + x(lower)) / 2) * nx
-                    + (y(iris) - (y(upper) + y(lower)) / 2) * ny) / width
-        }
-        val right = eye(33, 133, 159, 145, 468) ?: return null
-        val left = eye(362, 263, 386, 374, 473) ?: return null
-        if (abs(right - left) > 0.08f) return null
-        val dx = x(263) - x(33)
-        val dy = y(263) - y(33)
-        val width = hypot(dx, dy)
-        if (width < 30f) return null
-        val noseX = x(1) - (x(33) + x(263)) / 2
-        val noseY = y(1) - (y(33) + y(263)) / 2
-        return GazeSample((left + right) / 2,
-            (-noseX * dy + noseY * dx) / (width * width),
-            (noseX * dx + noseY * dy) / (width * width), width / size.width)
     }
 
     private fun toBitmap(image: Image): Bitmap {
