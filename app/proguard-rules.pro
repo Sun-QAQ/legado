@@ -141,6 +141,15 @@ cn.hutool.core.util.**{*;}
     *** sTestTrustManager;
 }
 
+# MediaPipe 的 JNI/反射入口及 protobuf 消息字段需要保留；Flogger 根据调用栈查找日志所属类，
+# R8 内联或混淆会导致 Graph 静态初始化失败，眼动翻页无法启动。
+# https://github.com/google-ai-edge/mediapipe/issues/6138
+-keep class com.google.mediapipe.** { *; }
+-keep class com.google.common.flogger.** { *; }
+# tasks-core 未提供这两个可选图模板/分析接口的类型，眼动识别不调用它们。
+-dontwarn com.google.mediapipe.proto.CalculatorProfileProto$CalculatorProfile
+-dontwarn com.google.mediapipe.proto.GraphTemplateProto$CalculatorGraphTemplate
+
 # Throwable
 -keepnames class * extends java.lang.Throwable
 -keepclassmembernames,allowobfuscation class * extends java.lang.Throwable{*;}
