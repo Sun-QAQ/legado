@@ -12,20 +12,39 @@
     </div>
     <div class="explore-controls">
       <el-select
+        v-model="sourceGroup"
+        class="explore-group"
+        filterable
+        aria-label="发现书源分组"
+        placeholder="全部分组"
+        :disabled="sourcesLoading"
+      >
+        <el-option label="全部分组" value="" />
+        <el-option
+          v-for="group in sourceGroups"
+          :key="group"
+          :label="group"
+          :value="`group:${group}`"
+        />
+        <el-option v-if="hasUngrouped" label="未分组" value="ungrouped" />
+      </el-select>
+      <el-select
         v-model="sourceUrl"
         filterable
         placeholder="选择发现书源"
         aria-label="选择发现书源"
         :loading="sourcesLoading"
+        :disabled="sourcesLoading"
         @change="loadKinds"
       >
         <el-option
-          v-for="source in sources"
+          v-for="source in filteredSources"
           :key="source.url"
           :value="source.url"
           :label="source.name"
         />
       </el-select>
+      <span class="muted">{{ filteredSources.length }} 个书源</span>
       <router-link to="/bookSource">管理书源</router-link>
     </div>
     <div v-loading="kindsLoading" class="explore-kinds" aria-label="发现分类">
@@ -110,6 +129,30 @@ import type { Book } from '@/book'
 
 const store = useBookStore()
 const sources = ref<ExploreSource[]>([])
+const sourceGroup = ref('')
+// 与 App 的书源分组分隔符保持一致，一个书源可以属于多个分组。
+const groupsOf = (source: ExploreSource) =>
+  (source.group || '')
+    .split(/[,;，；]/)
+    .map(group => group.trim())
+    .filter(Boolean)
+const sourceGroups = computed(() =>
+  [...new Set(sources.value.flatMap(groupsOf))].sort((a, b) =>
+    a.localeCompare(b, 'zh-CN'),
+  ),
+)
+const hasUngrouped = computed(() =>
+  sources.value.some(source => !groupsOf(source).length),
+)
+const filteredSources = computed(() =>
+  sources.value.filter(
+    source =>
+      !sourceGroup.value ||
+      (sourceGroup.value === 'ungrouped'
+        ? !groupsOf(source).length
+        : groupsOf(source).includes(sourceGroup.value.slice(6))),
+  ),
+)
 const kinds = ref<ExploreKind[]>([])
 const books = ref<Book[]>([])
 const sourceUrl = ref('')
@@ -126,11 +169,13 @@ let disposed = false
 const emptyText = computed(() =>
   !sources.value.length
     ? '暂无启用发现的书源，请在书源管理中添加或启用。'
-    : !kinds.value.length
-      ? '此书源暂无发现分类。'
-      : !category.value
-        ? '请选择一个发现分类。'
-        : '此分类暂无书籍。',
+    : !sourceUrl.value
+      ? '请选择此分组中的发现书源。'
+      : !kinds.value.length
+        ? '此书源暂无发现分类。'
+        : !category.value
+          ? '请选择一个发现分类。'
+          : '此分类暂无书籍。',
 )
 const inShelf = (book: Book) =>
   store.shelf.some(item => item.bookUrl === book.bookUrl)
@@ -146,6 +191,14 @@ const loadSources = async () => {
     if (disposed || current !== generation) return
     if (!data.isSuccess) throw new Error(data.errorMsg)
     sources.value = data.data
+    if (
+      sourceGroup.value === 'ungrouped'
+        ? !hasUngrouped.value
+        : sourceGroup.value &&
+          !sourceGroups.value.includes(sourceGroup.value.slice(6))
+    ) {
+      sourceGroup.value = ''
+    }
   } catch (e) {
     if (!disposed && current === generation)
       error.value =
@@ -176,6 +229,19 @@ const loadKinds = async () => {
     if (!disposed && current === generation) kindsLoading.value = false
   }
 }
+watch(sourceGroup, () => {
+  if (!sourceUrl.value) return
+  if (filteredSources.value.some(source => source.url === sourceUrl.value))
+    return
+  // 切换分组后清除不属于当前分组的选择，并忽略之前尚未完成的请求。
+  generation++
+  sourceUrl.value = category.value = error.value = ''
+  kinds.value = []
+  books.value = []
+  kindsLoading.value = booksLoading.value = false
+  hasMore.value = true
+  page = 1
+})
 const selectKind = (url: string) => {
   generation++
   category.value = url
@@ -254,6 +320,9 @@ onBeforeUnmount(() => {
 }
 .explore-controls .el-select {
   width: min(360px, 100%);
+}
+.explore-controls .explore-group {
+  width: min(220px, 100%);
 }
 .explore-controls a {
   color: var(--web-primary);
