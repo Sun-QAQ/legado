@@ -32,12 +32,12 @@ class AiPresetMigrationTest {
             close()
         }
         try {
-            Room.databaseBuilder(context, AppDatabase::class.java, dbName).build().use { db ->
+            withDatabase(dbName) { db ->
                 assertEquals("原系统提示词", db.aiPersonaDao.get(101)?.prompt)
                 assertEquals(emptyList<AiPreset>(), db.aiPresetDao.all)
                 db.aiPresetDao.insert(AiPreset(201, "简洁", "简洁回答", 2))
             }
-            Room.databaseBuilder(context, AppDatabase::class.java, dbName).build().use { db ->
+            withDatabase(dbName) { db ->
                 assertEquals("简洁回答", db.aiPresetDao.get(201)?.prompt)
                 db.aiPresetDao.insert(AiPreset(201, "简洁", "三句话回答", 3))
                 assertEquals(1, db.aiPresetDao.all.size)
@@ -48,6 +48,16 @@ class AiPresetMigrationTest {
             }
         } finally {
             context.deleteDatabase(dbName)
+        }
+    }
+
+    private fun withDatabase(name: String, block: (AppDatabase) -> Unit) {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val db = Room.databaseBuilder(context, AppDatabase::class.java, name).build()
+        try {
+            block(db)
+        } finally {
+            db.close()
         }
     }
 }
