@@ -127,6 +127,8 @@
 import API, { type ExploreSource, type ExploreKind } from '@api'
 import type { Book } from '@/book'
 
+defineOptions({ name: 'BookExplore' })
+
 const store = useBookStore()
 const sources = ref<ExploreSource[]>([])
 const sourceGroup = ref('')
@@ -300,8 +302,11 @@ const addBook = async (book: Book) => {
   }
 }
 onMounted(() => {
-  document.title = '书源发现 · 阅读'
   loadSources()
+})
+onActivated(() => {
+  document.title = '书源发现 · 阅读'
+  // 页面缓存保留发现进度，书架状态仍同步其它页面的添加或删除操作。
   store.loadBookShelf().catch(() => {})
 })
 onBeforeUnmount(() => {
