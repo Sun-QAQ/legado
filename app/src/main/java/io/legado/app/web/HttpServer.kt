@@ -4,6 +4,7 @@ import android.graphics.Bitmap
 import fi.iki.elonen.NanoHTTPD
 import io.legado.app.api.ReturnData
 import io.legado.app.api.controller.BookController
+import io.legado.app.api.controller.ExploreController
 import io.legado.app.api.controller.AiChatController
 import io.legado.app.api.controller.BookSourceController
 import io.legado.app.api.controller.ReplaceRuleController
@@ -89,6 +90,9 @@ class HttpServer(port: Int) : NanoHTTPD("::", port) {
                         "/getBookSources" -> BookSourceController.sources
                         "/getBookSourceGroups" -> BookSourceController.enabledGroups
                         "/getBookshelf" -> BookController.bookshelf
+                        "/getExploreSources" -> ExploreController.sources
+                        "/getExploreKinds" -> ExploreController.explore(parameters, true)
+                        "/exploreBooks" -> ExploreController.explore(parameters, false)
                         "/getChapterList" -> BookController.getChapterList(parameters)
                         "/refreshToc" -> BookController.refreshToc(parameters)
                         "/getBookContent" -> BookController.getBookContent(parameters)

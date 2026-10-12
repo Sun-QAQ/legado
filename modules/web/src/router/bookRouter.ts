@@ -2,6 +2,11 @@ import { createWebHashHistory, createRouter } from 'vue-router'
 
 export const bookRoutes = [
   {
+    path: '/explore',
+    name: 'explore',
+    component: () => import('../views/BookExplore.vue'),
+  },
+  {
     path: '/chat',
     name: 'chat',
     component: () => import('../views/AiChat.vue'),

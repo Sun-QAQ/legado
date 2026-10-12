@@ -50,6 +50,14 @@
           ><el-icon><Search /></el-icon
           ><span class="nav-label">在线搜索</span></router-link
         >
+        <router-link
+          to="/explore"
+          :class="{ active: route.name === 'explore' }"
+          aria-label="书源发现"
+          title="书源发现"
+          ><el-icon><Compass /></el-icon
+          ><span class="nav-label">书源发现</span></router-link
+        >
         <div class="nav-caption">内容与工具</div>
         <router-link
           to="/upload"
@@ -144,6 +152,7 @@
 import {
   ChatDotRound,
   Collection,
+  Compass,
   Search,
   Connection,
   Upload,
@@ -167,6 +176,7 @@ const title = computed(
     ({
       shelf: '我的书架',
       search: '在线搜索',
+      explore: '书源发现',
       'book-home': '书源管理',
       'rss-home': '订阅源管理',
       settings: '连接与设置',
