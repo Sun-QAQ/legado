@@ -2,6 +2,7 @@ package io.legado.app.ui.book.agent
 
 import android.os.Bundle
 import android.content.res.ColorStateList
+import android.view.KeyEvent
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
@@ -89,6 +90,17 @@ class AgentFragment() : BaseFragment(R.layout.fragment_agent), MainFragmentInter
         binding.etInput.setOnEditorActionListener { _, actionId, _ ->
             if (actionId == android.view.inputmethod.EditorInfo.IME_ACTION_SEND) {
                 sendInput()
+                true
+            } else {
+                false
+            }
+        }
+        binding.etInput.setOnKeyListener { _, keyCode, event ->
+            if (keyCode == KeyEvent.KEYCODE_ENTER || keyCode == KeyEvent.KEYCODE_NUMPAD_ENTER) {
+                // 按下时仅发送一次，并消费抬起和长按事件，避免换行或重复发送。
+                if (event.action == KeyEvent.ACTION_DOWN && event.repeatCount == 0) {
+                    sendInput()
+                }
                 true
             } else {
                 false
