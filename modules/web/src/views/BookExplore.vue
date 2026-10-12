@@ -10,12 +10,7 @@
         >刷新书源</el-button
       >
     </div>
-    <div
-      class="explore-controls"
-      :class="{ 'pointer-focus': !keyboardFocus }"
-      @pointerdown="keyboardFocus = false"
-      @keydown="keyboardFocus = true"
-    >
+    <div class="explore-controls">
       <el-select
         v-model="sourceGroup"
         class="explore-group"
@@ -135,10 +130,6 @@ import type { Book } from '@/book'
 defineOptions({ name: 'BookExplore' })
 
 const store = useBookStore()
-const keyboardFocus = ref(true)
-const trackKeyboardFocus = (event: KeyboardEvent) => {
-  if (event.key === 'Tab') keyboardFocus.value = true
-}
 const sources = ref<ExploreSource[]>([])
 const sourceGroup = ref('')
 // 与 App 的书源分组分隔符保持一致，一个书源可以属于多个分组。
@@ -314,16 +305,11 @@ onMounted(() => {
   loadSources()
 })
 onActivated(() => {
-  window.addEventListener('keydown', trackKeyboardFocus, true)
   document.title = '书源发现 · 阅读'
   // 页面缓存保留发现进度，书架状态仍同步其它页面的添加或删除操作。
   store.loadBookShelf().catch(() => {})
 })
-onDeactivated(() => {
-  window.removeEventListener('keydown', trackKeyboardFocus, true)
-})
 onBeforeUnmount(() => {
-  window.removeEventListener('keydown', trackKeyboardFocus, true)
   disposed = true
   generation++
 })
@@ -345,10 +331,6 @@ onBeforeUnmount(() => {
 }
 .explore-controls :deep(.el-select__input:focus-visible) {
   outline: none;
-}
-/* 鼠标点击沿用普通边框，键盘操作保留 Select 自带的焦点边框。 */
-.explore-controls.pointer-focus :deep(.el-select__wrapper.is-focused) {
-  box-shadow: 0 0 0 1px var(--el-border-color) inset;
 }
 .explore-controls a {
   color: var(--web-primary);
