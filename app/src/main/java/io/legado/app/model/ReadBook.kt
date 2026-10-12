@@ -100,6 +100,8 @@ object ReadBook : CoroutineScope by MainScope() {
     fun resetData(book: Book) {
         releaseAndCancel()
         ReadBook.book = book
+        // 先应用书源的图片样式及翻页设置，避免界面回调使用未初始化的默认翻页方式。
+        upWebBook(book)
         readRecord.bookName = book.name
         readRecord.readTime = appDb.readRecordDao.getReadTime(book.name) ?: 0
         chapterSize = appDb.bookChapterDao.getChapterCount(book.bookUrl)
@@ -116,7 +118,6 @@ object ReadBook : CoroutineScope by MainScope() {
         callBack?.upContent()
         callBack?.upMenuView()
         callBack?.upPageAnim()
-        upWebBook(book)
         lastBookProgress = null
         webBookProgress = null
         TextFile.clear()
@@ -130,6 +131,7 @@ object ReadBook : CoroutineScope by MainScope() {
     fun upData(book: Book) {
         releaseAndCancel()
         ReadBook.book = book
+        upWebBook(book)
         chapterSize = appDb.bookChapterDao.getChapterCount(book.bookUrl)
         simulatedChapterSize = if (book.readSimulating()) {
             book.simulatedTotalChapterNum()
@@ -151,7 +153,6 @@ object ReadBook : CoroutineScope by MainScope() {
             prevTextChapter = null
         }
         callBack?.upMenuView()
-        upWebBook(book)
         synchronized(this) {
             loadingChapters.clear()
             downloadedChapters.clear()
