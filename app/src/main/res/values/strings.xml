@@ -1421,4 +1421,13 @@
     <string name="my_avatar_emoji">表情头像</string>
     <string name="my_avatar_reset">恢复默认</string>
     <string name="book_info_read_play">▶ 阅读</string>
+    <string name="agent_presets">Presets</string>
+    <string name="agent_preset">Prompt preset</string>
+    <string name="agent_preset_default">No preset</string>
+    <string name="agent_preset_switched">Selected preset: %s</string>
+    <string name="ai_preset_name">Preset name</string>
+    <string name="ai_preset_prompt">Preset prompt</string>
+    <string name="ai_preset_select_use">Use this preset</string>
+    <string name="ai_preset_default_desc">Use the current persona without an additional preset.</string>
+    <string name="ai_preset_usage">Select a preset to append its prompt to the system prompt for subsequent messages.</string>
 </resources>

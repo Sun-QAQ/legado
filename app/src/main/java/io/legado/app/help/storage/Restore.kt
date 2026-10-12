@@ -12,6 +12,7 @@ import io.legado.app.constant.PreferKey
 import io.legado.app.data.appDb
 import io.legado.app.data.entities.AiImageSource
 import io.legado.app.data.entities.AiPersona
+import io.legado.app.data.entities.AiPreset
 import io.legado.app.data.entities.AiSearchSource
 import io.legado.app.data.entities.AiSource
 import io.legado.app.data.entities.Book
@@ -197,6 +198,9 @@ restoreEncryptedList<AiSource>(path, "aiSources.json", aes, "AI供应商配置")
 }
 restoreEncryptedList<AiPersona>(path, "aiPersonas.json", aes, "AI人设配置") {
     appDb.aiPersonaDao.insert(*it.toTypedArray())
+}
+restoreEncryptedList<AiPreset>(path, "aiPresets.json", aes, "AI预设提示词") {
+    appDb.aiPresetDao.insert(*it.toTypedArray())
 }
 restoreEncryptedList<AiImageSource>(path, "aiImageSources.json", aes, "AI图像生成配置") {
     it.forEach { source -> appDb.aiImageSourceDao.insert(source) }

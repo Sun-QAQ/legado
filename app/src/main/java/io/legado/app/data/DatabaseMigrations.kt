@@ -10,6 +10,10 @@ import io.legado.app.constant.BookType
 
 object DatabaseMigrations {
 
+    // Room 自动创建 aiPresets 表，保留原有书架、人格和会话数据。
+    @Suppress("ClassName")
+    class Migration_83_84 : AutoMigrationSpec
+
     // Room 自动为 aiSources 添加可空的 modelThinking 字段，已有供应商使用模型默认行为。
     @Suppress("ClassName")
     class Migration_82_83 : AutoMigrationSpec

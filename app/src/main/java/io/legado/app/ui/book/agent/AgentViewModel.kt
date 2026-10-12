@@ -2183,7 +2183,11 @@ class AgentViewModel @JvmOverloads constructor(
         messages.add(
             JsonObject().apply {
                 addProperty("role", "system")
-                addProperty("content", currentPersonaPrompt + toolOverview)
+                addProperty("content", composeAgentSystemPrompt(
+                    currentPersonaPrompt,
+                    AgentPresetPreferences.selectedPrompt(context),
+                    toolOverview
+                ))
             }
         )
         history.forEach { turn ->

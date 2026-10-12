@@ -46,6 +46,12 @@
         app:showAsAction="never" />
 
     <item
+        android:id="@+id/menu_manage_presets"
+        android:icon="@drawable/ic_edit"
+        android:title="@string/agent_presets"
+        app:showAsAction="never" />
+
+    <item
         android:id="@+id/menu_clear_chat"
         android:icon="@drawable/ic_clear_all"
         android:title="@string/agent_clear_chat"

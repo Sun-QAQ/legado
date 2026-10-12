@@ -16,6 +16,7 @@ import io.legado.app.data.dao.BookSourceDao
 import io.legado.app.data.dao.BookmarkDao
 import io.legado.app.data.dao.AiSourceDao
 import io.legado.app.data.dao.AiPersonaDao
+import io.legado.app.data.dao.AiPresetDao
 import io.legado.app.data.dao.AiConversationDao
 import io.legado.app.data.dao.AiImageSourceDao
 import io.legado.app.data.dao.AiSearchSourceDao
@@ -44,6 +45,7 @@ import io.legado.app.data.entities.BookSourcePart
 import io.legado.app.data.entities.Bookmark
 import io.legado.app.data.entities.AiSource
 import io.legado.app.data.entities.AiPersona
+import io.legado.app.data.entities.AiPreset
 import io.legado.app.data.entities.AiConversation
 import io.legado.app.data.entities.AiImageSource
 import io.legado.app.data.entities.AiSearchSource
@@ -79,14 +81,14 @@ val appDb by lazy {
 }
 
 @Database(
-    version = 83,
+    version = 84,
     exportSchema = true,
     entities = [Book::class, BookGroup::class, BookSource::class, BookChapter::class,
         ReplaceRule::class, SearchBook::class, SearchKeyword::class, Cookie::class,
         RssSource::class, Bookmark::class, RssArticle::class, RssReadRecord::class,
         RssStar::class, TxtTocRule::class, ReadRecord::class, ReadStat::class, HttpTTS::class, Cache::class,
         RuleSub::class, DictRule::class, KeyboardAssist::class, Server::class, AiSource::class,
-        AiPersona::class, AiConversation::class, AiImageSource::class, AiSearchSource::class],
+        AiPersona::class, AiPreset::class, AiConversation::class, AiImageSource::class, AiSearchSource::class],
     views = [BookSourcePart::class],
     autoMigrations = [
         AutoMigration(from = 43, to = 44),
@@ -129,6 +131,7 @@ val appDb by lazy {
         AutoMigration(from = 80, to = 81),
         AutoMigration(from = 81, to = 82),
         AutoMigration(from = 82, to = 83, spec = DatabaseMigrations.Migration_82_83::class),
+        AutoMigration(from = 83, to = 84, spec = DatabaseMigrations.Migration_83_84::class),
     ]
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -157,6 +160,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract val serverDao: ServerDao
     abstract val aiSourceDao: AiSourceDao
     abstract val aiPersonaDao: AiPersonaDao
+    abstract val aiPresetDao: AiPresetDao
     abstract val aiConversationDao: AiConversationDao
     abstract val aiImageSourceDao: AiImageSourceDao
     abstract val aiSearchSourceDao: AiSearchSourceDao

@@ -79,6 +79,7 @@ object Backup {
             "servers.json",
             "aiSources.json",
             "aiPersonas.json",
+            "aiPresets.json",
             "aiImageSources.json",
             "aiSearchSources.json",
             DirectLinkUpload.ruleFileName,
@@ -156,6 +157,7 @@ object Backup {
         writeEncryptedListToJson(appDb.serverDao.all, "servers.json", aes)
         writeEncryptedListToJson(appDb.aiSourceDao.all, "aiSources.json", aes)
         writeEncryptedListToJson(appDb.aiPersonaDao.all, "aiPersonas.json", aes)
+        writeEncryptedListToJson(appDb.aiPresetDao.all, "aiPresets.json", aes)
         writeEncryptedListToJson(appDb.aiImageSourceDao.all, "aiImageSources.json", aes)
         writeEncryptedListToJson(appDb.aiSearchSourceDao.all, "aiSearchSources.json", aes)
         currentCoroutineContext().ensureActive()

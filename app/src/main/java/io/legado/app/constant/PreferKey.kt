@@ -40,6 +40,7 @@ object PreferKey {
     const val showAi = "showAi"
     const val aiSupplierId = "aiSupplierId"
     const val aiPersonaId = "aiPersonaId"
+    const val aiPresetId = "aiPresetId"
     // 当前 AI 对话（空串表示新对话状态）
     const val aiConversationId = "aiConversationId"
     const val aiImageSourceId = "aiImageSourceId"
