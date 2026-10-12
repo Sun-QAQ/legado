@@ -182,6 +182,7 @@ dependencies {
     //androidX
     implementation(libs.core.ktx)
     implementation(libs.appcompat.appcompat)
+    implementation(libs.emoji2.bundled)
     implementation(libs.activity.ktx)
     implementation(libs.fragment.ktx)
     implementation(libs.preference.ktx)

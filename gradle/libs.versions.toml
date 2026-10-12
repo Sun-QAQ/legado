@@ -4,6 +4,7 @@ kotlin = "2.3.0"
 ksp = "2.3.4"
 agp = "8.13.2"
 appcompat = "1.7.1"
+emoji2 = "1.5.0" # 保留 minSdk 21 兼容性，1.6.0 起要求 API 23
 colorpicker = "1.1.0"
 constraintlayout = "2.2.1"
 core = "1.17.0"
@@ -84,6 +85,7 @@ androidx-annotation = { group = "androidx.annotation", name = "annotation", vers
 
 androidx-collection = { module = "androidx.collection:collection", version.ref = "collection" }
 appcompat-appcompat = { module = "androidx.appcompat:appcompat", version.ref = "appcompat" }
+emoji2-bundled = { module = "androidx.emoji2:emoji2-bundled", version.ref = "emoji2" }
 androidx-constraintlayout = { module = "androidx.constraintlayout:constraintlayout", version.ref = "constraintlayout" }
 
 

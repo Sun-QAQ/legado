@@ -9,6 +9,8 @@ import android.content.pm.ActivityInfo
 import android.content.pm.ApplicationInfo
 import android.content.res.Configuration
 import android.os.Build
+import androidx.emoji2.bundled.BundledEmojiCompatConfig
+import androidx.emoji2.text.EmojiCompat
 import com.github.liuyueyi.quick.transfer.constants.TransType
 import com.jeremyliao.liveeventbus.LiveEventBus
 import com.jeremyliao.liveeventbus.logger.DefaultLogger
@@ -71,6 +73,8 @@ class App : Application() {
     override fun onCreate() {
         super.onCreate()
         CrashHandler(this)
+        // 内置 Emoji 字体，兼容没有可下载字体服务的设备和模拟器。
+        EmojiCompat.init(BundledEmojiCompatConfig(this))
         if (isDebuggable) {
             ThreadUtils.setThreadAssertsDisabledForTesting(true)
         }
