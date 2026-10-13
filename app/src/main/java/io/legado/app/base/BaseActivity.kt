@@ -46,7 +46,6 @@ abstract class BaseActivity<VB : ViewBinding>(
     val fullScreen: Boolean = true,
     private val theme: Theme = Theme.Auto,
     private val toolBarTheme: Theme = Theme.Auto,
-    private val transparent: Boolean = false,
     private val imageBg: Boolean = true
 ) : AppCompatActivity() {
 
