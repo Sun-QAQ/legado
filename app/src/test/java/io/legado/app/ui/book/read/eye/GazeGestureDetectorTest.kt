@@ -30,6 +30,43 @@ class GazeGestureDetectorTest {
     }
 
     @Test
+    fun continuingDownPastCalibrationKeepsPromptAndAllowsUpwardTurn() {
+        for ((top, bottom) in listOf(0.3f to 0.6f, 0.6f to 0.3f)) {
+            val detector = GazeGestureDetector()
+            assertTrue(detector.calibrate(top, bottom))
+            fun gaze(position: Float) = GazeSample(top + position * (bottom - top), 0f, 0f, 1f)
+            assertFalse(detector.update(gaze(0.8f), 1000))
+            assertFalse(detector.update(gaze(0.8f), 1100))
+            assertTrue(detector.armed)
+            // Continue down and read below the calibration target for longer than
+            // the upward transition timeout. The prompt must remain armed.
+            for (time in 1200L..4200L step 100L) {
+                val position = (0.8f + (time - 1100L) / 1000f).coerceAtMost(2f)
+                assertFalse(detector.update(gaze(position), time))
+                assertTrue(detector.armed)
+                assertEquals("armed", detector.state)
+            }
+            assertFalse(detector.update(gaze(0.2f), 4300))
+            assertFalse(detector.update(gaze(0.2f), 4400))
+            assertTrue(detector.update(gaze(0.2f), 4500))
+            assertFalse(detector.armed)
+            assertFalse(detector.update(gaze(0.2f), 4600))
+        }
+    }
+
+    @Test
+    fun lookingBelowCalibrationCanStartBottomDwell() {
+        val detector = detector()
+        assertFalse(detector.update(sample(2f), 1000))
+        assertFalse(detector.update(sample(2f), 1099))
+        assertFalse(detector.armed)
+        assertFalse(detector.update(sample(2f), 1100))
+        assertTrue(detector.armed)
+        assertFalse(detector.update(sample(0.2f), 1200))
+        assertTrue(detector.update(sample(0.2f), 1400))
+    }
+
+    @Test
     fun ordinaryDownwardReadingAndLookingUpWithoutBottomDoNotTurn() {
         val detector = detector()
         for (time in 1000L..2000L step 100L) assertFalse(detector.update(sample(0f), time))
