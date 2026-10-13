@@ -71,6 +71,13 @@
             android:title="@string/set_local_password" />
 
         <io.legado.app.lib.prefs.Preference
+            android:key="eyePageRecalibrate"
+            android:persistent="false"
+            android:summary="@string/eye_page_recalibrate_summary"
+            android:title="@string/eye_page_recalibrate"
+            app:iconSpaceReserved="false" />
+
+        <io.legado.app.lib.prefs.Preference
             android:key="userAgent"
             android:title="@string/user_agent" />
 
