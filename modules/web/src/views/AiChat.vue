@@ -657,6 +657,9 @@ onBeforeUnmount(() => {
 .chat-toolbar > .el-select {
   width: min(380px, 45%);
 }
+.chat-toolbar :deep(.el-select__input:focus-visible) {
+  outline: none;
+}
 .chat-actions {
   display: flex;
   align-items: center;
