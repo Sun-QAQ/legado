@@ -38,7 +38,7 @@ internal class EyeCameraTracker(
     private var reader: ImageReader? = null
     private var landmarker: FaceLandmarker? = null
     private var rotation = 0
-    private var lastFrame = 0L
+    private val cadence = GazeProcessingCadence()
     private var reportAt = 0L
     private var frameCount = 0
     private var maxProcessingMs = 0L
@@ -147,8 +147,7 @@ internal class EyeCameraTracker(
             val image = source.acquireLatestImage() ?: return
             image.use {
                 val now = SystemClock.uptimeMillis()
-                if (now - lastFrame < 100L) return
-                lastFrame = now
+                if (!cadence.shouldProcess(now)) return
                 val bitmap = toBitmap(image)
                 val rotated = if (rotation == 0) bitmap else Bitmap.createBitmap(
                     bitmap, 0, 0, bitmap.width, bitmap.height,
@@ -167,12 +166,17 @@ internal class EyeCameraTracker(
                         }, rotated.width)
                         else -> GazeObservation(null, GazeTrackingState.MULTIPLE_FACES)
                     }
+                    val previousInterval = cadence.intervalMs
+                    cadence.onObservation(observation.sample != null, now)
+                    if (cadence.intervalMs != previousInterval) {
+                        AppLog.putDebug("眼动识别频率调整：intervalMs=${cadence.intervalMs} state=${observation.state}")
+                    }
                     frameCount++
                     trackingCounts[observation.state] = (trackingCounts[observation.state] ?: 0) + 1
                     maxProcessingMs = maxOf(maxProcessingMs, SystemClock.uptimeMillis() - now)
                     if (now - reportAt >= 5000L) {
                         reportAt = now
-                        AppLog.putDebug("眼动识别统计：frames=$frameCount states=$trackingCounts maxProcessingMs=$maxProcessingMs")
+                        AppLog.putDebug("眼动识别统计：frames=$frameCount states=$trackingCounts maxProcessingMs=$maxProcessingMs intervalMs=${cadence.intervalMs}")
                     }
                     main.post { if (active) onSample(observation, now) }
                 } finally {
