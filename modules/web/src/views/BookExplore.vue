@@ -91,7 +91,9 @@
           <div class="explore-book-info">
             <h2>{{ book.name }}</h2>
             <p class="muted">{{ book.author || '佚名' }}</p>
-            <p v-if="book.kind" class="muted">{{ book.kind }}</p>
+            <p v-if="book.kind" class="muted explore-tags" :title="book.kind">
+              {{ book.kind }}
+            </p>
             <p class="explore-intro">
               {{
                 book.intro?.replace(/<[^>]*>/g, '') ||
@@ -389,6 +391,13 @@ onBeforeUnmount(() => {
   -webkit-box-orient: vertical;
   overflow: hidden;
   line-height: 1.7;
+}
+.explore-tags {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  overflow-wrap: anywhere;
 }
 .explore-more {
   text-align: center;
