@@ -229,6 +229,8 @@ class App : Application() {
     }
 
     private fun initRhino() {
+        // 触发单例初始化，确保注册 Rhino 全局 ContextFactory。
+        @Suppress("UNUSED_EXPRESSION")
         RhinoScriptEngine
         RhinoWrapFactory.register(BookSource::class.java, NativeBaseSource.factory)
         RhinoWrapFactory.register(RssSource::class.java, NativeBaseSource.factory)
