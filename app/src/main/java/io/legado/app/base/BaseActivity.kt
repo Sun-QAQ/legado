@@ -55,11 +55,7 @@ abstract class BaseActivity<VB : ViewBinding>(
     val isInMultiWindow: Boolean
         @SuppressLint("ObsoleteSdkInt")
         get() {
-            return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                isInMultiWindowMode
-            } else {
-                false
-            }
+            return Build.VERSION.SDK_INT >= Build.VERSION_CODES.N && isInMultiWindowMode
         }
 
     override fun attachBaseContext(newBase: Context) {
