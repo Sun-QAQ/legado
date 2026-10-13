@@ -26,4 +26,7 @@ package-lock.json
 /wrapper/
 /workers/
 /kotlin-profile/
+# Local build logs
+/*build.log
+/cleanup-stop.log
 AGENTS.md
