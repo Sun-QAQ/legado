@@ -10,6 +10,8 @@ import io.legado.app.base.adapter.ItemViewHolder
 import io.legado.app.base.adapter.RecyclerAdapter
 import io.legado.app.data.entities.AiSearchSource
 import io.legado.app.databinding.ItemAiSourceBinding
+import io.legado.app.lib.theme.accentColor
+import io.legado.app.lib.theme.primaryTextColor
 
 class AiSearchSourceAdapter(
     context: Context,
@@ -47,6 +49,7 @@ class AiSearchSourceAdapter(
             ""
         }
         binding.tvName.text = prefix + item.name
+        binding.tvName.setTextColor(if (item.id == currentId) context.accentColor else context.primaryTextColor)
         binding.tvModel.text = "${typeLabel(item.type)} · ${item.defaultCount}"
         binding.swtEnabled.isChecked = item.enabled
     }

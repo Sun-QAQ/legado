@@ -10,6 +10,8 @@ import io.legado.app.base.adapter.ItemViewHolder
 import io.legado.app.base.adapter.RecyclerAdapter
 import io.legado.app.data.entities.AiImageSource
 import io.legado.app.databinding.ItemAiSourceBinding
+import io.legado.app.lib.theme.accentColor
+import io.legado.app.lib.theme.primaryTextColor
 
 class AiImageSourceAdapter(
     context: Context,
@@ -39,6 +41,7 @@ class AiImageSourceAdapter(
     ) {
         val prefix = if (item.id == currentId) "[${context.getString(R.string.ai_image_source_default)}] " else ""
         binding.tvName.text = prefix + item.name
+        binding.tvName.setTextColor(if (item.id == currentId) context.accentColor else context.primaryTextColor)
         binding.tvModel.text = listOf(item.model, item.imageSize).filter { it.isNotBlank() }.joinToString(" · ")
         binding.swtEnabled.isChecked = item.enabled
     }

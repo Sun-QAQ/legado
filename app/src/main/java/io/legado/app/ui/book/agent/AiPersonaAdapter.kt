@@ -11,6 +11,8 @@ import io.legado.app.base.adapter.ItemViewHolder
 import io.legado.app.base.adapter.RecyclerAdapter
 import io.legado.app.data.entities.AiPersona
 import io.legado.app.databinding.ItemAiPersonaBinding
+import io.legado.app.lib.theme.accentColor
+import io.legado.app.lib.theme.primaryTextColor
 
 class AiPersonaAdapter(
     context: Context,
@@ -54,6 +56,7 @@ class AiPersonaAdapter(
             ""
         }
         binding.tvName.text = prefix + item.name
+        binding.tvName.setTextColor(if (item.id == currentId) context.accentColor else context.primaryTextColor)
         binding.tvPrompt.text = item.prompt.ifBlank {
             context.getString(R.string.ai_persona_prompt)
         }

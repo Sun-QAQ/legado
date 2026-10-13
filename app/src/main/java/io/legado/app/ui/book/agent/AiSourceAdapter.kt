@@ -10,6 +10,8 @@ import io.legado.app.base.adapter.ItemViewHolder
 import io.legado.app.base.adapter.RecyclerAdapter
 import io.legado.app.data.entities.AiSource
 import io.legado.app.databinding.ItemAiSourceBinding
+import io.legado.app.lib.theme.accentColor
+import io.legado.app.lib.theme.primaryTextColor
 
 class AiSourceAdapter(
     context: Context,
@@ -52,6 +54,7 @@ class AiSourceAdapter(
             ""
         }
         binding.tvName.text = prefix + item.name
+        binding.tvName.setTextColor(if (item.id == currentId) context.accentColor else context.primaryTextColor)
         binding.tvModel.text = item.model.ifBlank {
             context.getString(R.string.ai_source_model)
         }
