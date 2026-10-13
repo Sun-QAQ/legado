@@ -1,13 +1,13 @@
 # AI Agent 目录说明
 
-本目录实现 AI 对话、阅读助手、工具调用，以及 AI 供应商、人格、联网搜索和图片生成配置。以下按功能列出每个 Kotlin 文件的主要职责。
+本目录实现 AI 对话、工具调用，以及 AI 供应商、人格、联网搜索和图片生成配置。以下按功能列出每个 Kotlin 文件的主要职责。
 
 ## 对话与会话管理
 
 | 文件 | 作用 |
 | --- | --- |
 | `AgentFragment.kt` | 主界面的 AI 对话入口，处理消息输入、供应商与人格选择、菜单操作和输入框避让键盘。 |
-| `AgentViewModel.kt` | 对话核心逻辑，管理提示词、流式请求、工具执行、阅读问答与会话持久化，并维护供应商和人格选择状态。 |
+| `AgentViewModel.kt` | 对话核心逻辑，管理提示词、流式请求、工具执行与会话持久化，并维护供应商和人格选择状态。 |
 | `AgentAdapter.kt` | 展示用户消息和 AI 回复，渲染 Markdown、执行步骤、书籍、书源仓库结果及生成图片。 |
 | `AgentMessage.kt` | 定义对话消息数据，包括文本、书籍、执行步骤、图片及流式显示状态。 |
 | `AgentStep.kt` | 定义执行步骤及其运行、成功、失败状态，记录详情、摘要和耗时。 |
@@ -27,8 +27,7 @@
 | `AgentToolPreferences.kt` | 持久化工具启停设置，读取被禁用的工具名称集合。 |
 | `AiToolAdapter.kt` | 展示工具名称、描述及启用开关，并转发开关操作。 |
 | `AiToolManageActivity.kt` | 工具管理页面，加载工具列表并保存启停设置。 |
-| `ReadingAssistantDialog.kt` | 阅读页内的 AI 问答弹窗，复用对话界面，围绕当前阅读进度内的内容提问。 |
-| `ReadingContextProvider.kt` | 获取当前阅读上下文、目录和正文，并按阅读进度与字数限制裁剪内容。 |
+| `ReadingContextProvider.kt` | 获取书籍目录和章节正文，供 AI 章节读取工具使用。 |
 | `ReadingReport.kt` | 汇总本周或本月的阅读时长、阅读天数及书籍记录，生成供 AI 使用的 JSON 数据。 |
 | `LibraryStats.kt` | 汇总书架书籍、书源、订阅源及分组数量，生成书库统计工具的 JSON 结果。 |
 | `SourceRepository.kt` | 搜索在线书源仓库、解析结果条目，并根据书源 ID 构造下载地址。 |

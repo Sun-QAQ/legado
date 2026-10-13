@@ -479,28 +479,6 @@ class AgentViewModel @JvmOverloads constructor(
     }
 
     /**
-     * 围绕阅读页当前章节提问。上下文只包含当前章节及此前章节，避免剧透。
-     */
-    fun askAboutCurrentReading(question: String) {
-        val key = question.trim()
-        if (key.isEmpty() || _waiting.value) return
-        cancelRequested = false
-        addUserMessage(key)
-        requestTracker.track(viewModelScope.launch {
-            val supplier = if (selectedSupplierId > 0) {
-                appDb.aiSourceDao.get(selectedSupplierId)
-            } else {
-                appDb.aiSourceDao.allEnabled.firstOrNull()
-            }
-            if (supplier == null || supplier.model.isBlank()) {
-                addAgentMessage(getString(R.string.ai_not_configured))
-            } else {
-                answerCurrentReading(supplier, key)
-            }
-        })
-    }
-
-    /**
      * 中断当前正在进行的请求或搜索
      */
     fun cancel() {
@@ -745,75 +723,6 @@ class AgentViewModel @JvmOverloads constructor(
         activeSteps.clear()
         stepStartTimes.clear()
         scheduleConversationSave()
-    }
-
-    /**
-     * 使用限定范围的阅读上下文回答问题，不启用工具调用，避免模型绕过章节范围读取后文。
-     */
-    private suspend fun answerCurrentReading(
-        supplier: io.legado.app.data.entities.AiSource,
-        question: String
-    ) {
-        _waiting.value = true
-        beginLiveReply()
-        try {
-            val contextStepId = startStep(getString(R.string.agent_step_read_book), "当前阅读进度")
-            val readingContext = withContext(Dispatchers.IO) {
-                readingContextProvider.currentReadingContext()
-            }
-            if (readingContext == null) {
-                finishStep(contextStepId, getString(R.string.agent_book_no_content))
-                finalizeLive(getString(R.string.agent_book_no_content))
-                return
-            }
-            finishStep(
-                contextStepId,
-                getString(R.string.agent_step_read_book_done, readingContext.chapterCount, readingContext.content.length)
-            )
-            val requestStepId = startStep(getString(R.string.agent_step_requesting), "model=${supplier.model}")
-            val request = JsonObject().apply {
-                addProperty("model", supplier.model)
-                add(
-                    "messages",
-                    JsonArray().apply {
-                        add(
-                            JsonObject().apply {
-                                addProperty("role", "system")
-                                addProperty("content", READING_ASSISTANT_PROMPT)
-                            }
-                        )
-                        add(
-                            JsonObject().apply {
-                                addProperty(
-                                    "content",
-                                    "书籍：《${readingContext.bookName}》\n" +
-                                        "当前进度：第${readingContext.currentChapter + 1}章\n\n" +
-                                        "已读正文（仅限以下章节）：\n${readingContext.content}\n\n" +
-                                        "用户问题：$question"
-                                )
-                                addProperty("role", "user")
-                            }
-                        )
-                    }
-                )
-            }
-            val reply = withContext(Dispatchers.IO) {
-                chatCompletionStream(supplier, request) { delta -> appendLiveText(delta) }
-            }
-            val text = reply.get("content")?.takeIf { !it.isJsonNull }?.asString.orEmpty()
-            finishStep(requestStepId, getString(R.string.agent_step_reply_done))
-            finalizeLive(text.ifBlank { getString(R.string.agent_invalid_response) })
-        } catch (e: Exception) {
-            if (cancelRequested || e is CancellationException) {
-                cancelRequested = false
-                finalizeLive(getString(R.string.agent_interrupted))
-            } else {
-                AppLog.put("阅读助手回答失败", e)
-                finalizeLive(e.localizedMessage ?: getString(R.string.agent_invalid_response))
-            }
-        } finally {
-            _waiting.value = false
-        }
     }
 
     private suspend fun searchDirect(key: String, searchKey: String = key) {
@@ -2857,11 +2766,6 @@ class AgentViewModel @JvmOverloads constructor(
         private const val REFERENCE_JSON_LIMIT = 3000
         private const val MAX_AI_BOOK_CHAPTERS = 50
         private val IMAGE_SIZE_PATTERN = Regex("^[1-9]\\d{1,4}x[1-9]\\d{1,4}$")
-        private const val READING_ASSISTANT_PROMPT =
-            "你是小说阅读助手，使用中文回答。只能依据用户提供的已读正文回答，绝不引用、推测或暗示当前章节之后的情节。" +
-                "若正文中没有足够依据，应明确说“已读内容中未提及”，不要编造。" +
-                "回答剧情、人物或事件时，在对应句末标注章节依据，格式如【第12章 章节名】。" +
-                "回答简洁清晰；用户要求总结时按要点归纳。"
         private const val BOOK_META_PROMPT =
             "你是专业小说创作助手。根据用户提供的小说类型和主题，生成小说基本信息。" +
                     "只输出一个JSON对象，不要输出解释、注释或markdown代码块。JSON格式：" +
