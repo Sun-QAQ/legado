@@ -161,6 +161,20 @@
         <item name="marginHorizontal">6dp</item>
     </style>
 
+    <!-- 书源面板覆盖系统导航区域，圆角和背景由内容布局绘制。 -->
+    <style name="Theme.Legado.SourceMenu" parent="ThemeOverlay.MaterialComponents.BottomSheetDialog">
+        <item name="enableEdgeToEdge">true</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="bottomSheetStyle">@style/Widget.Legado.SourceMenu</item>
+    </style>
+
+    <style name="Widget.Legado.SourceMenu" parent="Widget.MaterialComponents.BottomSheet.Modal">
+        <item name="backgroundTint">@android:color/transparent</item>
+        <item name="paddingBottomSystemWindowInsets">false</item>
+        <item name="paddingLeftSystemWindowInsets">false</item>
+        <item name="paddingRightSystemWindowInsets">false</item>
+    </style>
+
     <!-- 底部面板进出动画（用于 windowAnimations） -->
     <style name="Animation.Legado.BottomSheet" parent="">
         <item name="android:windowEnterAnimation">@anim/anim_sheet_bottom_in</item>

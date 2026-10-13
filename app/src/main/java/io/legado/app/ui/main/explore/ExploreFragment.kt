@@ -1,14 +1,16 @@
 package io.legado.app.ui.main.explore
 
-import android.graphics.Color
-import android.graphics.drawable.ColorDrawable
+import android.os.Build
 import android.os.Bundle
-import android.view.Gravity
 import android.view.View
-import android.view.ViewGroup
-import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.widget.SearchView as AppCompatSearchView
 import androidx.core.view.isVisible
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.updatePadding
+import com.google.android.material.bottomsheet.BottomSheetBehavior
+import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.tabs.TabLayout
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
@@ -36,6 +38,7 @@ import io.legado.app.ui.login.SourceLoginActivity
 import io.legado.app.ui.main.MainFragmentInterface
 import io.legado.app.ui.widget.SearchView
 import io.legado.app.utils.applyStatusBarPadding
+import io.legado.app.utils.ColorUtils
 import io.legado.app.utils.applyTint
 import io.legado.app.utils.flowWithLifecycleAndDatabaseChange
 import io.legado.app.utils.getCompatColor
@@ -301,18 +304,34 @@ class ExploreFragment() : VMBaseFragment<ExploreViewModel>(R.layout.fragment_exp
         val sheet = DialogExploreSourceMenuBinding.inflate(layoutInflater)
         sheet.tvSheetSourceName.text = source.bookSourceName
         sheet.btnLogin.isVisible = source.hasLoginUrl
-        val dialog = AlertDialog.Builder(requireContext())
-            .setView(sheet.root)
-            .create()
-        // 动画必须在 show() 之前设置才会生效
-        dialog.window?.setWindowAnimations(R.style.Animation_Legado_BottomSheet)
-        dialog.show()
-        // 位置与尺寸在 show() 之后设置，面板才会贴着屏幕底部弹出
-        dialog.window?.apply {
-            setGravity(Gravity.BOTTOM)
-            setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
-            setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+        val dialog = BottomSheetDialog(requireContext(), R.style.Theme_Legado_SourceMenu)
+        dialog.setContentView(sheet.root)
+        // 背景延伸到导航区域，操作按钮仍避开系统栏与屏幕缺口。
+        val leftPadding = sheet.root.paddingLeft
+        val rightPadding = sheet.root.paddingRight
+        val bottomPadding = sheet.root.paddingBottom
+        ViewCompat.setOnApplyWindowInsetsListener(sheet.root) { view, insets ->
+            val bars = insets.getInsets(
+                WindowInsetsCompat.Type.navigationBars() or WindowInsetsCompat.Type.displayCutout()
+            )
+            view.updatePadding(
+                left = leftPadding + bars.left,
+                right = rightPadding + bars.right,
+                bottom = bottomPadding + bars.bottom
+            )
+            insets
         }
+        dialog.window?.apply {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                isNavigationBarContrastEnforced = false
+            }
+            WindowCompat.getInsetsController(this, decorView).isAppearanceLightNavigationBars =
+                ColorUtils.isColorLight(requireContext().getCompatColor(R.color.background_card))
+        }
+        dialog.behavior.isDraggable = false
+        dialog.behavior.state = BottomSheetBehavior.STATE_EXPANDED
+        dialog.show()
+        ViewCompat.requestApplyInsets(sheet.root)
         sheet.btnSearch.setOnClickListener {
             dialog.dismiss()
             searchBook(source)
