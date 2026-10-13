@@ -9,8 +9,7 @@ import kotlinx.coroutines.withTimeout
 
 object ExploreController {
     val sources: ReturnData
-        get() = ReturnData().setData(appDb.bookSourceDao.all
-            .filter { it.enabled && it.enabledExplore && !it.exploreUrl.isNullOrBlank() }
+        get() = ReturnData().setData(appDb.bookSourceDao.getWebExploreSources()
             .map { mapOf("url" to it.bookSourceUrl, "name" to it.bookSourceName,
                 "group" to it.bookSourceGroup) })
 

@@ -11,40 +11,28 @@
       >
     </div>
     <div class="explore-controls">
-      <el-select
+      <el-select-v2
         v-model="sourceGroup"
         class="explore-group"
         filterable
         aria-label="发现书源分组"
         placeholder="全部分组"
         :disabled="sourcesLoading"
-      >
-        <el-option label="全部分组" value="" />
-        <el-option
-          v-for="group in sourceGroups"
-          :key="group"
-          :label="group"
-          :value="`group:${group}`"
-        />
-        <el-option v-if="hasUngrouped" label="未分组" value="ungrouped" />
-      </el-select>
-      <el-select
+        :options="groupOptions"
+      />
+      <el-select-v2
         v-model="sourceUrl"
         filterable
         placeholder="选择发现书源"
         aria-label="选择发现书源"
         :loading="sourcesLoading"
         :disabled="sourcesLoading"
+        :options="sourceOptions"
         @change="loadKinds"
-      >
-        <el-option
-          v-for="source in filteredSources"
-          :key="source.url"
-          :value="source.url"
-          :label="source.name"
-        />
-      </el-select>
-      <span class="muted">{{ filteredSources.length }} 个书源</span>
+      />
+      <span class="muted" role="status">{{
+        sourcesLoading ? '正在加载书源…' : `${filteredSources.length} 个书源`
+      }}</span>
       <router-link to="/bookSource">管理书源</router-link>
     </div>
     <div v-loading="kindsLoading" class="explore-kinds" aria-label="发现分类">
@@ -132,7 +120,7 @@ import type { Book } from '@/book'
 defineOptions({ name: 'BookExplore' })
 
 const store = useBookStore()
-const sources = ref<ExploreSource[]>([])
+const sources = shallowRef<ExploreSource[]>([])
 const sourceGroup = ref('')
 // 与 App 的书源分组分隔符保持一致，一个书源可以属于多个分组。
 const groupsOf = (source: ExploreSource) =>
@@ -157,11 +145,19 @@ const filteredSources = computed(() =>
         : groupsOf(source).includes(sourceGroup.value.slice(6))),
   ),
 )
+const groupOptions = computed(() => [
+  { label: '全部分组', value: '' },
+  ...sourceGroups.value.map(group => ({ label: group, value: `group:${group}` })),
+  ...(hasUngrouped.value ? [{ label: '未分组', value: 'ungrouped' }] : []),
+])
+const sourceOptions = computed(() =>
+  filteredSources.value.map(source => ({ label: source.name, value: source.url })),
+)
 const kinds = ref<ExploreKind[]>([])
 const books = ref<Book[]>([])
 const sourceUrl = ref('')
 const category = ref('')
-const sourcesLoading = ref(false)
+const sourcesLoading = ref(true)
 const kindsLoading = ref(false)
 const booksLoading = ref(false)
 const hasMore = ref(true)
@@ -170,6 +166,15 @@ const adding = reactive(new Set<string>())
 let page = 1
 let generation = 0
 let disposed = false
+let sourcesRequest: AbortController | undefined
+// 等首屏完成绘制再启动请求，避免页面切换时同步工作挤占渲染。
+const afterPaint = (action: () => void) => {
+  requestAnimationFrame(() => {
+    setTimeout(() => {
+      if (!disposed) action()
+    }, 0)
+  })
+}
 const emptyText = computed(() =>
   !sources.value.length
     ? '暂无启用发现的书源，请在书源管理中添加或启用。'
@@ -185,13 +190,16 @@ const inShelf = (book: Book) =>
   store.shelf.some(item => item.bookUrl === book.bookUrl)
 const loadSources = async () => {
   const current = ++generation
+  sourcesRequest?.abort()
+  const request = new AbortController()
+  sourcesRequest = request
   sourcesLoading.value = true
   kindsLoading.value = booksLoading.value = false
   sourceUrl.value = category.value = error.value = ''
   kinds.value = []
   books.value = []
   try {
-    const { data } = await API.getExploreSources()
+    const { data } = await API.getExploreSources(request.signal)
     if (disposed || current !== generation) return
     if (!data.isSuccess) throw new Error(data.errorMsg)
     sources.value = data.data
@@ -210,6 +218,7 @@ const loadSources = async () => {
           ? e.message
           : '书源加载失败，请检查连接。'
   } finally {
+    if (sourcesRequest === request) sourcesRequest = undefined
     if (!disposed && current === generation) sourcesLoading.value = false
   }
 }
@@ -304,15 +313,16 @@ const addBook = async (book: Book) => {
   }
 }
 onMounted(() => {
-  loadSources()
+  afterPaint(loadSources)
 })
 onActivated(() => {
   document.title = '书源发现 · 阅读'
   // 页面缓存保留发现进度，书架状态仍同步其它页面的添加或删除操作。
-  store.loadBookShelf().catch(() => {})
+  afterPaint(() => store.loadBookShelf().catch(() => {}))
 })
 onBeforeUnmount(() => {
   disposed = true
+  sourcesRequest?.abort()
   generation++
 })
 </script>

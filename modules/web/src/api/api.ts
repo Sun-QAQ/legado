@@ -76,8 +76,8 @@ const saveBookProgressWithBeacon = (bookProgress: BookProgress) => {
 const getBookShelf = () => ajax.get<LeagdoApiResponse<Book[]>>('getBookshelf')
 export type ExploreSource = { url: string; name: string; group?: string }
 export type ExploreKind = { title: string; url?: string }
-const getExploreSources = () =>
-  ajax.get<LeagdoApiResponse<ExploreSource[]>>('getExploreSources')
+const getExploreSources = (signal?: AbortSignal) =>
+  ajax.get<LeagdoApiResponse<ExploreSource[]>>('getExploreSources', { signal })
 const getExploreKinds = (sourceUrl: string) =>
   ajax.get<LeagdoApiResponse<ExploreKind[]>>('getExploreKinds', {
     params: { sourceUrl },

@@ -88,6 +88,13 @@ interface BookSourceDao {
     )
     fun flowExplore(): Flow<List<BookSourcePart>>
 
+    @Query(
+        """select * from book_sources_part
+        where enabled = 1 and enabledExplore = 1 and hasExploreUrl = 1
+        order by customOrder asc"""
+    )
+    fun getWebExploreSources(): List<BookSourcePart>
+
     @Query("select * from book_sources_part where hasLoginUrl = 1 order by customOrder asc")
     fun flowLogin(): Flow<List<BookSourcePart>>
 
