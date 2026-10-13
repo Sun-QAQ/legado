@@ -35,13 +35,13 @@ class GazeGestureDetectorTest {
             val detector = GazeGestureDetector()
             assertTrue(detector.calibrate(top, bottom))
             fun gaze(position: Float) = GazeSample(top + position * (bottom - top), 0f, 0f, 1f)
-            assertFalse(detector.update(gaze(0.8f), 1000))
-            assertFalse(detector.update(gaze(0.8f), 1100))
+            assertFalse(detector.update(gaze(0.9f), 1000))
+            assertFalse(detector.update(gaze(0.9f), 1100))
             assertTrue(detector.armed)
             // Continue down and read below the calibration target for longer than
             // the upward transition timeout. The prompt must remain armed.
             for (time in 1200L..4200L step 100L) {
-                val position = (0.8f + (time - 1100L) / 1000f).coerceAtMost(2f)
+                val position = (0.9f + (time - 1100L) / 1000f).coerceAtMost(2f)
                 assertFalse(detector.update(gaze(position), time))
                 assertTrue(detector.armed)
                 assertEquals("armed", detector.state)
@@ -175,9 +175,20 @@ class GazeGestureDetectorTest {
 
     @Test
     fun middleOfPageDoesNotStartBottomDwell() {
-        val detector = detector()
-        for (time in 1000L..2200L step 100L) assertFalse(detector.update(sample(0.65f), time))
-        for (time in 2300L..2800L step 100L) assertFalse(detector.update(sample(0f), time))
+        for (position in listOf(0.65f, 0.75f, 0.8f, 0.84f)) {
+            val detector = detector()
+            for (time in 1000L..2200L step 100L) {
+                assertFalse(detector.update(sample(position), time))
+                assertFalse(detector.armed)
+            }
+            for (time in 2300L..2800L step 100L) assertFalse(detector.update(sample(0f), time))
+            // Reading farther down should still arm promptly and allow an upward turn.
+            assertFalse(detector.update(sample(0.9f), 2900))
+            assertFalse(detector.update(sample(0.9f), 3000))
+            assertTrue(detector.armed)
+            assertFalse(detector.update(sample(0f), 3100))
+            assertTrue(detector.update(sample(0f), 3300))
+        }
     }
 
     @Test

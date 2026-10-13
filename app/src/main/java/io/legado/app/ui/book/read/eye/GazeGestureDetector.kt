@@ -94,7 +94,7 @@ internal class GazeGestureDetector {
             return false
         }
         // Enter at the lower part of the page; retain the dwell across small gaze jitter.
-        val bottomThreshold = if (bottomPose == null) 0.72f else 0.65f
+        val bottomThreshold = if (bottomPose == null) 0.85f else 0.78f
         // Looking below the calibration target is still a bottom gaze.
         if (position >= bottomThreshold) {
             if (bottomPose == null) {
