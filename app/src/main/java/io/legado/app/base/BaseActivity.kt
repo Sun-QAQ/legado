@@ -3,7 +3,6 @@ package io.legado.app.base
 import android.annotation.SuppressLint
 import android.content.Context
 import android.content.res.Configuration
-import android.graphics.drawable.BitmapDrawable
 import android.os.Build
 import android.os.Bundle
 import android.util.AttributeSet
@@ -15,6 +14,7 @@ import android.widget.FrameLayout
 import androidx.activity.addCallback
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.graphics.drawable.toDrawable
 import androidx.viewbinding.ViewBinding
 import io.legado.app.R
 import io.legado.app.constant.AppConst
@@ -205,7 +205,7 @@ abstract class BaseActivity<VB : ViewBinding>(
         if (imageBg) {
             try {
                 ThemeConfig.getBgImage(this, windowManager.windowSize)?.let {
-                    window.decorView.background = BitmapDrawable(resources, it)
+                    window.decorView.background = it.toDrawable(resources)
                 }
             } catch (e: OutOfMemoryError) {
                 toastOnUi("背景图片太大,内存溢出")
