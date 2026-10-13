@@ -1079,6 +1079,7 @@ class ReadBookActivity : BaseReadBookActivity(),
                         BaseReadAloudService.isPlay() -> "read_aloud"
                         binding.readView.isTextSelected -> "text_selected"
                         textActionMenu.isShowing || popupAction.isShowing -> "text_menu"
+                        binding.readView.curPage.isImageZoomActive() -> "image_zoom"
                         binding.readView.pageDelegate == null -> "no_page_delegate"
                         binding.readView.pageDelegate?.isRunning == true -> "page_animation"
                         binding.readView.curPage.textPage.isMsgPage -> "message_page"
