@@ -89,7 +89,7 @@
             >
           </el-image>
           <div class="explore-book-info">
-            <h2>{{ book.name }}</h2>
+            <h2 :title="book.name">{{ book.name }}</h2>
             <p class="muted">{{ book.author || '佚名' }}</p>
             <p v-if="book.kind" class="muted explore-tags" :title="book.kind">
               {{ book.kind }}
@@ -375,11 +375,14 @@ onBeforeUnmount(() => {
 }
 .explore-book-info {
   min-width: 0;
+  flex: 1;
 }
 .explore-book h2 {
   margin: 0;
   font-size: 17px;
-  overflow-wrap: anywhere;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 .explore-book p {
   margin: 8px 0;
