@@ -16,13 +16,17 @@ class GazeGestureDetectorTest {
     }
 
     @Test
-    fun bottomThenUpTurnsExactlyOnce() {
+    fun hundredMillisecondBottomDwellThenUpTurnsExactlyOnce() {
         val detector = detector()
-        readBottom(detector)
-        assertFalse(detector.update(sample(0f), 1900))
-        assertFalse(detector.update(sample(0f), 2000))
-        assertTrue(detector.update(sample(0f), 2100))
-        for (time in 2200L..4000L step 100L) assertFalse(detector.update(sample(0f), time))
+        assertFalse(detector.update(sample(1f), 1000))
+        assertFalse(detector.update(sample(1f), 1099))
+        assertFalse(detector.armed)
+        assertFalse(detector.update(sample(1f), 1100))
+        assertTrue(detector.armed)
+        assertFalse(detector.update(sample(0f), 1200))
+        assertFalse(detector.update(sample(0f), 1300))
+        assertTrue(detector.update(sample(0f), 1400))
+        for (time in 1500L..3200L step 100L) assertFalse(detector.update(sample(0f), time))
     }
 
     @Test
@@ -36,8 +40,8 @@ class GazeGestureDetectorTest {
     @Test
     fun briefBottomGlanceAndUpwardNoiseDoNotTurn() {
         val detector = detector()
-        for (time in 1000L..1300L step 100L) assertFalse(detector.update(sample(1f), time))
-        for (time in 1400L..1800L step 100L) assertFalse(detector.update(sample(0f), time))
+        for (time in 1000L..1050L step 50L) assertFalse(detector.update(sample(1f), time))
+        for (time in 1100L..1500L step 100L) assertFalse(detector.update(sample(0f), time))
         readBottom(detector, 2000)
         assertFalse(detector.update(sample(0f), 2900))
         assertFalse(detector.update(sample(0.6f), 3000))
@@ -89,11 +93,12 @@ class GazeGestureDetectorTest {
     @Test
     fun closedEyeTimeDoesNotCountAsBottomDwell() {
         val detector = detector()
-        for (time in 1000L..1300L step 100L) assertFalse(detector.update(sample(1f), time))
-        for (time in 1400L..1600L step 100L) assertFalse(detector.update(null, time, eyesClosed = true))
-        assertFalse(detector.update(sample(1f), 1700))
-        assertEquals(300L, detector.bottomDwellMs)
-        for (time in 1800L..2300L step 100L) assertFalse(detector.update(sample(0f), time))
+        for (time in 1000L..1050L step 50L) assertFalse(detector.update(sample(1f), time))
+        for (time in 1100L..1300L step 100L) assertFalse(detector.update(null, time, eyesClosed = true))
+        assertFalse(detector.update(sample(1f), 1400))
+        assertEquals(50L, detector.bottomDwellMs)
+        assertFalse(detector.armed)
+        for (time in 1500L..2000L step 100L) assertFalse(detector.update(sample(0f), time))
     }
 
     @Test
