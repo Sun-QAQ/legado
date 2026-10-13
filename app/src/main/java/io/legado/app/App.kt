@@ -58,6 +58,8 @@ import io.legado.app.utils.LogUtils
 import io.legado.app.utils.defaultSharedPreferences
 import io.legado.app.utils.getPrefBoolean
 import io.legado.app.utils.isDebuggable
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.asExecutor
 import kotlinx.coroutines.launch
 import org.chromium.base.ThreadUtils
 import splitties.init.appCtx
@@ -74,7 +76,7 @@ class App : Application() {
         super.onCreate()
         CrashHandler(this)
         // 内置 Emoji 字体，兼容没有可下载字体服务的设备和模拟器。
-        EmojiCompat.init(BundledEmojiCompatConfig(this))
+        EmojiCompat.init(BundledEmojiCompatConfig(this, Dispatchers.IO.asExecutor()))
         if (isDebuggable) {
             ThreadUtils.setThreadAssertsDisabledForTesting(true)
         }
