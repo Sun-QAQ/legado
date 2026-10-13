@@ -148,8 +148,8 @@ class App : Application() {
     }
 
     /**
-     * 尝试在安装了GMS的设备上(GMS或者MicroG)使用GMS内置的Conscrypt
-     * 作为首选JCE提供程序，而使Okhttp在低版本Android上
+     * 尝试在安装了GMS的设备上(GMS或者MicroG)使用GMS内置的Conscript
+     * 作为首选JCE提供程序，而使OkHttp在低版本Android上
      * 能够启用TLSv1.3
      * https://f-droid.org/zh_Hans/2020/05/29/android-updates-and-tls-connections.html
      * https://developer.android.google.cn/reference/javax/net/ssl/SSLSocket
