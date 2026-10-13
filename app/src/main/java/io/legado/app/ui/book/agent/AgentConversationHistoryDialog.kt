@@ -1,6 +1,7 @@
 package io.legado.app.ui.book.agent
 
 import android.os.Bundle
+import android.view.Gravity
 import android.view.View
 import androidx.core.view.isVisible
 import androidx.fragment.app.viewModels
@@ -44,6 +45,7 @@ class AgentConversationHistoryDialog : BaseDialogFragment(R.layout.dialog_recycl
         binding.toolBar.setBackgroundColor(backgroundColor)
         binding.toolBar.setTitle(R.string.agent_chat_history)
         binding.toolBar.menu.applyTint(requireContext())
+        binding.tvMsg.gravity = Gravity.CENTER
         binding.recyclerView.layoutManager = LinearLayoutManager(requireContext())
         binding.recyclerView.addItemDecoration(VerticalDivider(requireContext()))
         binding.recyclerView.adapter = adapter
