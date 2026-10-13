@@ -268,7 +268,7 @@ class EyePageTurner(
         target?.layoutParams = FrameLayout.LayoutParams(dp(24), dp(24),
             Gravity.CENTER_HORIZONTAL or if (calibratingBottom) Gravity.BOTTOM else Gravity.TOP).apply {
             topMargin = dp(56)
-            bottomMargin = dp(56)
+            bottomMargin = dp(40)
         }
         val instruction = activity.getString(if (calibratingBottom) R.string.eye_page_calibrate_bottom else R.string.eye_page_calibrate_top)
         message?.text = instruction + (retryHint?.let { "\n\n$it" } ?: "")
