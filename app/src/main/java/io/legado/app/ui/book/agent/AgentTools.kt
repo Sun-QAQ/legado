@@ -66,7 +66,10 @@ object AgentTools {
 
     private val searchBooksTool = AgentTool(
         name = "search_books",
-        description = "根据书名搜索书籍，可通过 group 指定书源分组或书源名称，可通过 limit 指定展示数量（默认5，最大20），返回搜索结果列表",
+        description = "通过网络书源查找新书或其他版本，返回搜索结果列表；不是查询书架或读取正文的工具。" +
+            "用户询问某本书的剧情、人物、章节内容或要求总结分析时，应先用 read_book_content 按书名读取书架正文，无需先搜索或获取 bookUrl；" +
+            "只有用户明确要求搜书、找新书或其他版本，或确认书架没有该书后需要查找时才使用。" +
+            "可通过 group 指定书源分组或书源名称，可通过 limit 指定展示数量（默认5，最大20）",
         parameters = objectParameters(
             properties = JsonObject().apply {
                 add(
@@ -522,6 +525,9 @@ object AgentTools {
     private val readBookContentTool = AgentTool(
         name = "read_book_content",
         description = "按书名(可附作者，逗号分隔)或bookUrl定位书架上的书籍，读取从 startIndex(章节号，从0开始)起连续 count 章的正文。" +
+            "询问剧情、人物、章节内容或要求总结分析时优先使用，可直接传用户给出的书名，不需要先调用 search_books。" +
+            "例如“重启人生的第一章讲了什么？”应传 book=重启人生、startIndex=0、count=1，读取后再总结。" +
+            "只有返回书架未找到该书时才考虑搜索；正文未缓存会自动抓取，不应因此重新搜书。" +
             "返回书籍信息、章节标题与正文全文。本地已缓存优先，网络书未缓存时自动联网抓取。count 默认1，最大20。maxChars 可选，用于限制返回正文长度",
         parameters = objectParameters(
             properties = JsonObject().apply {
