@@ -47,8 +47,10 @@ import io.legado.app.utils.startActivity
 import io.legado.app.utils.toastOnUi
 import io.legado.app.utils.viewbindingdelegate.viewBinding
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.sample
 import kotlinx.coroutines.launch
 import java.io.File
 
@@ -67,6 +69,7 @@ class AgentFragment() : BaseFragment(R.layout.fragment_agent), MainFragmentInter
 
     private val binding by viewBinding(FragmentAgentBinding::bind)
     private val viewModel by viewModels<AgentViewModel>()
+    private var autoScroll: AgentAutoScroll? = null
     private var pendingCameraPath: String? = null
     private val selectPhoto = registerForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
         uri?.let { viewModel.addDraftAttachment(it) }
@@ -102,6 +105,7 @@ class AgentFragment() : BaseFragment(R.layout.fragment_agent), MainFragmentInter
         }
     }) }
 
+    @OptIn(FlowPreview::class)
     override fun onFragmentCreated(view: View, savedInstanceState: Bundle?) {
         pendingCameraPath = savedInstanceState?.getString("agentCameraPath")
         setSupportToolbar(binding.titleBar.toolbar)
@@ -114,7 +118,10 @@ class AgentFragment() : BaseFragment(R.layout.fragment_agent), MainFragmentInter
             stackFromEnd = true
         }
         binding.recyclerView.addItemDecoration(VerticalDivider(requireContext()))
+        // 流式回复持续改变高度，默认 change 动画会反复交叉淡入并造成跳动。
+        binding.recyclerView.itemAnimator = null
         binding.recyclerView.adapter = adapter
+        autoScroll = AgentAutoScroll(binding.recyclerView)
         binding.btnSend.setOnClickListener {
             sendInput()
         }
@@ -142,17 +149,14 @@ class AgentFragment() : BaseFragment(R.layout.fragment_agent), MainFragmentInter
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.RESUMED) {
                 viewModel.messages.collect {
                     adapter.setItems(it)
-                    if (it.isNotEmpty()) {
-                        binding.recyclerView.post {
-                            binding.recyclerView.scrollToPosition(it.size - 1)
-                        }
-                    }
+                    autoScroll?.requestScroll()
                 }
             }
         }
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.RESUMED) {
-                viewModel.streamingText.collect {
+                // 合并密集的 token 更新；最终全文由 messages 立即补齐，不会丢字。
+                viewModel.streamingText.sample(50).collect {
                     it?.let { text -> adapter.updateLastText(text) }
                 }
             }
@@ -241,6 +245,7 @@ class AgentFragment() : BaseFragment(R.layout.fragment_agent), MainFragmentInter
         val text = binding.etInput.text?.toString()?.trim().orEmpty()
         if (viewModel.attachmentBusy.value) return
         if (viewModel.draftAttachments.value.isNotEmpty()) {
+            autoScroll?.followLatest()
             viewLifecycleOwner.lifecycleScope.launch {
                 if (viewModel.sendDraftAttachments(text) && binding.etInput.text?.toString()?.trim() == text) {
                     binding.etInput.setText("")
@@ -249,6 +254,7 @@ class AgentFragment() : BaseFragment(R.layout.fragment_agent), MainFragmentInter
             return
         }
         if (text.isEmpty()) return
+        autoScroll?.followLatest()
         binding.etInput.setText("")
         viewModel.send(text)
     }
@@ -313,6 +319,13 @@ class AgentFragment() : BaseFragment(R.layout.fragment_agent), MainFragmentInter
         outState.putString("agentCameraPath", pendingCameraPath)
     }
 
+    override fun onDestroyView() {
+        autoScroll?.dispose()
+        autoScroll = null
+        binding.recyclerView.adapter = null
+        super.onDestroyView()
+    }
+
     override fun onCompatCreateOptionsMenu(menu: Menu) {
         menuInflater.inflate(R.menu.ai_agent, menu)
         menu.applyTint(requireContext())
@@ -323,8 +336,14 @@ class AgentFragment() : BaseFragment(R.layout.fragment_agent), MainFragmentInter
                 R.id.menu_new_chat, R.id.menu_chat_history, R.id.menu_clear_chat
             )) return
         when (item.itemId) {
-            R.id.menu_new_chat -> viewModel.newConversation()
-            R.id.menu_chat_history -> showDialogFragment<AgentConversationHistoryDialog>()
+            R.id.menu_new_chat -> {
+                autoScroll?.followLatest()
+                viewModel.newConversation()
+            }
+            R.id.menu_chat_history -> {
+                autoScroll?.followLatest()
+                showDialogFragment<AgentConversationHistoryDialog>()
+            }
             R.id.menu_manage_supplier -> startActivity<AiSourceManageActivity>()
             R.id.menu_manage_image_source -> startActivity<AiImageSourceManageActivity>()
             R.id.menu_manage_search_source -> startActivity<AiSearchSourceManageActivity>()

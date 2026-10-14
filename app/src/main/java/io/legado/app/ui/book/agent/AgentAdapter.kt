@@ -9,9 +9,11 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.LinearLayout
+import android.widget.TextView
 import androidx.appcompat.widget.AppCompatImageView
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import androidx.recyclerview.widget.DiffUtil
 import androidx.core.content.ContextCompat
 import com.bumptech.glide.Glide
 import com.bumptech.glide.RequestBuilder
@@ -37,6 +39,15 @@ import io.noties.markwon.ext.tables.TablePlugin
 import io.noties.markwon.html.HtmlPlugin
 import io.noties.markwon.image.AsyncDrawable
 import io.noties.markwon.image.glide.GlideImagesPlugin
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 import java.util.Locale
 import java.io.File
 
@@ -47,6 +58,10 @@ class AgentAdapter(
 
     private val items = arrayListOf<AgentMessage>()
     private val expandedSteps = HashSet<Int>()
+    private var renderScope: CoroutineScope? = null
+    private val renderJobs = mutableMapOf<TextView, Job>()
+    private val pendingTexts = mutableMapOf<TextView, String>()
+    private val markdownMutex = Mutex()
     private val imageRequestManager = Glide.with(context)
     private val imageAnimationListener = object : RequestListener<Drawable> {
         override fun onLoadFailed(
@@ -86,9 +101,14 @@ class AgentAdapter(
         .build()
 
     fun setItems(newItems: List<AgentMessage>) {
+        if (items == newItems) return
+        val diff = DiffUtil.calculateDiff(AgentMessageDiff(items, newItems), false)
+        if (newItems.size < items.size || newItems.firstOrNull() != items.firstOrNull()) {
+            expandedSteps.clear()
+        }
         items.clear()
         items.addAll(newItems)
-        notifyDataSetChanged()
+        diff.dispatchUpdatesTo(this)
     }
 
     fun addItem(item: AgentMessage) {
@@ -102,9 +122,31 @@ class AgentAdapter(
     fun updateLastText(text: String) {
         if (items.isEmpty()) return
         val last = items.last()
-        if (!last.streaming) return
+        if (!last.streaming || last.text == text) return
         items[items.size - 1] = last.copy(text = text)
-        notifyItemChanged(items.size - 1)
+        notifyItemChanged(items.size - 1, AgentMessagePayload.TEXT)
+    }
+
+    override fun onAttachedToRecyclerView(recyclerView: RecyclerView) {
+        super.onAttachedToRecyclerView(recyclerView)
+        renderScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+    }
+
+    override fun onDetachedFromRecyclerView(recyclerView: RecyclerView) {
+        renderScope?.cancel()
+        renderScope = null
+        renderJobs.clear()
+        pendingTexts.clear()
+        super.onDetachedFromRecyclerView(recyclerView)
+    }
+
+    override fun onViewRecycled(holder: ItemViewHolder) {
+        if (holder.binding is ItemAgentReplyBinding) {
+            renderJobs.remove(holder.binding.tvMessage)?.cancel()
+            pendingTexts.remove(holder.binding.tvMessage)
+            holder.binding.tvMessage.text = ""
+        }
+        super.onViewRecycled(holder)
     }
 
     fun clear() {
@@ -133,6 +175,16 @@ class AgentAdapter(
 
     override fun getItemCount(): Int = items.size
 
+    override fun onBindViewHolder(holder: ItemViewHolder, position: Int, payloads: MutableList<Any>) {
+        if (!items[position].isUser && payloads.isNotEmpty() && payloads.all { it is AgentMessagePayload }) {
+            val binding = ItemAgentReplyBinding.bind(holder.itemView)
+            if (AgentMessagePayload.TEXT in payloads) bindReplyText(binding, items[position])
+            if (AgentMessagePayload.STEPS in payloads) bindSteps(binding, items[position], position)
+        } else {
+            onBindViewHolder(holder, position)
+        }
+    }
+
     override fun onBindViewHolder(holder: ItemViewHolder, position: Int) {
         val item = items[position]
         val binding = holder.itemView
@@ -157,9 +209,7 @@ class AgentAdapter(
             }
         } else {
             val viewBinding = ItemAgentReplyBinding.bind(binding)
-            markwon.setMarkdown(viewBinding.tvMessage, item.text)
-            viewBinding.tvMessage.visibility =
-                if (item.text.isBlank()) View.GONE else View.VISIBLE
+            bindReplyText(viewBinding, item)
             viewBinding.btnLoadMore.visibility =
                 if (item.canLoadMore) View.VISIBLE else View.GONE
             viewBinding.btnLoadMore.backgroundTintList =
@@ -197,6 +247,37 @@ class AgentAdapter(
                 viewBinding.rvSourceRepository.layoutManager =
                     WrapContentLinearLayoutManager(context)
                 viewBinding.rvSourceRepository.adapter = sourceAdapter
+            }
+        }
+    }
+
+    private fun bindReplyText(binding: ItemAgentReplyBinding, item: AgentMessage) {
+        val textView = binding.tvMessage
+        textView.visibility = if (item.text.isBlank()) View.GONE else View.VISIBLE
+        if (item.text.isBlank()) {
+            renderJobs.remove(textView)?.cancel()
+            pendingTexts.remove(textView)
+            textView.text = ""
+            return
+        }
+        pendingTexts[textView] = item.text
+        if (renderJobs[textView]?.isActive == true) return
+        val scope = renderScope ?: return
+        renderJobs[textView] = scope.launch {
+            try {
+                while (true) {
+                    val text = pendingTexts[textView] ?: break
+                    // 后台串行解析，期间到达的新 token 合并为下一次快照。
+                    // 不反复取消正在解析的长回复，避免始终来不及显示。
+                    val markdown = markdownMutex.withLock {
+                        withContext(Dispatchers.Default) { markwon.toMarkdown(text) }
+                    }
+                    val latest = pendingTexts[textView] ?: break
+                    if (latest.startsWith(text)) markwon.setParsedMarkdown(textView, markdown)
+                    if (latest == text) break
+                }
+            } finally {
+                if (renderJobs[textView] === coroutineContext[Job]) renderJobs.remove(textView)
             }
         }
     }
