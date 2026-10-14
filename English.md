@@ -21,6 +21,20 @@ Legado is a free and open source novel reader for Android.
 >The software does not provide content, you need to add it manually, such as importing book sources, etc. 
 >Take a look at [official help documentation](https://www.yuque.com/legado/wiki)，Maybe there's an answer you need inside.
 
+## Features and Improvements in This Branch
+
+Compared with the original version preserved in `legado-bak`, this branch adds:
+
+- **AI assistant**: Multiple providers, model switching, personas and prompt presets, streaming responses, and conversation history. Tools support web search, image generation, book search, adding books to the shelf, chapter reading, book source generation and debugging, novel writing, and reading reports.
+- **Eye tracking page turns**: Use the front camera to turn pages by looking at the bottom of the screen and then looking up. Supports saved calibration and recalibration, with improvements to accidental activation and processing overhead.
+- **Expanded Web interface**: Redesigned bookshelf, reader, and source management, with AI chat, source discovery, and group filtering. Supports manga page navigation, mouse wheel controls, image preloading, bookshelf pagination, and file uploads.
+- **Interface and themes**: Material 3 styling, floating navigation and reader settings, redesigned discovery, profile, book details, and file management pages, plus consistent rounded corners, colors, and input styling.
+- **Reading experience**: A seven-day reading time chart and improved reading history, animated GIFs in chapter content, EPUB annotation bubbles, pinch zoom for images, and right-swipe page turns.
+- **Video playback**: Video sources and episode selection, with a Media3 player and m3u8 support.
+- **Compatibility and stability**: Better NG JS source compatibility, faster discovery loading, improved image proxying and caching, and backup and restore for AI configuration. Fixes cover theme refresh, keyboard overlap, and release builds.
+
+Feature changes: Removed the dedicated Android manga reader, the separate AI Q&A entry in the reading screen, and bundled subscription sources. Web manga mode and the AI chapter reading tool remain available. Update checks use releases from this repository.
+
 # Function [![](https://img.shields.io/badge/-Function-F5F5F5.svg)](#Function-)
 
 You can customize the book source, set your own rules, and capture web page data. The rules are simple and easy to understand. There are rules in the software. List bookshelf, grid bookshelf switch freely. The book source rules support search and discovery, and all the functions of finding books and reading books are all customized, making it easier to find books.
