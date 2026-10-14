@@ -202,7 +202,7 @@
           type="file"
           multiple
           :accept="attachmentAccept"
-          aria-label="选择图片或文本文件"
+          aria-label="选择要上传的图片或文本文件"
           @change="onFilesSelected"
         />
         <div
@@ -242,14 +242,6 @@
           @paste="onPaste"
         />
         <div class="composer-actions">
-          <el-button
-            :icon="Paperclip"
-            circle
-            aria-label="添加图片或文件"
-            title="添加图片或文本文件（最多4个，图片5MB，文本256KB）"
-            :disabled="locked || attachmentBusy || attachments.length >= 4"
-            @click="fileInput?.click()"
-          />
           <span>{{
             attachmentBusy
               ? '正在读取附件…'
@@ -257,6 +249,16 @@
                 ? '正在生成回复'
                 : 'Enter 发送 · Shift + Enter 换行'
           }}</span>
+          <el-button
+            class="upload-button"
+            :icon="Paperclip"
+            aria-label="上传文件"
+            title="上传图片或文本文件（最多4个，图片5MB，文本256KB，总大小10MB）"
+            :disabled="locked || attachments.length >= 4"
+            @click="fileInput?.click()"
+          >
+            上传文件
+          </el-button>
           <el-button
             v-if="state.waiting"
             :icon="Close"
@@ -284,6 +286,10 @@
             "
           />
         </div>
+        <p class="attachment-hint">
+          支持图片与 TXT、Markdown、CSV、JSON
+          等文本文件，可选择、拖拽或粘贴添加。
+        </p>
       </form>
     </div>
     <el-drawer
@@ -740,6 +746,15 @@ onBeforeUnmount(() => {
 }
 .attachment-input {
   display: none;
+}
+.upload-button {
+  flex-shrink: 0;
+}
+.attachment-hint {
+  margin: 10px 0 0;
+  color: var(--web-muted);
+  font-size: 11px;
+  line-height: 1.5;
 }
 .attachment-list {
   display: flex;
