@@ -72,7 +72,9 @@
           :show-text="false"
         /><small class="muted">已读 {{ bookProgress(recent) }}%</small>
       </div>
-      <el-button type="primary" @click="openBook(recent)">查看详情 →</el-button>
+      <el-button type="primary" @click="startBookReading(router, recent)">
+        继续阅读 →
+      </el-button>
     </section>
     <div class="shelf-toolbar">
       <div class="shelf-tabs" aria-label="书架筛选">
@@ -172,7 +174,7 @@ import { Grid, List, Refresh, Search } from '@element-plus/icons-vue'
 import API from '@api'
 import type { Book, SeachBook } from '@/book'
 import { bookProgress } from '@/utils/bookPresentation'
-import { openBookDetail } from '@/utils/bookNavigation'
+import { openBookDetail, startBookReading } from '@/utils/bookNavigation'
 const store = useBookStore(),
   route = useRoute(),
   router = useRouter()
