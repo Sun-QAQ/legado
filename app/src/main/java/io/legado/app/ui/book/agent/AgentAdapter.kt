@@ -23,6 +23,7 @@ import io.legado.app.R
 import io.legado.app.base.adapter.ItemViewHolder
 import io.legado.app.data.entities.SearchBook
 import io.legado.app.databinding.ItemAgentMessageBinding
+import io.legado.app.databinding.ItemAgentAttachmentBinding
 import io.legado.app.databinding.ItemAgentReplyBinding
 import io.legado.app.databinding.ItemAgentSourceRepositoryBinding
 import io.legado.app.databinding.ItemSearchBinding
@@ -139,6 +140,21 @@ class AgentAdapter(
             val viewBinding = ItemAgentMessageBinding.bind(binding)
             viewBinding.tvMessage.text = item.text
             viewBinding.tvMessage.backgroundTintList = ColorStateList.valueOf(context.accentColor)
+            viewBinding.llAttachments.removeAllViews()
+            viewBinding.llAttachments.visibility = if (item.attachments.isEmpty()) View.GONE else View.VISIBLE
+            item.attachments.forEach { attachment ->
+                val attachmentBinding = ItemAgentAttachmentBinding.inflate(
+                    LayoutInflater.from(context), viewBinding.llAttachments, false
+                )
+                attachmentBinding.tvName.text = attachment.name
+                attachmentBinding.btnRemove.visibility = View.GONE
+                if (attachment.mimeType.startsWith("image/")) {
+                    imageRequestManager.load(File(attachment.path))
+                        .error(R.drawable.image_loading_error).into(attachmentBinding.ivPreview)
+                    attachmentBinding.root.setOnClickListener { callBack.openGeneratedImage(attachment.path) }
+                }
+                viewBinding.llAttachments.addView(attachmentBinding.root)
+            }
         } else {
             val viewBinding = ItemAgentReplyBinding.bind(binding)
             markwon.setMarkdown(viewBinding.tvMessage, item.text)

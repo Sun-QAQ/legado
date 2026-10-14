@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="agent_upload">上传附件</string>
+    <string name="agent_upload_camera">拍照</string>
+    <string name="agent_upload_album">相册</string>
+    <string name="agent_upload_file">文件</string>
+    <string name="agent_attachment_remove">移除附件</string>
+    <string name="agent_attachment_prompt">请分析这些附件。</string>
+    <string name="agent_attachment_read_failed">读取附件失败</string>
+    <string name="agent_attachment_camera_denied">请允许相机权限后拍照</string>
+    <string name="agent_attachment_picker_failed">无法打开相机或文件选择器</string>
+    <string name="agent_attachment_limit">每条消息最多添加 4 个附件</string>
+</resources>

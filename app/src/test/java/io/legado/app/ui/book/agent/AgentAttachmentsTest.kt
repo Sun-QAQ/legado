@@ -4,9 +4,29 @@ import okio.ByteString.Companion.toByteString
 import org.junit.Assert.*
 import org.junit.Test
 import java.io.File
+import java.io.ByteArrayInputStream
 
 class AgentAttachmentsTest {
     private fun upload(name: String, bytes: ByteArray) = AgentAttachmentUpload(name, "data:application/octet-stream;base64,${bytes.toByteString().base64()}")
+
+    @Test
+    fun selectedFilesAreReadWithAHardLimitEvenWithoutProviderSize() {
+        val limit = 5 * 1024 * 1024
+        val bytes = ByteArray(limit) { 65 }
+        assertArrayEquals(bytes, AgentAttachments.readLimited(ByteArrayInputStream(bytes)))
+        assertTrue(runCatching {
+            AgentAttachments.readLimited(ByteArrayInputStream(ByteArray(limit + 1)))
+        }.isFailure)
+    }
+
+    @Test
+    fun accumulatedDraftRejectsTooManyFilesAndExcessTotalSize() {
+        val attachment = PreparedAgentAttachment("photo.jpg", "image/jpeg", ByteArray(3 * 1024 * 1024))
+        AgentAttachments.validateDraft(List(3) { attachment })
+        assertTrue(runCatching { AgentAttachments.validateDraft(List(4) { attachment }) }.isFailure)
+        val text = PreparedAgentAttachment("note.txt", "text/plain", byteArrayOf(65))
+        assertTrue(runCatching { AgentAttachments.validateDraft(List(5) { text }) }.isFailure)
+    }
 
     @Test
     fun detectsImageFromBytesRatherThanDeclaredMime() {

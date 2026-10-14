@@ -1,13 +1,19 @@
 package io.legado.app.ui.book.agent
 
-import android.os.Bundle
+import android.Manifest
+import android.content.pm.PackageManager
 import android.content.res.ColorStateList
+import android.os.Bundle
 import android.view.KeyEvent
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
+import androidx.core.content.FileProvider
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updateLayoutParams
 import androidx.fragment.app.viewModels
@@ -15,12 +21,15 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.bumptech.glide.Glide
 import io.legado.app.R
 import io.legado.app.constant.AppLog
+import io.legado.app.constant.AppConst
 import io.legado.app.base.BaseFragment
 import io.legado.app.data.appDb
 import io.legado.app.data.entities.SearchBook
 import io.legado.app.databinding.FragmentAgentBinding
+import io.legado.app.databinding.ItemAgentAttachmentBinding
 import io.legado.app.lib.dialogs.alert
 import io.legado.app.lib.theme.accentColor
 import io.legado.app.ui.about.AppLogDialog
@@ -41,6 +50,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.launch
+import java.io.File
 
 /**
  * Agent 对话
@@ -57,6 +67,26 @@ class AgentFragment() : BaseFragment(R.layout.fragment_agent), MainFragmentInter
 
     private val binding by viewBinding(FragmentAgentBinding::bind)
     private val viewModel by viewModels<AgentViewModel>()
+    private var pendingCameraPath: String? = null
+    private val selectPhoto = registerForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
+        uri?.let { viewModel.addDraftAttachment(it) }
+    }
+    private val selectFile = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        uri?.let { viewModel.addDraftAttachment(it) }
+    }
+    private val takePhoto = registerForActivityResult(ActivityResultContracts.TakePicture()) { success ->
+        val file = pendingCameraPath?.let(::File)
+        pendingCameraPath = null
+        if (success && file != null) {
+            val uri = FileProvider.getUriForFile(requireContext(), AppConst.authority, file)
+            viewModel.addDraftAttachment(uri, temporaryFile = file)
+        } else {
+            file?.delete()
+        }
+    }
+    private val cameraPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        if (granted) launchCamera() else toastOnUi(R.string.agent_attachment_camera_denied)
+    }
     private val adapter by lazy { AgentAdapter(requireContext(), object : AgentAdapter.CallBack {
         override fun openBook(book: SearchBook) {
             openBookInfo(book)
@@ -73,6 +103,7 @@ class AgentFragment() : BaseFragment(R.layout.fragment_agent), MainFragmentInter
     }) }
 
     override fun onFragmentCreated(view: View, savedInstanceState: Bundle?) {
+        pendingCameraPath = savedInstanceState?.getString("agentCameraPath")
         setSupportToolbar(binding.titleBar.toolbar)
         val personaTitleView = binding.titleBar.toolbar.findViewById<TextView>(R.id.tv_agent_persona)
         viewModel.startConversationHistory()
@@ -87,6 +118,7 @@ class AgentFragment() : BaseFragment(R.layout.fragment_agent), MainFragmentInter
         binding.btnSend.setOnClickListener {
             sendInput()
         }
+        binding.btnUpload.setOnClickListener { showUploadOptions() }
         binding.etInput.setOnEditorActionListener { _, actionId, _ ->
             if (actionId == android.view.inputmethod.EditorInfo.IME_ACTION_SEND) {
                 sendInput()
@@ -135,6 +167,32 @@ class AgentFragment() : BaseFragment(R.layout.fragment_agent), MainFragmentInter
                         binding.btnSend.setImageResource(R.drawable.ic_send)
                         binding.btnSend.contentDescription = getString(R.string.agent_send)
                     }
+                    updateAttachmentControls()
+                }
+            }
+        }
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                launch {
+                    viewModel.draftAttachments.collect { attachments ->
+                        binding.attachmentScroll.visibility = if (attachments.isEmpty()) View.GONE else View.VISIBLE
+                        binding.llAttachments.removeAllViews()
+                        attachments.forEachIndexed { index, attachment ->
+                            val item = ItemAgentAttachmentBinding.inflate(layoutInflater, binding.llAttachments, false)
+                            item.tvName.text = attachment.name
+                            item.btnRemove.contentDescription = getString(R.string.agent_attachment_remove) + ": " + attachment.name
+                            item.btnRemove.setOnClickListener { viewModel.removeDraftAttachment(index) }
+                            if (attachment.mimeType.startsWith("image/")) {
+                                Glide.with(this@AgentFragment).load(attachment.bytes)
+                                    .error(R.drawable.image_loading_error).into(item.ivPreview)
+                            }
+                            binding.llAttachments.addView(item.root)
+                        }
+                        updateAttachmentControls()
+                    }
+                }
+                launch {
+                    viewModel.attachmentBusy.collect { updateAttachmentControls() }
                 }
             }
         }
@@ -181,9 +239,78 @@ class AgentFragment() : BaseFragment(R.layout.fragment_agent), MainFragmentInter
             return
         }
         val text = binding.etInput.text?.toString()?.trim().orEmpty()
+        if (viewModel.attachmentBusy.value) return
+        if (viewModel.draftAttachments.value.isNotEmpty()) {
+            viewLifecycleOwner.lifecycleScope.launch {
+                if (viewModel.sendDraftAttachments(text) && binding.etInput.text?.toString()?.trim() == text) {
+                    binding.etInput.setText("")
+                }
+            }
+            return
+        }
         if (text.isEmpty()) return
         binding.etInput.setText("")
         viewModel.send(text)
+    }
+
+    private fun updateAttachmentControls() {
+        val busy = viewModel.attachmentBusy.value
+        binding.btnUpload.isEnabled = !busy && !viewModel.waiting.value
+        binding.btnUpload.alpha = if (binding.btnUpload.isEnabled) 1f else 0.4f
+        binding.btnSend.isEnabled = !busy || viewModel.waiting.value
+        for (index in 0 until binding.llAttachments.childCount) {
+            binding.llAttachments.getChildAt(index).findViewById<View>(R.id.btn_remove).isEnabled = !busy
+        }
+    }
+
+    private fun showUploadOptions() {
+        if (viewModel.attachmentBusy.value || viewModel.waiting.value) return
+        if (viewModel.draftAttachments.value.size >= AgentAttachments.MAX_COUNT) {
+            toastOnUi(R.string.agent_attachment_limit)
+            return
+        }
+        alert(R.string.agent_upload) {
+            items(listOf(
+                getString(R.string.agent_upload_camera),
+                getString(R.string.agent_upload_album),
+                getString(R.string.agent_upload_file)
+            )) { _, index ->
+                try {
+                    when (index) {
+                        0 -> {
+                            if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
+                                launchCamera()
+                            } else {
+                                cameraPermission.launch(Manifest.permission.CAMERA)
+                            }
+                        }
+                        1 -> selectPhoto.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                        2 -> selectFile.launch(arrayOf("*/*"))
+                    }
+                } catch (e: Exception) {
+                    AppLog.put("打开 AI 附件选择器失败", e)
+                    toastOnUi(R.string.agent_attachment_picker_failed)
+                }
+            }
+        }
+    }
+
+    private fun launchCamera() {
+        try {
+            val file = File.createTempFile("ai-photo-", ".jpg", requireContext().cacheDir)
+            pendingCameraPath = file.absolutePath
+            takePhoto.launch(FileProvider.getUriForFile(requireContext(), AppConst.authority, file))
+        } catch (e: Exception) {
+            pendingCameraPath?.let { File(it).delete() }
+            pendingCameraPath = null
+            AppLog.put("打开 AI 拍照失败", e)
+            toastOnUi(R.string.agent_attachment_picker_failed)
+        }
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putString("agentCameraPath", pendingCameraPath)
     }
 
     override fun onCompatCreateOptionsMenu(menu: Menu) {
@@ -192,6 +319,9 @@ class AgentFragment() : BaseFragment(R.layout.fragment_agent), MainFragmentInter
     }
 
     override fun onCompatOptionsItemSelected(item: MenuItem) {
+        if (viewModel.attachmentBusy.value && item.itemId in listOf(
+                R.id.menu_new_chat, R.id.menu_chat_history, R.id.menu_clear_chat
+            )) return
         when (item.itemId) {
             R.id.menu_new_chat -> viewModel.newConversation()
             R.id.menu_chat_history -> showDialogFragment<AgentConversationHistoryDialog>()

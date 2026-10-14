@@ -7,6 +7,8 @@ import com.google.gson.JsonPrimitive
 import okio.ByteString.Companion.decodeBase64
 import okio.ByteString.Companion.toByteString
 import java.io.File
+import java.io.ByteArrayOutputStream
+import java.io.InputStream
 import java.nio.ByteBuffer
 import java.nio.charset.CodingErrorAction
 
@@ -15,12 +17,31 @@ data class AgentAttachmentUpload(val name: String, val dataUrl: String)
 internal data class PreparedAgentAttachment(val name: String, val mimeType: String, val bytes: ByteArray)
 
 internal object AgentAttachments {
+    const val MAX_COUNT = 4
+    const val TOTAL_LIMIT = 10 * 1024 * 1024
     private const val IMAGE_LIMIT = 5 * 1024 * 1024
     private const val TEXT_LIMIT = 256 * 1024
     private val textExtensions = setOf("txt", "md", "csv", "json", "log", "xml", "html", "htm", "yaml", "yml", "js", "ts", "py", "kt", "java", "css", "sql")
 
+    fun readLimited(stream: InputStream): ByteArray {
+        val output = ByteArrayOutputStream()
+        val buffer = ByteArray(8192)
+        while (true) {
+            val count = stream.read(buffer)
+            if (count < 0) break
+            require(output.size() + count <= IMAGE_LIMIT) { "单个附件不能超过 5 MB" }
+            output.write(buffer, 0, count)
+        }
+        return output.toByteArray()
+    }
+
+    fun validateDraft(attachments: List<PreparedAgentAttachment>) {
+        require(attachments.size <= MAX_COUNT) { "每条消息最多添加 4 个附件" }
+        require(attachments.sumOf { it.bytes.size } <= TOTAL_LIMIT) { "附件总大小不能超过 10 MB" }
+    }
+
     fun prepare(uploads: List<AgentAttachmentUpload>): List<PreparedAgentAttachment> {
-        require(uploads.size <= 4) { "每条消息最多添加 4 个附件" }
+        require(uploads.size <= MAX_COUNT) { "每条消息最多添加 4 个附件" }
         var total = 0
         return uploads.map { upload ->
             val name = upload.name.substringAfterLast('/').substringAfterLast('\\').take(180)
@@ -45,7 +66,7 @@ internal object AgentAttachments {
             }
             require(bytes.size <= IMAGE_LIMIT) { "单张图片不能超过 5 MB" }
             total += bytes.size
-            require(total <= 10 * 1024 * 1024) { "附件总大小不能超过 10 MB" }
+            require(total <= TOTAL_LIMIT) { "附件总大小不能超过 10 MB" }
             PreparedAgentAttachment(name, mime, bytes)
         }
     }

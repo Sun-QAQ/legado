@@ -1,6 +1,7 @@
 package io.legado.app.ui.book.agent
 
 import android.app.Application
+import android.net.Uri
 import androidx.lifecycle.viewModelScope
 import com.google.gson.JsonArray
 import com.google.gson.JsonElement
@@ -43,6 +44,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.isActive
@@ -82,6 +84,58 @@ class AgentViewModel @JvmOverloads constructor(
 
     private val _waiting = MutableStateFlow(false)
     val waiting: StateFlow<Boolean> = _waiting
+
+    private val _draftAttachments = MutableStateFlow<List<PreparedAgentAttachment>>(emptyList())
+    internal val draftAttachments: StateFlow<List<PreparedAgentAttachment>> = _draftAttachments
+    private val _attachmentBusy = MutableStateFlow(false)
+    val attachmentBusy: StateFlow<Boolean> = _attachmentBusy
+
+    internal fun addDraftAttachment(uri: Uri, temporaryFile: java.io.File? = null) {
+        if (_attachmentBusy.value || _waiting.value) {
+            temporaryFile?.delete()
+            return
+        }
+        _attachmentBusy.value = true
+        viewModelScope.launch {
+            try {
+                val attachment = withContext(Dispatchers.IO) { AgentAttachmentReader.read(context, uri) }
+                val draft = _draftAttachments.value + attachment
+                AgentAttachments.validateDraft(draft)
+                _draftAttachments.value = draft
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                context.toastOnUi(e.localizedMessage ?: getString(R.string.agent_attachment_read_failed))
+            } finally {
+                temporaryFile?.delete()
+                _attachmentBusy.value = false
+            }
+        }
+    }
+
+    internal fun removeDraftAttachment(index: Int) {
+        if (!_attachmentBusy.value) {
+            _draftAttachments.value = _draftAttachments.value.filterIndexed { i, _ -> i != index }
+        }
+    }
+
+    internal suspend fun sendDraftAttachments(text: String): Boolean {
+        if (_attachmentBusy.value || _waiting.value || _draftAttachments.value.isEmpty()) return false
+        _attachmentBusy.value = true
+        return try {
+            val message = text.ifBlank { getString(R.string.agent_attachment_prompt) }
+            sendAttachments(message, _draftAttachments.value)
+            _draftAttachments.value = emptyList()
+            true
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            context.toastOnUi(e.localizedMessage ?: getString(R.string.agent_attachment_read_failed))
+            false
+        } finally {
+            _attachmentBusy.value = false
+        }
+    }
 
     private val _streamingText = MutableStateFlow<String?>(null)
     val streamingText: StateFlow<String?> = _streamingText
@@ -448,7 +502,7 @@ class AgentViewModel @JvmOverloads constructor(
                 }
             }
         } catch (e: Exception) {
-            withContext(Dispatchers.IO) { files.forEach { java.io.File(it.path).delete() } }
+            withContext(NonCancellable + Dispatchers.IO) { files.forEach { java.io.File(it.path).delete() } }
             throw e
         }
         if (_currentConversationId.value == null) {

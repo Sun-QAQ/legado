@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="agent_upload">Upload attachment</string>
+    <string name="agent_upload_camera">Take photo</string>
+    <string name="agent_upload_album">Photo library</string>
+    <string name="agent_upload_file">File</string>
+    <string name="agent_attachment_remove">Remove attachment</string>
+    <string name="agent_attachment_prompt">Please analyze these attachments.</string>
+    <string name="agent_attachment_read_failed">Unable to read attachment</string>
+    <string name="agent_attachment_camera_denied">Allow camera access to take a photo</string>
+    <string name="agent_attachment_picker_failed">Unable to open camera or file picker</string>
+    <string name="agent_attachment_limit">You can add up to 4 attachments per message</string>
+</resources>
