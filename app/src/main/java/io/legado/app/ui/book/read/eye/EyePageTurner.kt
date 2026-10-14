@@ -57,8 +57,8 @@ class EyePageTurner(
     private var maxPosition = Float.NEGATIVE_INFINITY
     private var readyHintVisible = false
     private val hintTimeout = Runnable {
-        detector.reset(reason = "tracking_timeout")
-        updateReadyHint(false)
+        detector.expireReadyWindow(SystemClock.uptimeMillis())
+        updateReadyHint(detector.armed)
     }
     val isCalibrating: Boolean get() = overlay != null
     private val timeout = Runnable {
@@ -105,8 +105,9 @@ class EyePageTurner(
             staleFrames++
             lastIssue = R.string.eye_page_processing_slow
             status?.setTextIfNotEqual(activity.getString(lastIssue))
-            detector.reset()
-            updateReadyHint(false)
+            detector.interruptTracking("stale_frame")
+            detector.expireReadyWindow(SystemClock.uptimeMillis())
+            updateReadyHint(detector.armed)
             calibration.reset()
             if (overlay == null) recordReading(sample, time, "stale_frame")
             return
@@ -181,7 +182,7 @@ class EyePageTurner(
 
     private fun updateReadyHint(visible: Boolean) {
         handler.removeCallbacks(hintTimeout)
-        if (visible) handler.postDelayed(hintTimeout, 500L)
+        if (visible) handler.postAtTime(hintTimeout, detector.armedUntil)
         if (readyHintVisible == visible) return
         readyHintVisible = visible
         onReadyChanged(visible)

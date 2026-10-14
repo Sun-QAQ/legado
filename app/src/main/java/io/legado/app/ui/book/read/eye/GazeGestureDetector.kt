@@ -20,10 +20,11 @@ internal class GazeGestureDetector {
     var bottomDwellMs = 0L
         private set
     private var previousBottom = false
-    private var lastBottom = 0L
     private var upperSince: Long? = null
     private var bottomPose: GazeSample? = null
     var armed = false
+        private set
+    var armedUntil = 0L
         private set
     var state = "waiting_bottom"
         private set
@@ -47,6 +48,7 @@ internal class GazeGestureDetector {
         upperSince = null
         bottomPose = null
         armed = false
+        armedUntil = 0L
         lastFrame = null
         lastValid = null
         blinking = false
@@ -56,10 +58,31 @@ internal class GazeGestureDetector {
 
     fun position(sample: GazeSample): Float = (sample.vertical - top) / (bottom - top)
 
+    fun expireReadyWindow(now: Long): Boolean {
+        if (!armed || now < armedUntil) return false
+        reset(reason = "transition_timeout")
+        return true
+    }
+
+    /** Keep the fixed ready window, but require fresh upward evidence after a bad frame. */
+    fun interruptTracking(reason: String) {
+        if (!armed) {
+            reset(reason = reason)
+            return
+        }
+        previousBottom = false
+        upperSince = null
+        lastFrame = null
+        lastValid = null
+        blinking = false
+        state = reason
+    }
+
     fun update(sample: GazeSample?, now: Long, eyesClosed: Boolean = false): Boolean {
         if (!calibrated) return false
+        if (expireReadyWindow(now)) return false
         // A missing camera frame is different from a reported blink.
-        lastFrame?.let { if (now - it > 350L || now <= it) reset(reason = "camera_gap") }
+        lastFrame?.let { if (now - it > 350L || now <= it) interruptTracking("camera_gap") }
         lastFrame = now
         if (sample == null) {
             if (eyesClosed && lastValid?.let { now - it <= 500L } == true) {
@@ -68,16 +91,16 @@ internal class GazeGestureDetector {
                 upperSince = null // Reopening must provide fresh, sustained upward evidence.
                 state = "blink"
             } else {
-                reset(reason = if (eyesClosed) "long_blink" else "tracking_lost")
+                interruptTracking(if (eyesClosed) "long_blink" else "tracking_lost")
             }
             return false
         }
         if (!sample.vertical.isFinite() || !sample.headPitch.isFinite()
             || !sample.headYaw.isFinite() || !sample.faceScale.isFinite() || sample.faceScale <= 0f) {
-            reset(reason = "invalid_sample")
+            interruptTracking("invalid_sample")
             return false
         }
-        if (blinking && lastValid?.let { now - it > 500L } == true) reset(reason = "long_blink")
+        if (blinking && lastValid?.let { now - it > 500L } == true) interruptTracking("long_blink")
         val elapsed = lastValid?.let { (now - it).coerceIn(0L, 250L) } ?: 0L
         lastValid = now
         blinking = false
@@ -90,7 +113,21 @@ internal class GazeGestureDetector {
         if (pose != null && (abs(sample.headPitch - pose.headPitch) > 0.12f
                     || abs(sample.headYaw - pose.headYaw) > 0.12f
                     || sample.faceScale / pose.faceScale !in 0.8f..1.2f)) {
-            reset(reason = "head_moved")
+            interruptTracking("head_moved")
+            return false
+        }
+        if (armed) {
+            if (position in -0.5f..0.45f) {
+                state = "upward_dwell"
+                if (upperSince == null) upperSince = now
+                if (now - upperSince!! >= 180L) {
+                    reset(now, cooldown = true, reason = "turned")
+                    return true
+                }
+            } else {
+                upperSince = null
+                state = if (position >= 0.78f) "armed" else "waiting_upward"
+            }
             return false
         }
         // Enter at the lower part of the page; retain the dwell across small gaze jitter.
@@ -102,25 +139,12 @@ internal class GazeGestureDetector {
             }
             if (previousBottom) bottomDwellMs += elapsed
             previousBottom = true
-            lastBottom = now
             upperSince = null
-            if (bottomDwellMs >= 100L) armed = true
-            state = if (armed) "armed" else "bottom_dwell"
-        } else if (armed) {
-            previousBottom = false
-            if (now - lastBottom > 2000L) {
-                reset(reason = "transition_timeout")
-            } else if (position in -0.5f..0.45f) {
-                state = "upward_dwell"
-                if (upperSince == null) upperSince = now
-                if (now - upperSince!! >= 180L) {
-                    reset(now, cooldown = true, reason = "turned")
-                    return true
-                }
-            } else {
-                upperSince = null
-                state = "waiting_upward"
+            if (bottomDwellMs >= 100L) {
+                armed = true
+                armedUntil = now + 2000L
             }
+            state = if (armed) "armed" else "bottom_dwell"
         } else {
             reset(reason = "waiting_bottom")
         }
