@@ -16,7 +16,9 @@
           <h2>{{ book.name }}</h2>
           <p class="detail-author">{{ book.author || '佚名' }}</p>
           <div class="detail-tags">
-            <span v-if="book.kind">{{ book.kind }}</span>
+            <span v-for="(tag, index) in kindTags" :key="`${index}:${tag}`">
+              {{ tag }}
+            </span>
             <span v-if="book.wordCount">{{ book.wordCount }}</span>
             <span v-if="shelfBook?.totalChapterNum">
               共 {{ shelfBook.totalChapterNum }} 章
@@ -105,6 +107,12 @@ const shelfBook = computed(() =>
   store.shelf.find(book => book.bookUrl === url.value),
 )
 const book = computed(() => shelfBook.value || snapshot.value)
+const kindTags = computed(() =>
+  (book.value?.kind || '')
+    .split(/[,，\r\n]+/)
+    .map(tag => tag.trim())
+    .filter(Boolean),
+)
 // 简介可能包含书源提供的 HTML，只显示文本，保留段落换行。
 const intro = computed(() => {
   const current = book.value
