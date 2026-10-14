@@ -24,6 +24,7 @@ import io.legado.app.lib.dialogs.alert
 import io.legado.app.lib.theme.backgroundColor
 import io.legado.app.model.ImageProvider
 import io.legado.app.ui.widget.dialog.PhotoDialog
+import io.legado.app.utils.applyDialogRoundedBackground
 import io.legado.app.utils.applyTint
 import io.legado.app.utils.setLayout
 import io.legado.app.utils.showDialogFragment
@@ -57,12 +58,14 @@ class VerificationCodeDialog() : BaseDialogFragment(R.layout.dialog_verification
 
     override fun onStart() {
         super.onStart()
-        setLayout(1f, ViewGroup.LayoutParams.WRAP_CONTENT)
+        dialog?.window?.setBackgroundDrawableResource(R.color.transparent)
+        setLayout(0.9f, ViewGroup.LayoutParams.WRAP_CONTENT)
     }
 
     private var sourceOrigin: String? = null
 
     override fun onFragmentCreated(view: View, savedInstanceState: Bundle?): Unit = binding.run {
+        view.applyDialogRoundedBackground()
         initMenu()
         val arguments = arguments ?: return@run
         viewModel.initData(arguments)
