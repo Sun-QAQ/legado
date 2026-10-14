@@ -30,5 +30,5 @@ internal fun composeAgentSystemPrompt(
 ): String = if (presetPrompt.isBlank()) {
     personaPrompt + toolOverview
 } else {
-    listOf(personaPrompt, presetPrompt, toolOverview).joinToString("\n\n")
+    listOf(presetPrompt, personaPrompt, toolOverview).joinToString("\n\n")
 }

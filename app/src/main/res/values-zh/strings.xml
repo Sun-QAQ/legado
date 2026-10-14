@@ -1401,5 +1401,5 @@
     <string name="ai_preset_prompt">预设提示词</string>
     <string name="ai_preset_select_use">使用此预设</string>
     <string name="ai_preset_default_desc">仅使用当前人格，不追加预设提示词。</string>
-    <string name="ai_preset_usage">点击预设即可使用，提示词将追加到系统提示词中，对后续消息生效。</string>
+    <string name="ai_preset_usage">点击预设即可使用，预设提示词将放在系统提示词最前面，对后续消息生效。</string>
 </resources>

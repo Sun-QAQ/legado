@@ -1429,5 +1429,5 @@
     <string name="ai_preset_prompt">Preset prompt</string>
     <string name="ai_preset_select_use">Use this preset</string>
     <string name="ai_preset_default_desc">Use the current persona without an additional preset.</string>
-    <string name="ai_preset_usage">Select a preset to append its prompt to the system prompt for subsequent messages.</string>
+    <string name="ai_preset_usage">Select a preset to place its prompt at the start of the system prompt for subsequent messages.</string>
 </resources>
