@@ -48,7 +48,7 @@
       ><el-button v-if="searching" @click="stopSearch">停止搜索</el-button>
     </form>
     <p class="search-hint muted">
-      选择结果后会加入书架并打开阅读。{{
+      选择结果可查看书籍详情，再加入书架或开始阅读。{{
         searching
           ? '正在接收书源结果…'
           : searched
@@ -72,7 +72,7 @@
           :show-text="false"
         /><small class="muted">已读 {{ bookProgress(recent) }}%</small>
       </div>
-      <el-button type="primary" @click="openBook(recent)">继续阅读 →</el-button>
+      <el-button type="primary" @click="openBook(recent)">查看详情 →</el-button>
     </section>
     <div class="shelf-toolbar">
       <div class="shelf-tabs" aria-label="书架筛选">
@@ -172,6 +172,7 @@ import { Grid, List, Refresh, Search } from '@element-plus/icons-vue'
 import API from '@api'
 import type { Book, SeachBook } from '@/book'
 import { bookProgress } from '@/utils/bookPresentation'
+import { openBookDetail } from '@/utils/bookNavigation'
 const store = useBookStore(),
   route = useRoute(),
   router = useRouter()
@@ -179,7 +180,9 @@ const online = computed(() => route.name === 'search')
 const filters = ['全部书籍', '阅读中', '已读完']
 const filter = ref('全部书籍'),
   sort = ref('recent'),
-  searchWord = ref('')
+  searchWord = ref(
+    online.value ? sessionStorage.getItem('web-book-search-word') || '' : '',
+  )
 const list = ref(localStorage.getItem('web-shelf-layout') === 'list')
 const pageSize = ref(50),
   currentPage = ref(1)
@@ -195,9 +198,9 @@ watch(list, value =>
 )
 const loading = ref(false),
   searching = ref(false),
-  searched = ref(false),
+  searched = ref(store.searchBooks.length > 0),
   error = ref('')
-const searchGroup = ref(''),
+const searchGroup = ref(sessionStorage.getItem('web-book-search-group') || ''),
   sourceGroups = ref<string[]>([]),
   groupsLoading = ref(false)
 let socket: WebSocket | undefined
@@ -288,6 +291,8 @@ const loadSearchGroups = async () => {
 const searchBook = () => {
   const key = searchWord.value.trim()
   if (!key) return ElMessage.info('请输入书名或作者')
+  sessionStorage.setItem('web-book-search-word', key)
+  sessionStorage.setItem('web-book-search-group', searchGroup.value)
   stopSearch()
   store.clearSearchBooks()
   searched.value = true
@@ -321,40 +326,8 @@ const searchBook = () => {
     ElMessage.error('无法开始搜索，请检查连接')
   }
 }
-const openBook = async (book: Book | SeachBook) => {
-  const searchedBook = 'respondTime' in book
-  try {
-    if (searchedBook) {
-      await store.loadBookShelf()
-      const response = await API.saveBook(book)
-      if (!response.data.isSuccess)
-        return ElMessage.error(response.data.errorMsg || '加入书架失败')
-    }
-    const shelfBook = store.shelf.find(b => b.bookUrl === book.bookUrl)
-    const progress = shelfBook || ('durChapterIndex' in book ? book : undefined)
-    const reading = {
-      bookUrl: book.bookUrl,
-      name: book.name,
-      author: book.author || '',
-      chapterIndex: progress?.durChapterIndex || 0,
-      chapterPos: progress?.durChapterPos || 0,
-      isSeachBook: searchedBook && !shelfBook,
-    }
-    for (const [key, value] of Object.entries({
-      bookUrl: reading.bookUrl,
-      bookName: reading.name,
-      bookAuthor: reading.author,
-      chapterIndex: reading.chapterIndex,
-      chapterPos: reading.chapterPos,
-      isSeachBook: reading.isSeachBook,
-    }))
-      sessionStorage.setItem(key, String(value))
-    localStorage.setItem('readingRecent', JSON.stringify(reading))
-    await router.push('/chapter')
-  } catch {
-    ElMessage.error('打开书籍失败，请检查连接后重试')
-  }
-}
+const openBook = (book: Book | SeachBook) =>
+  openBookDetail(router, book, online.value ? 'search' : 'shelf')
 const searchFromNavigation = async () => {
   const key = typeof route.query.q === 'string' ? route.query.q.trim() : ''
   if (!online.value || !key) return
@@ -373,7 +346,6 @@ watch(online, active => {
 onMounted(() => {
   if (!online.value) loadShelf()
   else {
-    store.clearSearchBooks()
     void loadSearchGroups()
     if (route.query.q) void searchFromNavigation()
   }

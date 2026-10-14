@@ -27,7 +27,7 @@ export type Book = BaseBook & {
   // 简介内容(书源获取)
   intro?: string
   // 简介内容(用户修改)
-  customnumberro?: string
+  customIntro?: string
   // 自定义字符集名称(仅适用于本地书籍)
   charset?: string
   // 类型详见BookType

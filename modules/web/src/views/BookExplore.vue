@@ -65,19 +65,29 @@
     >
       <div v-if="books.length" class="explore-grid">
         <article v-for="book in books" :key="book.bookUrl" class="explore-book">
-          <el-image
-            :src="API.getProxyCoverUrl(book.coverUrl || '')"
-            fit="cover"
-            loading="lazy"
+          <button
+            class="explore-detail-cover"
+            :aria-label="`查看《${book.name}》详情`"
+            @click="openDetail(book)"
           >
-            <template #error
-              ><div class="explore-cover-fallback">
-                {{ book.name }}
-              </div></template
+            <el-image
+              :src="API.getProxyCoverUrl(book.coverUrl || '')"
+              fit="cover"
+              loading="lazy"
             >
-          </el-image>
+              <template #error
+                ><div class="explore-cover-fallback">
+                  {{ book.name }}
+                </div></template
+              >
+            </el-image>
+          </button>
           <div class="explore-book-info">
-            <h2 :title="book.name">{{ book.name }}</h2>
+            <h2 :title="book.name">
+              <button class="explore-detail-title" @click="openDetail(book)">
+                {{ book.name }}
+              </button>
+            </h2>
             <p class="muted">{{ book.author || '佚名' }}</p>
             <p v-if="book.kind" class="muted explore-tags" :title="book.kind">
               {{ book.kind }}
@@ -89,6 +99,7 @@
                 '暂无简介'
               }}
             </p>
+            <el-button @click="openDetail(book)">查看详情</el-button>
             <el-button
               :disabled="inShelf(book)"
               :loading="adding.has(book.bookUrl)"
@@ -116,10 +127,13 @@
 <script setup lang="ts">
 import API, { type ExploreSource, type ExploreKind } from '@api'
 import type { Book } from '@/book'
+import { openBookDetail } from '@/utils/bookNavigation'
 
 defineOptions({ name: 'BookExplore' })
 
 const store = useBookStore()
+const router = useRouter()
+const openDetail = (book: Book) => openBookDetail(router, book, 'explore')
 const sources = shallowRef<ExploreSource[]>([])
 const sourceGroup = ref('')
 // 与 App 的书源分组分隔符保持一致，一个书源可以属于多个分组。
@@ -147,11 +161,17 @@ const filteredSources = computed(() =>
 )
 const groupOptions = computed(() => [
   { label: '全部分组', value: '' },
-  ...sourceGroups.value.map(group => ({ label: group, value: `group:${group}` })),
+  ...sourceGroups.value.map(group => ({
+    label: group,
+    value: `group:${group}`,
+  })),
   ...(hasUngrouped.value ? [{ label: '未分组', value: 'ungrouped' }] : []),
 ])
 const sourceOptions = computed(() =>
-  filteredSources.value.map(source => ({ label: source.name, value: source.url })),
+  filteredSources.value.map(source => ({
+    label: source.name,
+    value: source.url,
+  })),
 )
 const kinds = ref<ExploreKind[]>([])
 const books = ref<Book[]>([])
@@ -368,6 +388,25 @@ onBeforeUnmount(() => {
   background: var(--web-surface);
   border: 1px solid var(--web-line);
   border-radius: 14px;
+}
+.explore-detail-cover,
+.explore-detail-title {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  padding: 0;
+  cursor: pointer;
+}
+.explore-detail-cover {
+  flex-shrink: 0;
+  align-self: flex-start;
+}
+.explore-detail-title {
+  font: inherit;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .explore-book .el-image {
   width: 90px;

@@ -32,6 +32,11 @@ export const bookRoutes = [
     component: () => import('../views/WebSettings.vue'),
   },
   {
+    path: '/book',
+    name: 'book-detail',
+    component: () => import('../views/BookDetail.vue'),
+  },
+  {
     path: '/chapter',
     name: 'chapter',
     component: () => import('../views/BookChapter.vue'),

@@ -175,6 +175,7 @@ const title = computed(
   () =>
     ({
       shelf: '我的书架',
+      'book-detail': '书籍详情',
       search: '在线搜索',
       explore: '书源发现',
       'book-home': '书源管理',

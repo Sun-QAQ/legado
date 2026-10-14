@@ -8,7 +8,7 @@
       <button
         class="book-open"
         @click="$emit('bookClick', book)"
-        :aria-label="`${isSearch ? '加入书架并阅读' : '阅读'}《${book.name}》`"
+        :aria-label="`查看《${book.name}》详情`"
       >
         <book-cover :book="book" />
         <div class="book-info">
@@ -34,7 +34,7 @@
           >
           <p class="book-progress">
             <span>{{
-              isSearch ? '加入并阅读 →' : `已读 ${bookProgress(book as Book)}%`
+              isSearch ? '查看详情 →' : `已读 ${bookProgress(book as Book)}%`
             }}</span
             ><span
               v-if="!isSearch && (book as Book).lastCheckCount > 0"
