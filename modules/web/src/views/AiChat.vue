@@ -286,10 +286,6 @@
             "
           />
         </div>
-        <p class="attachment-hint">
-          支持图片与 TXT、Markdown、CSV、JSON
-          等文本文件，可选择、拖拽或粘贴添加。
-        </p>
       </form>
     </div>
     <el-drawer
@@ -703,8 +699,14 @@ onBeforeUnmount(() => {
 }
 .chat-composer {
   width: min(100%, 800px);
+  display: flex;
+  flex-direction: column;
   align-self: center;
   flex-shrink: 0;
+  resize: vertical;
+  overflow: hidden;
+  min-height: 132px;
+  max-height: min(60vh, 480px);
   border: 1px solid var(--web-line);
   background: var(--web-surface);
   border-radius: 24px;
@@ -719,11 +721,11 @@ onBeforeUnmount(() => {
   box-sizing: border-box;
   display: block;
   width: 100%;
+  flex: 1;
   border: 0;
   outline: none;
-  resize: vertical;
+  resize: none;
   min-height: 64px;
-  max-height: 200px;
   font: inherit;
   font-size: 14px;
   line-height: 1.6;
@@ -735,6 +737,7 @@ onBeforeUnmount(() => {
 }
 .composer-actions {
   display: flex;
+  flex-shrink: 0;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
@@ -749,12 +752,6 @@ onBeforeUnmount(() => {
 }
 .upload-button {
   flex-shrink: 0;
-}
-.attachment-hint {
-  margin: 10px 0 0;
-  color: var(--web-muted);
-  font-size: 11px;
-  line-height: 1.5;
 }
 .attachment-list {
   display: flex;
