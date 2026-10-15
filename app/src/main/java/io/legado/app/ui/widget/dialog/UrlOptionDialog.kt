@@ -1,33 +1,49 @@
 package io.legado.app.ui.widget.dialog
 
-import android.app.Dialog
 import android.content.Context
 import android.os.Bundle
 import android.view.ViewGroup
+import android.view.WindowManager
+import androidx.appcompat.app.AppCompatDialog
 import io.legado.app.R
 import io.legado.app.constant.AppConst
 import io.legado.app.databinding.DialogUrlOptionEditBinding
 import io.legado.app.model.analyzeRule.AnalyzeUrl
 import io.legado.app.utils.GSON
+import io.legado.app.utils.applyDialogRoundedBackground
+import io.legado.app.utils.dpToPx
 import io.legado.app.utils.setLayout
 
-class UrlOptionDialog(context: Context, private val success: (String) -> Unit) : Dialog(context) {
+class UrlOptionDialog(context: Context, private val success: (String) -> Unit) :
+    AppCompatDialog(context) {
 
     val binding = DialogUrlOptionEditBinding.inflate(layoutInflater)
 
     override fun onStart() {
         super.onStart()
         setLayout(1f, ViewGroup.LayoutParams.MATCH_PARENT)
+        window?.let {
+            it.setLayout(
+                minOf(it.attributes.width, 640.dpToPx()),
+                ViewGroup.LayoutParams.MATCH_PARENT
+            )
+            it.setSoftInputMode(
+                WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE or
+                    WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN
+            )
+        }
         window?.setBackgroundDrawableResource(R.color.transparent)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(binding.root)
+        binding.vwBg.applyDialogRoundedBackground()
         binding.root.setOnClickListener { dismiss() }
         binding.vwBg.setOnClickListener(null)
         binding.editMethod.setFilterValues("POST", "GET")
         binding.editCharset.setFilterValues(AppConst.charsets)
+        binding.tvCancel.setOnClickListener { dismiss() }
         binding.tvOk.setOnClickListener {
             success.invoke(GSON.toJson(getUrlOption()))
             dismiss()

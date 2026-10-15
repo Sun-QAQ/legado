@@ -1430,4 +1430,14 @@
     <string name="ai_preset_select_use">Use this preset</string>
     <string name="ai_preset_default_desc">Use the current persona without an additional preset.</string>
     <string name="ai_preset_usage">Select a preset to place its prompt at the start of the system prompt for subsequent messages.</string>
+    <string name="url_option_hint">Fill in the parameters you need; leave the others blank.</string>
+    <string name="url_option_use_web_view">Load with WebView (useWebView)</string>
+    <string name="url_option_method">Request method (method)</string>
+    <string name="url_option_charset">Character encoding (charset)</string>
+    <string name="url_option_headers">Request headers (headers)</string>
+    <string name="url_option_body">Request body (body)</string>
+    <string name="url_option_type">Response type (type)</string>
+    <string name="url_option_retry">Retry count (retry)</string>
+    <string name="url_option_web_js">WebView script (webJs)</string>
+    <string name="url_option_js">URL script (js)</string>
 </resources>

@@ -148,6 +148,27 @@
         <item name="android:layout_width">wrap_content</item>
     </style>
 
+    <style name="Widget.Legado.UrlOptionInput" parent="Widget.Material3.TextInputLayout.OutlinedBox">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_marginTop">12dp</item>
+        <item name="boxCornerRadiusTopStart">8dp</item>
+        <item name="boxCornerRadiusTopEnd">8dp</item>
+        <item name="boxCornerRadiusBottomStart">8dp</item>
+        <item name="boxCornerRadiusBottomEnd">8dp</item>
+    </style>
+
+    <style name="Widget.Legado.UrlOptionEditText" parent="">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:background">@null</item>
+        <item name="android:minHeight">52dp</item>
+        <item name="android:paddingHorizontal">12dp</item>
+        <item name="android:paddingVertical">14dp</item>
+        <item name="android:textSize">14sp</item>
+        <item name="android:textColor">@color/primaryText</item>
+    </style>
+
     <!-- P2 底部导航胶囊指示器：全圆角 pill -->
     <style name="ShapeAppearance.Legado.Pill" parent="">
         <item name="cornerSize">999dp</item>

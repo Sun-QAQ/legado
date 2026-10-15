@@ -1402,4 +1402,14 @@
     <string name="ai_preset_select_use">使用此预设</string>
     <string name="ai_preset_default_desc">仅使用当前人格，不追加预设提示词。</string>
     <string name="ai_preset_usage">点击预设即可使用，预设提示词将放在系统提示词最前面，对后续消息生效。</string>
+    <string name="url_option_hint">按需填写参数，留空的项目不会插入。</string>
+    <string name="url_option_use_web_view">使用 WebView 加载（useWebView）</string>
+    <string name="url_option_method">请求方式（method）</string>
+    <string name="url_option_charset">字符编码（charset）</string>
+    <string name="url_option_headers">请求头（headers）</string>
+    <string name="url_option_body">请求体（body）</string>
+    <string name="url_option_type">响应类型（type）</string>
+    <string name="url_option_retry">重试次数（retry）</string>
+    <string name="url_option_web_js">WebView 脚本（webJs）</string>
+    <string name="url_option_js">URL 脚本（js）</string>
 </resources>
