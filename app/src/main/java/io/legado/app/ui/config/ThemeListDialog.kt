@@ -28,10 +28,12 @@ class ThemeListDialog : BaseDialogFragment(R.layout.dialog_recycler_view),
 
     override fun onStart() {
         super.onStart()
+        dialog?.window?.setBackgroundDrawableResource(R.color.transparent)
         setLayout(0.9f, 0.9f)
     }
 
     override fun onFragmentCreated(view: View, savedInstanceState: Bundle?) {
+        view.applyDialogRoundedBackground()
         binding.toolBar.setBackgroundColor(backgroundColor)
         binding.toolBar.setTitle(R.string.theme_list)
         initView()
