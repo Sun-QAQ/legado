@@ -4,6 +4,7 @@ import android.os.SystemClock
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
+import androidx.appcompat.widget.AppCompatSpinner
 import androidx.test.core.app.ActivityScenario
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import io.legado.app.R
@@ -12,7 +13,9 @@ import io.legado.app.data.appDb
 import io.legado.app.data.entities.Book
 import io.legado.app.data.entities.BookGroup
 import io.legado.app.help.config.AppConfig
+import io.legado.app.ui.book.group.GroupEditDialog
 import io.legado.app.ui.main.MainActivity
+import io.legado.app.ui.widget.image.CoverImageView
 import io.legado.app.ui.widget.image.FolderCoverView
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -23,6 +26,74 @@ import java.util.UUID
 
 @RunWith(AndroidJUnit4::class)
 class FolderCoverViewTest {
+    @Test
+    fun editDialogPreviewsSortChangesAndPreservesStoredCoverWhenSaving() {
+        val originalStyle = AppConfig.bookGroupStyle
+        val suffix = UUID.randomUUID().toString()
+        val group = BookGroup(
+            groupId = appDb.bookGroupDao.getUnusedId(), groupName = "分组预览测试-$suffix",
+            bookSort = 3, cover = "stored-cover"
+        )
+        val books = (1..2).map { index ->
+            Book(
+                bookUrl = "group-preview-test:$suffix:$index", name = "预览-$suffix-$index",
+                group = group.groupId, type = BookType.text or BookType.local, canUpdate = false,
+                coverUrl = "/missing-cover-$suffix-$index", order = index,
+                durChapterTime = index.toLong()
+            )
+        }
+        try {
+            AppConfig.bookGroupStyle = 1
+            appDb.bookGroupDao.insert(group)
+            appDb.bookDao.insert(*books.toTypedArray())
+            ActivityScenario.launch(MainActivity::class.java).use { scenario ->
+                scenario.onActivity {
+                    GroupEditDialog(group).show(it.supportFragmentManager, "folder-preview-edit")
+                }
+                fun awaitCover(path: String?) {
+                    repeat(200) {
+                        var ready = false
+                        scenario.onActivity { activity ->
+                            val view = activity.supportFragmentManager
+                                .findFragmentByTag("folder-preview-edit")?.view
+                            val folder = view?.findViewById<FolderCoverView>(R.id.folder_cover)
+                            ready = folder?.visibility == View.VISIBLE &&
+                                (folder.getChildAt(0) as? CoverImageView)?.bitmapPath == path
+                        }
+                        if (ready) return
+                        SystemClock.sleep(50)
+                    }
+                    throw AssertionError("Group dialog did not update its folder preview")
+                }
+                awaitCover(books.first().coverUrl)
+                scenario.onActivity { activity ->
+                    val view = activity.supportFragmentManager
+                        .findFragmentByTag("folder-preview-edit")!!.requireView()
+                    assertEquals(View.GONE, view.findViewById<View>(R.id.iv_cover).visibility)
+                    view.findViewById<AppCompatSpinner>(R.id.sp_sort).setSelection(1)
+                }
+                awaitCover(books.last().coverUrl)
+                scenario.onActivity { activity ->
+                    activity.supportFragmentManager.findFragmentByTag("folder-preview-edit")!!
+                        .requireView().findViewById<View>(R.id.btn_ok).performClick()
+                }
+                val saveDeadline = SystemClock.uptimeMillis() + 5000
+                while (appDb.bookGroupDao.getByID(group.groupId)?.bookSort != 0 &&
+                    SystemClock.uptimeMillis() < saveDeadline
+                ) {
+                    SystemClock.sleep(20)
+                }
+                val saved = appDb.bookGroupDao.getByID(group.groupId)!!
+                assertEquals(0, saved.bookSort)
+                assertEquals("stored-cover", saved.cover)
+            }
+        } finally {
+            appDb.bookDao.delete(*books.toTypedArray())
+            appDb.bookGroupDao.delete(group)
+            AppConfig.bookGroupStyle = originalStyle
+        }
+    }
+
     @Test
     fun foldersLoadAgainAfterRecreationWithoutAnotherBookDatabaseChange() {
         val originalStyle = AppConfig.bookGroupStyle
