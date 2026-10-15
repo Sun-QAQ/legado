@@ -25,7 +25,14 @@ class FolderCoverView @JvmOverloads constructor(
             addView(this, LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT))
         }
     }
+    private val customImage = CoverImageView(context, filletRadius = 6f.dpToPx()).apply {
+        scaleType = ImageView.ScaleType.CENTER_CROP
+        visibility = GONE
+        importantForAccessibility = IMPORTANT_FOR_ACCESSIBILITY_NO
+        addView(this, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT))
+    }
     private var displayedCovers: List<FolderBookCover>? = null
+    private var displayedCustomCover: String? = null
 
     init {
         background = GradientDrawable().apply {
@@ -35,11 +42,23 @@ class FolderCoverView @JvmOverloads constructor(
         clipToOutline = true
     }
 
-    fun load(items: List<FolderBookCover>) {
-        if (items == displayedCovers) return
+    fun load(items: List<FolderBookCover>, customCover: String? = null) {
+        val customPath = customCover?.takeIf { it.isNotBlank() }
+        if (items == displayedCovers && customPath == displayedCustomCover) return
         displayedCovers = items.toList()
+        displayedCustomCover = customPath
+        if (customPath == null) {
+            Glide.with(customImage).clear(customImage)
+            customImage.setImageDrawable(null)
+            customImage.visibility = GONE
+        } else {
+            if (customImage.visibility != VISIBLE || customImage.bitmapPath != customPath) {
+                customImage.load(customPath)
+            }
+            customImage.visibility = VISIBLE
+        }
         covers.forEachIndexed { index, image ->
-            val item = items.getOrNull(index)
+            val item = if (customPath == null) items.getOrNull(index) else null
             if (item == null) {
                 Glide.with(image).clear(image)
                 image.setImageDrawable(null)
@@ -56,6 +75,12 @@ class FolderCoverView @JvmOverloads constructor(
         val width = MeasureSpec.getSize(widthMeasureSpec)
         val height = width * 7 / 5
         setMeasuredDimension(width, height)
+        if (customImage.visibility != GONE) {
+            customImage.measure(
+                MeasureSpec.makeMeasureSpec(width, MeasureSpec.EXACTLY),
+                MeasureSpec.makeMeasureSpec(height, MeasureSpec.EXACTLY)
+            )
+        }
         val coverWidth = ((width - inset * 2 - gap) / 2).coerceAtLeast(0)
         covers.filter { it.visibility != GONE }.forEach {
             it.measure(
@@ -66,6 +91,9 @@ class FolderCoverView @JvmOverloads constructor(
     }
 
     override fun onLayout(changed: Boolean, left: Int, top: Int, right: Int, bottom: Int) {
+        if (customImage.visibility != GONE) {
+            customImage.layout(0, 0, customImage.measuredWidth, customImage.measuredHeight)
+        }
         covers.forEachIndexed { index, image ->
             if (image.visibility != GONE) {
                 val x = inset + index % 2 * (image.measuredWidth + gap)

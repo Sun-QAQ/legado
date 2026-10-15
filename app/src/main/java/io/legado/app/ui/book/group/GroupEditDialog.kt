@@ -15,10 +15,12 @@ import io.legado.app.data.entities.BookGroup
 import io.legado.app.databinding.DialogBookGroupEditBinding
 import io.legado.app.help.config.AppConfig
 import io.legado.app.lib.dialogs.alert
+import io.legado.app.lib.dialogs.selector
 import io.legado.app.lib.theme.ThemeDrawables
 import io.legado.app.lib.theme.backgroundColor
 import io.legado.app.ui.file.HandleFileContract
 import io.legado.app.ui.main.bookshelf.style2.FolderCoverPreview
+import io.legado.app.ui.main.bookshelf.style2.FolderBookCover
 import io.legado.app.utils.FileUtils
 import io.legado.app.utils.MD5Utils
 import io.legado.app.utils.applyDialogRoundedBackground
@@ -50,6 +52,8 @@ class GroupEditDialog() : BaseDialogFragment(R.layout.dialog_book_group_edit) {
     private val binding by viewBinding(DialogBookGroupEditBinding::bind)
     private val viewModel by viewModels<GroupViewModel>()
     private var bookGroup: BookGroup? = null
+    private var selectedCover: String? = null
+    private var previewCovers: List<FolderBookCover> = emptyList()
     private val useFolderCover by lazy { AppConfig.bookGroupStyle == 1 }
     private val selectImage = registerForActivityResult(HandleFileContract()) {
         it.uri ?: return@registerForActivityResult
@@ -64,7 +68,8 @@ class GroupEditDialog() : BaseDialogFragment(R.layout.dialog_book_group_edit) {
                 FileOutputStream(file).use { outputStream ->
                     inputStream.copyTo(outputStream)
                 }
-                binding.ivCover.load(file.absolutePath)
+                selectedCover = file.absolutePath
+                renderCover()
             } catch (e: Exception) {
                 appCtx.toastOnUi(e.localizedMessage)
             }
@@ -91,7 +96,6 @@ class GroupEditDialog() : BaseDialogFragment(R.layout.dialog_book_group_edit) {
         bookGroup?.let {
             binding.btnDelete.visible(it.groupId > 0 || it.groupId == Long.MIN_VALUE)
             binding.tieGroupName.setText(it.groupName)
-            if (!useFolderCover) binding.ivCover.load(it.cover)
             if (it.bookSort + 1 !in 0..<binding.spSort.count) {
                 it.bookSort = -1
             }
@@ -100,15 +104,15 @@ class GroupEditDialog() : BaseDialogFragment(R.layout.dialog_book_group_edit) {
         } ?: let {
             binding.toolBar.title = getString(R.string.add_group)
             binding.btnDelete.gone()
-            if (!useFolderCover) binding.ivCover.load()
+        }
+        selectedCover = if (savedInstanceState?.containsKey("selectedCover") == true) {
+            savedInstanceState.getString("selectedCover")
+        } else {
+            bookGroup?.cover
         }
         initFolderCover()
         binding.run {
-            ivCover.onClick {
-                selectImage.launch {
-                    mode = HandleFileContract.IMAGE
-                }
-            }
+            coverContainer.onClick { showCoverOptions() }
             btnCancel.onClick {
                 dismiss()
             }
@@ -118,7 +122,7 @@ class GroupEditDialog() : BaseDialogFragment(R.layout.dialog_book_group_edit) {
                     toastOnUi("分组名称不能为空")
                 } else {
                     val bookSort = binding.spSort.selectedItemPosition - 1
-                    val coverPath = if (useFolderCover) bookGroup?.cover else binding.ivCover.bitmapPath
+                    val coverPath = selectedCover?.takeIf { it.isNotBlank() }
                     val enableRefresh = binding.cbEnableRefresh.isChecked
                     bookGroup?.let {
                         it.groupName = groupName
@@ -156,6 +160,7 @@ class GroupEditDialog() : BaseDialogFragment(R.layout.dialog_book_group_edit) {
     private fun initFolderCover() {
         binding.ivCover.gone(useFolderCover)
         binding.folderCover.gone(!useFolderCover)
+        renderCover()
         if (!useFolderCover) return
         val group = bookGroup ?: return
         val selectedSort = MutableStateFlow(binding.spSort.selectedItemPosition - 1)
@@ -177,8 +182,39 @@ class GroupEditDialog() : BaseDialogFragment(R.layout.dialog_book_group_edit) {
                 ).covers
             }.flowOn(Dispatchers.Default)
                 .flowWithLifecycle(viewLifecycleOwner.lifecycle)
-                .collect { binding.folderCover.load(it) }
+                .collect {
+                    previewCovers = it
+                    renderCover()
+                }
         }
+    }
+
+    private fun renderCover() {
+        if (useFolderCover) {
+            binding.folderCover.load(previewCovers, selectedCover)
+        } else {
+            binding.ivCover.load(selectedCover)
+        }
+    }
+
+    private fun showCoverOptions() {
+        requireContext().selector(
+            getString(R.string.img_cover),
+            listOf(getString(R.string.select_image), getString(R.string.restore_default))
+        ) { _, index ->
+            when (index) {
+                0 -> selectImage.launch { mode = HandleFileContract.IMAGE }
+                1 -> {
+                    selectedCover = null
+                    renderCover()
+                }
+            }
+        }
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putString("selectedCover", selectedCover)
     }
 
     private fun deleteGroup(ok: () -> Unit) {

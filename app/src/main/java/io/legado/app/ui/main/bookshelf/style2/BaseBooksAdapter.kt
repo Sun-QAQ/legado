@@ -85,7 +85,9 @@ abstract class BaseBooksAdapter<VH : RecyclerView.ViewHolder>(
                     if (oldItem.group.groupName != newItem.group.groupName) {
                         bundle.putString("groupName", newItem.group.groupName)
                     }
-                    if (oldItem.covers != newItem.covers) {
+                    if (oldItem.covers != newItem.covers ||
+                        oldItem.group.cover != newItem.group.cover
+                    ) {
                         bundle.putBoolean("cover", true)
                     }
                 }

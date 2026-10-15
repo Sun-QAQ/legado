@@ -117,7 +117,7 @@ class BooksAdapterList(context: Context, callBack: CallBack) :
 
         fun onBind(item: BookshelfFolder, position: Int) = binding.run {
             tvName.text = item.group.groupName
-            ivCover.load(item.covers)
+            ivCover.load(item.covers, item.group.cover)
             flHasNew.gone()
             ivAuthor.gone()
             ivLast.gone()
@@ -136,7 +136,7 @@ class BooksAdapterList(context: Context, callBack: CallBack) :
                     bundle.keySet().forEach {
                         when (it) {
                             "groupName" -> tvName.text = item.group.groupName
-                            "cover" -> ivCover.load(item.covers)
+                            "cover" -> ivCover.load(item.covers, item.group.cover)
                         }
                     }
                 }
