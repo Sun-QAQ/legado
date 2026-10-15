@@ -3,6 +3,7 @@ package io.legado.app.ui.book.group
 import android.os.Bundle
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ArrayAdapter
 import androidx.fragment.app.viewModels
 import io.legado.app.R
 import io.legado.app.base.BaseDialogFragment
@@ -69,6 +70,9 @@ class GroupEditDialog() : BaseDialogFragment(R.layout.dialog_book_group_edit) {
         binding.toolBar.setBackgroundColor(backgroundColor)
         binding.spSort.setPopupBackgroundDrawable(
             ThemeDrawables.get(requireContext(), R.drawable.bg_popup_menu)
+        )
+        (binding.spSort.adapter as? ArrayAdapter<*>)?.setDropDownViewResource(
+            R.layout.item_group_sort_dropdown
         )
         @Suppress("DEPRECATION")
         bookGroup = arguments?.getParcelable("group")
