@@ -151,7 +151,7 @@
     <style name="Widget.Legado.UrlOptionInput" parent="Widget.Material3.TextInputLayout.OutlinedBox">
         <item name="android:layout_width">match_parent</item>
         <item name="android:layout_height">wrap_content</item>
-        <item name="android:layout_marginTop">12dp</item>
+        <item name="android:layout_marginTop">4dp</item>
         <item name="boxCornerRadiusTopStart">8dp</item>
         <item name="boxCornerRadiusTopEnd">8dp</item>
         <item name="boxCornerRadiusBottomStart">8dp</item>
@@ -160,11 +160,11 @@
 
     <style name="Widget.Legado.UrlOptionEditText" parent="">
         <item name="android:layout_width">match_parent</item>
-        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_height">40dp</item>
         <item name="android:background">@null</item>
-        <item name="android:minHeight">52dp</item>
+        <item name="android:minHeight">40dp</item>
         <item name="android:paddingHorizontal">12dp</item>
-        <item name="android:paddingVertical">14dp</item>
+        <item name="android:paddingVertical">6dp</item>
         <item name="android:textSize">14sp</item>
         <item name="android:textColor">@color/primaryText</item>
     </style>

@@ -94,8 +94,9 @@
                         android:id="@+id/edit_headers"
                         style="@style/Widget.Legado.UrlOptionEditText"
                         android:inputType="textMultiLine|textNoSuggestions"
-                        android:gravity="top|start"
-                        android:minLines="2"
+                        android:gravity="center_vertical|start"
+                        android:minLines="1"
+                        android:scrollbars="vertical"
                         android:maxLines="6" />
 
                 </io.legado.app.ui.widget.text.TextInputLayout>
@@ -109,8 +110,9 @@
                         android:id="@+id/edit_body"
                         style="@style/Widget.Legado.UrlOptionEditText"
                         android:inputType="textMultiLine|textNoSuggestions"
-                        android:gravity="top|start"
-                        android:minLines="2"
+                        android:gravity="center_vertical|start"
+                        android:minLines="1"
+                        android:scrollbars="vertical"
                         android:maxLines="6" />
 
                 </io.legado.app.ui.widget.text.TextInputLayout>
@@ -152,8 +154,9 @@
                         android:id="@+id/edit_web_js"
                         style="@style/Widget.Legado.UrlOptionEditText"
                         android:inputType="textMultiLine|textNoSuggestions"
-                        android:gravity="top|start"
-                        android:minLines="2"
+                        android:gravity="center_vertical|start"
+                        android:minLines="1"
+                        android:scrollbars="vertical"
                         android:maxLines="6" />
 
                 </io.legado.app.ui.widget.text.TextInputLayout>
@@ -167,8 +170,9 @@
                         android:id="@+id/edit_js"
                         style="@style/Widget.Legado.UrlOptionEditText"
                         android:inputType="textMultiLine|textNoSuggestions"
-                        android:gravity="top|start"
-                        android:minLines="2"
+                        android:gravity="center_vertical|start"
+                        android:minLines="1"
+                        android:scrollbars="vertical"
                         android:maxLines="6" />
 
                 </io.legado.app.ui.widget.text.TextInputLayout>
