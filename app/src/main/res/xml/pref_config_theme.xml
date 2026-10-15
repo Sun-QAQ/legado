@@ -70,16 +70,16 @@
         <io.legado.app.lib.prefs.ColorPreference
             android:defaultValue="@color/default_primary_day"
             android:key="colorPrimary"
-            android:summary="@string/day_color_primary"
-            android:title="@string/primary"
+            android:summary="@string/day_color_accent"
+            android:title="@string/accent"
             app:cpv_dialogType="preset"
             app:iconSpaceReserved="false" />
 
         <io.legado.app.lib.prefs.ColorPreference
             android:defaultValue="@color/default_accent_day"
             android:key="colorAccent"
-            android:summary="@string/day_color_accent"
-            android:title="@string/accent"
+            android:summary="@string/day_color_primary"
+            android:title="@string/primary"
             app:cpv_dialogType="preset"
             app:iconSpaceReserved="false" />
 
@@ -126,16 +126,16 @@
         <io.legado.app.lib.prefs.ColorPreference
             android:defaultValue="@color/md_blue_grey_600"
             android:key="colorPrimaryNight"
-            android:summary="@string/night_primary"
-            android:title="@string/primary"
+            android:summary="@string/night_accent"
+            android:title="@string/accent"
             app:cpv_dialogType="preset"
             app:iconSpaceReserved="false" />
 
         <io.legado.app.lib.prefs.ColorPreference
             android:defaultValue="@color/default_accent_night"
             android:key="colorAccentNight"
-            android:summary="@string/night_accent"
-            android:title="@string/accent"
+            android:summary="@string/night_primary"
+            android:title="@string/primary"
             app:cpv_dialogType="preset"
             app:iconSpaceReserved="false" />
 
