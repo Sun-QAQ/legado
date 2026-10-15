@@ -26,7 +26,7 @@ import io.legado.app.databinding.ItemFilletTextBinding
 import io.legado.app.databinding.ItemSourceEditBinding
 import io.legado.app.lib.dialogs.alert
 import io.legado.app.lib.theme.Selector
-import io.legado.app.lib.theme.primaryColor
+import io.legado.app.lib.theme.accentColor
 import io.legado.app.ui.about.AppLogDialog
 import io.legado.app.utils.ColorUtils
 import io.legado.app.utils.GSON
@@ -107,7 +107,7 @@ class SourceLoginDialog : BaseDialogFragment(R.layout.dialog_login, true) {
                         it.root.id = index + 1000
                         it.textView.text = rowUi.name
                         it.textView.setPadding(16.dpToPx())
-                        applyPrimaryColor(it.textView)
+                        applyAccentColor(it.textView)
                         it.root.onClick {
                             handleButtonClick(source, rowUi, loginUi)
                         }
@@ -190,7 +190,7 @@ class SourceLoginDialog : BaseDialogFragment(R.layout.dialog_login, true) {
                         val item = ItemFilletTextBinding.inflate(layoutInflater, binding.root, false)
                         item.textView.text = row.name
                         item.textView.setPadding(16.dpToPx())
-                        applyPrimaryColor(item.textView)
+                        applyAccentColor(item.textView)
                         item.root.setOnClickListener {
                             if (binding.flexbox.isEnabled) {
                                 refreshNgLogin(source, row.action, getLoginData(rows))
@@ -217,17 +217,17 @@ class SourceLoginDialog : BaseDialogFragment(R.layout.dialog_login, true) {
     }
 
     /**
-     * 登录按钮底色使用主题设置中的主色调，按下加深，文字颜色按底色明暗自动取黑/白
+     * 登录按钮底色使用主题设置中的强调色，按下加深，文字颜色按底色明暗自动取黑/白
      */
-    private fun applyPrimaryColor(view: TextView) {
-        val primaryColor = requireContext().primaryColor
+    private fun applyAccentColor(view: TextView) {
+        val accentColor = requireContext().accentColor
         view.background = Selector.shapeBuild()
             .setCornerRadius(999.dpToPx())
-            .setDefaultBgColor(primaryColor)
-            .setPressedBgColor(ColorUtils.darkenColor(primaryColor))
+            .setDefaultBgColor(accentColor)
+            .setPressedBgColor(ColorUtils.darkenColor(accentColor))
             .create()
         view.setTextColor(
-            if (ColorUtils.isColorLight(primaryColor)) Color.BLACK else Color.WHITE
+            if (ColorUtils.isColorLight(accentColor)) Color.BLACK else Color.WHITE
         )
     }
 
