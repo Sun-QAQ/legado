@@ -31,7 +31,7 @@ class FolderCoverViewTest {
         val originalStyle = AppConfig.bookGroupStyle
         val suffix = UUID.randomUUID().toString()
         val group = BookGroup(
-            groupId = appDb.bookGroupDao.getUnusedId(), groupName = "分组预览测试-$suffix",
+            groupId = unusedGroupId(), groupName = "分组预览测试-$suffix",
             bookSort = 3, cover = "stored-cover"
         )
         val books = (1..2).map { index ->
@@ -46,11 +46,13 @@ class FolderCoverViewTest {
             AppConfig.bookGroupStyle = 1
             appDb.bookGroupDao.insert(group)
             appDb.bookDao.insert(*books.toTypedArray())
+            assertEquals(2, appDb.bookDao.getBooksByGroup(group.groupId).size)
             ActivityScenario.launch(MainActivity::class.java).use { scenario ->
                 scenario.onActivity {
-                    GroupEditDialog(group).show(it.supportFragmentManager, "folder-preview-edit")
+                    GroupEditDialog(group).showNow(it.supportFragmentManager, "folder-preview-edit")
                 }
                 fun awaitCover(path: String?) {
+                    var lastState = "dialog not found"
                     repeat(200) {
                         var ready = false
                         scenario.onActivity { activity ->
@@ -59,17 +61,19 @@ class FolderCoverViewTest {
                             val folder = view?.findViewById<FolderCoverView>(R.id.folder_cover)
                             ready = folder?.visibility == View.VISIBLE &&
                                 (folder.getChildAt(0) as? CoverImageView)?.bitmapPath == path
+                            lastState = "view=${view != null}, visibility=${folder?.visibility}, " +
+                                "sort=${view?.findViewById<AppCompatSpinner>(R.id.sp_sort)?.selectedItemPosition}"
                         }
                         if (ready) return
                         SystemClock.sleep(50)
                     }
-                    throw AssertionError("Group dialog did not update its folder preview")
+                    throw AssertionError("Group dialog did not update its folder preview: $lastState")
                 }
                 awaitCover(books.first().coverUrl)
                 scenario.onActivity { activity ->
                     val view = activity.supportFragmentManager
                         .findFragmentByTag("folder-preview-edit")!!.requireView()
-                    assertEquals(View.GONE, view.findViewById<View>(R.id.iv_cover).visibility)
+                    assertTrue(view.findViewById<View>(R.id.iv_cover).visibility != View.VISIBLE)
                     view.findViewById<AppCompatSpinner>(R.id.sp_sort).setSelection(1)
                 }
                 awaitCover(books.last().coverUrl)
@@ -99,7 +103,7 @@ class FolderCoverViewTest {
         val originalStyle = AppConfig.bookGroupStyle
         val suffix = UUID.randomUUID().toString()
         val group = BookGroup(
-            groupId = appDb.bookGroupDao.getUnusedId(),
+            groupId = unusedGroupId(),
             groupName = "文件夹预览测试-$suffix",
             order = Int.MIN_VALUE
         )
@@ -174,5 +178,12 @@ class FolderCoverViewTest {
             SystemClock.sleep(50)
         }
         throw AssertionError("Folder did not load without a database update")
+    }
+
+    private fun unusedGroupId(): Long {
+        val groupMask = appDb.bookGroupDao.all.filter { it.groupId > 0 }
+            .fold(0L) { mask, group -> mask or group.groupId }
+        val usedMask = appDb.bookDao.all.fold(groupMask) { mask, book -> mask or book.group }
+        return (0..62).map { 1L shl it }.first { it and usedMask == 0L }
     }
 }

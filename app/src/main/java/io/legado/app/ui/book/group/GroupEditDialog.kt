@@ -154,8 +154,8 @@ class GroupEditDialog() : BaseDialogFragment(R.layout.dialog_book_group_edit) {
     }
 
     private fun initFolderCover() {
-        binding.ivCover.visible(!useFolderCover)
-        binding.folderCover.visible(useFolderCover)
+        binding.ivCover.gone(useFolderCover)
+        binding.folderCover.gone(!useFolderCover)
         if (!useFolderCover) return
         val group = bookGroup ?: return
         val selectedSort = MutableStateFlow(binding.spSort.selectedItemPosition - 1)
