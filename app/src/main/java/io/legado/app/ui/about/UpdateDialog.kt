@@ -9,6 +9,7 @@ import io.legado.app.databinding.DialogUpdateBinding
 import io.legado.app.help.update.AppUpdate
 import io.legado.app.lib.theme.backgroundColor
 import io.legado.app.model.Download
+import io.legado.app.utils.applyDialogRoundedBackground
 import io.legado.app.utils.setLayout
 import io.legado.app.utils.toastOnUi
 import io.legado.app.utils.viewbindingdelegate.viewBinding
@@ -32,10 +33,12 @@ class UpdateDialog() : BaseDialogFragment(R.layout.dialog_update) {
 
     override fun onStart() {
         super.onStart()
+        dialog?.window?.setBackgroundDrawableResource(R.color.transparent)
         setLayout(0.9f, ViewGroup.LayoutParams.WRAP_CONTENT)
     }
 
     override fun onFragmentCreated(view: View, savedInstanceState: Bundle?) {
+        view.applyDialogRoundedBackground()
         binding.toolBar.setBackgroundColor(backgroundColor)
         binding.toolBar.title = arguments?.getString("newVersion")
         val updateBody = arguments?.getString("updateBody")
