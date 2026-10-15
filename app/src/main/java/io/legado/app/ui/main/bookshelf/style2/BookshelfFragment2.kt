@@ -6,6 +6,7 @@ import android.view.View
 import androidx.appcompat.widget.SearchView
 import androidx.core.view.isGone
 import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.flowWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -13,7 +14,6 @@ import androidx.recyclerview.widget.RecyclerView
 import io.legado.app.R
 import io.legado.app.constant.AppLog
 import io.legado.app.constant.EventBus
-import io.legado.app.data.AppDatabase
 import io.legado.app.data.appDb
 import io.legado.app.data.entities.Book
 import io.legado.app.data.entities.BookGroup
@@ -25,7 +25,6 @@ import io.legado.app.ui.book.group.GroupEditDialog
 import io.legado.app.ui.book.info.BookInfoActivity
 import io.legado.app.ui.book.search.SearchActivity
 import io.legado.app.ui.main.bookshelf.BaseBookshelfFragment
-import io.legado.app.utils.flowWithLifecycleAndDatabaseChangeFirst
 import io.legado.app.utils.observeEvent
 import io.legado.app.utils.setEdgeEffectColor
 import io.legado.app.utils.showDialogFragment
@@ -168,13 +167,12 @@ class BookshelfFragment2() : BaseBookshelfFragment(R.layout.fragment_bookshelf2)
                         data.books, AppConfig.getBookSortByGroupId(groupId)
                     )
                 )
-            }.flowWithLifecycleAndDatabaseChangeFirst(
+            }.flowOn(Dispatchers.Default).flowWithLifecycle(
                 viewLifecycleOwner.lifecycle,
-                Lifecycle.State.RESUMED,
-                AppDatabase.BOOK_TABLE_NAME
+                Lifecycle.State.RESUMED
             ).catch {
                 AppLog.put("书架更新出错", it)
-            }.conflate().flowOn(Dispatchers.Default).collect { data ->
+            }.conflate().collect { data ->
                 books = data.books
                 folderItems = data.folders
                 booksAdapter.updateItems()
