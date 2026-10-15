@@ -26,12 +26,11 @@ import io.legado.app.help.coroutine.Coroutine
 import io.legado.app.help.source.getSourceType
 import io.legado.app.lib.dialogs.alert
 import io.legado.app.lib.theme.Selector
+import io.legado.app.lib.theme.ThemePalette
 import io.legado.app.lib.theme.accentColor
 import io.legado.app.lib.theme.bottomBackground
 import io.legado.app.lib.theme.buttonDisabledColor
 import io.legado.app.lib.theme.getPrimaryTextColor
-import io.legado.app.lib.theme.primaryColor
-import io.legado.app.lib.theme.primaryTextColor
 import io.legado.app.model.ReadBook
 import io.legado.app.ui.browser.WebViewActivity
 import io.legado.app.ui.widget.seekbar.SeekBarChangeListener
@@ -160,7 +159,7 @@ class ReadMenu @JvmOverloads constructor(
         bindEvent()
     }
 
-    private fun initView(reset: Boolean = false) = binding.run {
+    private fun initView() = binding.run {
         if (AppConfig.isNightTheme) {
             fabNightTheme.setImageResource(R.drawable.ic_daytime)
         } else {
@@ -174,14 +173,14 @@ class ReadMenu @JvmOverloads constructor(
             titleBar.setColorFilter(textColor)
             tvChapterName.setTextColor(lightTextColor)
             tvChapterUrl.setTextColor(lightTextColor)
-        } else if (reset) {
-            val bgColor = context.primaryColor
-            val textColor = context.primaryTextColor
-            titleBar.setTextColor(textColor)
-            titleBar.setBackgroundColor(bgColor)
-            titleBar.setColorFilter(textColor)
-            tvChapterName.setTextColor(textColor)
-            tvChapterUrl.setTextColor(textColor)
+        } else {
+            // 首次创建和设置变化后使用同一套主题色，显隐附加区域不应改变工具栏配色。
+            val palette = ThemePalette(context)
+            titleBar.setTextColor(palette.text)
+            titleBar.setBackgroundColor(palette.background)
+            titleBar.setColorFilter(palette.text)
+            tvChapterName.setTextColor(palette.secondaryText)
+            tvChapterUrl.setTextColor(palette.secondaryText)
         }
         val brightnessBackground = GradientDrawable()
         brightnessBackground.cornerRadius = 5F.dpToPx()
@@ -233,7 +232,7 @@ class ReadMenu @JvmOverloads constructor(
 
     fun reset() {
         upColorConfig()
-        initView(true)
+        initView()
     }
 
     fun refreshMenuColorFilter() {
