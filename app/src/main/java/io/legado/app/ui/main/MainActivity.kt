@@ -356,7 +356,9 @@ class MainActivity : VMBaseActivity<ActivityMainBinding, MainViewModel>(),
      */
     override fun recreate() {
         (fragmentMap[getFragmentId(0)] as? BaseBookshelfFragment)?.run {
-            upSort()
+            // 切到“我的”后书架视图可能已被 ViewPager 回收，不能访问它的 binding/viewLifecycleOwner。
+            // 新视图创建时会重新加载排序，不能让旧视图的刷新中断 Activity 重建。
+            if (view != null) upSort()
         }
         super.recreate()
     }
