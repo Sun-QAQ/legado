@@ -24,6 +24,7 @@ interface BookDao {
             BookGroup.IdAll -> flowAll()
             BookGroup.IdLocal -> flowLocal()
             BookGroup.IdAudio -> flowAudio()
+            BookGroup.IdVideo -> flowVideo()
             BookGroup.IdNetNone -> flowNetNoGroup()
             BookGroup.IdLocalNone -> flowLocalNoGroup()
             BookGroup.IdError -> flowUpdateError()
@@ -48,6 +49,9 @@ interface BookDao {
 
     @Query("SELECT * FROM books WHERE type & ${BookType.audio} > 0")
     fun flowAudio(): Flow<List<Book>>
+
+    @Query("SELECT * FROM books WHERE type & ${BookType.video} > 0")
+    fun flowVideo(): Flow<List<Book>>
 
     @Query("SELECT * FROM books WHERE type & ${BookType.local} > 0")
     fun flowLocal(): Flow<List<Book>>

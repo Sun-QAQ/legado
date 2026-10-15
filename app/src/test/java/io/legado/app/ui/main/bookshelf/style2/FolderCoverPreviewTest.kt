@@ -54,6 +54,19 @@ class FolderCoverPreviewTest {
     }
 
     @Test
+    fun videoFolderIncludesOnlyVideoBooksRegardlessOfUserGroup() {
+        val books = listOf(
+            book(1, 0, BookType.video), book(2, 1, BookType.video or BookType.local),
+            book(3, 4), book(4, 2, BookType.audio),
+            book(5, 1, BookType.video or BookType.notShelf)
+        )
+        val result = FolderCoverPreview.create(
+            BookGroup(groupId = BookGroup.IdVideo, bookSort = 3), books, listOf(group), 0
+        )
+        assertEquals(listOf("Book 1", "Book 2"), result.covers.map { it.name })
+    }
+
+    @Test
     fun allSortModesAndInheritedSortChooseTheExpectedFirstBook() {
         val books = listOf(
             book(2).copy(name = "Beta", author = "Alpha", latestChapterTime = 30),

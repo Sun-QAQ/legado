@@ -284,14 +284,6 @@ class BookshelfManageActivity :
                     )
                 }
             }
-
-            else -> if (item.groupId == R.id.menu_group) {
-                viewModel.groupName = item.title.toString()
-                upTitle()
-                viewModel.groupId =
-                    appDb.bookGroupDao.getByName(item.title.toString())?.groupId ?: 0
-                upBookDataByGroupId()
-            }
         }
         return super.onCompatOptionsItemSelected(item)
     }
@@ -316,8 +308,20 @@ class BookshelfManageActivity :
     private fun upMenu() {
         menu?.findItem(R.id.menu_book_group)?.subMenu?.let { subMenu ->
             subMenu.removeGroup(R.id.menu_group)
-            groupList.forEach { bookGroup ->
-                subMenu.add(R.id.menu_group, bookGroup.order, Menu.NONE, bookGroup.groupName)
+            groupList.forEachIndexed { index, bookGroup ->
+                val title = if (groupList.count { it.groupName == bookGroup.groupName } > 1) {
+                    bookGroup.getManageName(this)
+                } else {
+                    bookGroup.groupName
+                }
+                subMenu.add(R.id.menu_group, index, Menu.NONE, title)
+                    .setOnMenuItemClickListener {
+                        viewModel.groupId = bookGroup.groupId
+                        viewModel.groupName = bookGroup.groupName
+                        upTitle()
+                        upBookDataByGroupId()
+                        true
+                    }
             }
         }
     }

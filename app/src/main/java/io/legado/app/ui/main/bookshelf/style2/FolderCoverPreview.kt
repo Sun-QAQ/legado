@@ -42,6 +42,7 @@ object FolderCoverPreview {
                 BookGroup.IdAll -> true
                 BookGroup.IdLocal -> book.type and BookType.local > 0
                 BookGroup.IdAudio -> book.type and BookType.audio > 0
+                BookGroup.IdVideo -> book.type and BookType.video > 0
                 BookGroup.IdError -> book.type and BookType.updateError > 0
                 BookGroup.IdNetNone -> book.type and (BookType.audio or BookType.local) == 0 &&
                     book.group and userGroupMask == 0L
