@@ -25,7 +25,6 @@ import io.legado.app.ui.book.group.GroupEditDialog
 import io.legado.app.ui.book.info.BookInfoActivity
 import io.legado.app.ui.book.search.SearchActivity
 import io.legado.app.ui.main.bookshelf.BaseBookshelfFragment
-import io.legado.app.utils.cnCompare
 import io.legado.app.utils.flowWithLifecycleAndDatabaseChangeFirst
 import io.legado.app.utils.observeEvent
 import io.legado.app.utils.setEdgeEffectColor
@@ -36,7 +35,9 @@ import io.legado.app.utils.viewbindingdelegate.viewBinding
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.conflate
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
@@ -66,6 +67,8 @@ class BookshelfFragment2() : BaseBookshelfFragment(R.layout.fragment_bookshelf2)
         }
     }
     private var bookGroups: List<BookGroup> = emptyList()
+    private val shownGroups = MutableStateFlow<List<BookGroup>>(emptyList())
+    private var folderItems: List<BookshelfFolder> = emptyList()
     private var booksFlowJob: Job? = null
     override var groupId = BookGroup.IdRoot
     override var books: List<Book> = emptyList()
@@ -114,7 +117,7 @@ class BookshelfFragment2() : BaseBookshelfFragment(R.layout.fragment_bookshelf2)
     override fun upGroup(data: List<BookGroup>) {
         if (data != bookGroups) {
             bookGroups = data
-            booksAdapter.updateItems()
+            shownGroups.value = data
             binding.tvEmptyMsg.isGone = getItemCount() > 0
             binding.refreshLayout.isEnabled = enableRefresh && getItemCount() > 0
         }
@@ -142,37 +145,38 @@ class BookshelfFragment2() : BaseBookshelfFragment(R.layout.fragment_bookshelf2)
         }
         booksFlowJob?.cancel()
         booksFlowJob = viewLifecycleOwner.lifecycleScope.launch {
-            appDb.bookDao.flowByGroup(groupId).map { list ->
-                //排序
-                when (AppConfig.getBookSortByGroupId(groupId)) {
-                    1 -> list.sortedByDescending {
-                        it.latestChapterTime
-                    }
-
-                    2 -> list.sortedWith { o1, o2 ->
-                        o1.name.cnCompare(o2.name)
-                    }
-
-                    3 -> list.sortedBy {
-                        it.order
-                    }
-
-                    4 -> list.sortedByDescending {
-                        max(it.latestChapterTime, it.durChapterTime)
-                    }
-
-                    else -> list.sortedByDescending {
-                        it.durChapterTime
-                    }
+            val dataFlow = if (groupId == BookGroup.IdRoot) {
+                // Load folder contents once per database update, never from a recycled row.
+                combine(
+                    appDb.bookDao.flowByGroup(BookGroup.IdRoot),
+                    appDb.bookDao.flowByGroup(BookGroup.IdAll),
+                    appDb.bookGroupDao.flowAll(),
+                    shownGroups
+                ) { rootBooks, allBooks, allGroups, visibleGroups ->
+                    ShelfData(rootBooks, visibleGroups.map { group ->
+                        FolderCoverPreview.create(
+                            group, allBooks, allGroups, AppConfig.bookshelfSort
+                        )
+                    })
                 }
+            } else {
+                appDb.bookDao.flowByGroup(groupId).map { ShelfData(it) }
+            }
+            dataFlow.map { data ->
+                data.copy(
+                    books = FolderCoverPreview.sort(
+                        data.books, AppConfig.getBookSortByGroupId(groupId)
+                    )
+                )
             }.flowWithLifecycleAndDatabaseChangeFirst(
                 viewLifecycleOwner.lifecycle,
                 Lifecycle.State.RESUMED,
                 AppDatabase.BOOK_TABLE_NAME
             ).catch {
                 AppLog.put("书架更新出错", it)
-            }.conflate().flowOn(Dispatchers.Default).collect { list ->
-                books = list
+            }.conflate().flowOn(Dispatchers.Default).collect { data ->
+                books = data.books
+                folderItems = data.folders
                 booksAdapter.updateItems()
                 binding.tvEmptyMsg.isGone = getItemCount() > 0
                 binding.refreshLayout.isEnabled = enableRefresh && getItemCount() > 0
@@ -235,7 +239,7 @@ class BookshelfFragment2() : BaseBookshelfFragment(R.layout.fragment_bookshelf2)
 
     fun getItemCount(): Int {
         return if (groupId == BookGroup.IdRoot) {
-            bookGroups.size + books.size
+            folderItems.size + books.size
         } else {
             books.size
         }
@@ -245,7 +249,7 @@ class BookshelfFragment2() : BaseBookshelfFragment(R.layout.fragment_bookshelf2)
         if (groupId != BookGroup.IdRoot) {
             return books
         }
-        return bookGroups + books
+        return folderItems + books
     }
 
     @SuppressLint("NotifyDataSetChanged")
@@ -258,4 +262,9 @@ class BookshelfFragment2() : BaseBookshelfFragment(R.layout.fragment_bookshelf2)
             booksAdapter.notifyDataSetChanged()
         }
     }
+
+    private data class ShelfData(
+        val books: List<Book>,
+        val folders: List<BookshelfFolder> = emptyList()
+    )
 }

@@ -5,7 +5,6 @@ import android.os.Bundle
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
 import io.legado.app.data.entities.Book
-import io.legado.app.data.entities.BookGroup
 import io.legado.app.databinding.ItemBookshelfListBinding
 import io.legado.app.databinding.ItemBookshelfListGroupBinding
 import io.legado.app.help.book.isLocal
@@ -37,8 +36,8 @@ class BooksAdapterList(context: Context, callBack: CallBack) :
                 holder.onBind(it, position, payloads)
             }
 
-            is GroupViewHolder -> (getItem(position) as? BookGroup)?.let {
-                holder.registerListener(it)
+            is GroupViewHolder -> (getItem(position) as? BookshelfFolder)?.let {
+                holder.registerListener(it.group)
                 holder.onBind(it, position, payloads)
             }
         }
@@ -116,9 +115,9 @@ class BooksAdapterList(context: Context, callBack: CallBack) :
     inner class GroupViewHolder(val binding: ItemBookshelfListGroupBinding) :
         RecyclerView.ViewHolder(binding.root) {
 
-        fun onBind(item: BookGroup, position: Int) = binding.run {
-            tvName.text = item.groupName
-            ivCover.load(item.cover)
+        fun onBind(item: BookshelfFolder, position: Int) = binding.run {
+            tvName.text = item.group.groupName
+            ivCover.load(item.covers)
             flHasNew.gone()
             ivAuthor.gone()
             ivLast.gone()
@@ -128,7 +127,7 @@ class BooksAdapterList(context: Context, callBack: CallBack) :
             tvRead.gone()
         }
 
-        fun onBind(item: BookGroup, position: Int, payloads: MutableList<Any>) = binding.run {
+        fun onBind(item: BookshelfFolder, position: Int, payloads: MutableList<Any>) = binding.run {
             if (payloads.isEmpty()) {
                 onBind(item, position)
             } else {
@@ -136,8 +135,8 @@ class BooksAdapterList(context: Context, callBack: CallBack) :
                     val bundle = payloads[i] as Bundle
                     bundle.keySet().forEach {
                         when (it) {
-                            "groupName" -> tvName.text = item.groupName
-                            "cover" -> ivCover.load(item.cover)
+                            "groupName" -> tvName.text = item.group.groupName
+                            "cover" -> ivCover.load(item.covers)
                         }
                     }
                 }

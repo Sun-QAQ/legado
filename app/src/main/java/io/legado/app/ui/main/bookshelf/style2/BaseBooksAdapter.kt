@@ -7,7 +7,6 @@ import androidx.recyclerview.widget.AsyncListDiffer
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.RecyclerView
 import io.legado.app.data.entities.Book
-import io.legado.app.data.entities.BookGroup
 
 abstract class BaseBooksAdapter<VH : RecyclerView.ViewHolder>(
     val context: Context,
@@ -25,8 +24,8 @@ abstract class BaseBooksAdapter<VH : RecyclerView.ViewHolder>(
                             && oldItem.author == newItem.author
                 }
 
-                oldItem is BookGroup && newItem is BookGroup -> {
-                    oldItem.groupId == newItem.groupId
+                oldItem is BookshelfFolder && newItem is BookshelfFolder -> {
+                    oldItem.group.groupId == newItem.group.groupId
                 }
 
                 else -> false
@@ -46,9 +45,8 @@ abstract class BaseBooksAdapter<VH : RecyclerView.ViewHolder>(
                             oldItem.getUnreadChapterNum() == newItem.getUnreadChapterNum()
                 }
 
-                oldItem is BookGroup && newItem is BookGroup -> {
-                    oldItem.groupName == newItem.groupName &&
-                            oldItem.cover == newItem.cover
+                oldItem is BookshelfFolder && newItem is BookshelfFolder -> {
+                    oldItem == newItem
                 }
 
                 else -> false
@@ -83,12 +81,12 @@ abstract class BaseBooksAdapter<VH : RecyclerView.ViewHolder>(
                     }
                 }
 
-                oldItem is BookGroup && newItem is BookGroup -> {
-                    if (oldItem.groupName != newItem.groupName) {
-                        bundle.putString("groupName", newItem.groupName)
+                oldItem is BookshelfFolder && newItem is BookshelfFolder -> {
+                    if (oldItem.group.groupName != newItem.group.groupName) {
+                        bundle.putString("groupName", newItem.group.groupName)
                     }
-                    if (oldItem.cover != newItem.cover) {
-                        bundle.putString("cover", newItem.cover)
+                    if (oldItem.covers != newItem.covers) {
+                        bundle.putBoolean("cover", true)
                     }
                 }
             }
@@ -125,7 +123,7 @@ abstract class BaseBooksAdapter<VH : RecyclerView.ViewHolder>(
     }
 
     override fun getItemViewType(position: Int): Int {
-        if (getItem(position) is BookGroup) {
+        if (getItem(position) is BookshelfFolder) {
             return 1
         }
         return 0
