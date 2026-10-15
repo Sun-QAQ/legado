@@ -13,6 +13,7 @@ import io.legado.app.lib.theme.backgroundColor
 import io.legado.app.ui.file.HandleFileContract
 import io.legado.app.utils.FileUtils
 import io.legado.app.utils.MD5Utils
+import io.legado.app.utils.applyDialogRoundedBackground
 import io.legado.app.utils.externalFiles
 import io.legado.app.utils.gone
 import io.legado.app.utils.inputStream
@@ -58,10 +59,12 @@ class GroupEditDialog() : BaseDialogFragment(R.layout.dialog_book_group_edit) {
 
     override fun onStart() {
         super.onStart()
+        dialog?.window?.setBackgroundDrawableResource(R.color.transparent)
         setLayout(0.9f, ViewGroup.LayoutParams.WRAP_CONTENT)
     }
 
     override fun onFragmentCreated(view: View, savedInstanceState: Bundle?) {
+        view.applyDialogRoundedBackground()
         binding.toolBar.setBackgroundColor(backgroundColor)
         @Suppress("DEPRECATION")
         bookGroup = arguments?.getParcelable("group")
