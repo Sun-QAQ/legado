@@ -18,7 +18,7 @@ class FolderCoverView @JvmOverloads constructor(
     private val inset = 6.dpToPx()
     private val gap = 3.dpToPx()
     private val covers = List(4) {
-        CoverImageView(context).apply {
+        CoverImageView(context, filletRadius = 2f.dpToPx()).apply {
             scaleType = ImageView.ScaleType.CENTER_CROP
             visibility = GONE
             importantForAccessibility = IMPORTANT_FOR_ACCESSIBILITY_NO

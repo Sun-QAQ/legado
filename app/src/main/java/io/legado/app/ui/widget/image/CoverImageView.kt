@@ -35,12 +35,12 @@ import io.legado.app.utils.toStringArray
 @Suppress("unused")
 class CoverImageView @JvmOverloads constructor(
     context: Context,
-    attrs: AttributeSet? = null
+    attrs: AttributeSet? = null,
+    private val filletRadius: Float = 10f.dpToPx()
 ) : AppCompatImageView(context, attrs) {
     private var filletPath = Path()
     private var viewWidth: Float = 0f
     private var viewHeight: Float = 0f
-    private val filletRadius: Float = 10.dpToPx().toFloat()
     private var defaultCover = true
 
     /**
