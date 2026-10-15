@@ -18,6 +18,7 @@ import io.legado.app.databinding.DialogEditTextBinding
 import io.legado.app.help.DirectLinkUpload
 import io.legado.app.help.config.AppConfig
 import io.legado.app.lib.dialogs.alert
+import io.legado.app.lib.theme.ThemeDrawables
 import io.legado.app.ui.about.AppLogDialog
 import io.legado.app.ui.book.cache.CacheActivity
 import io.legado.app.ui.book.group.GroupManageDialog
@@ -175,6 +176,9 @@ abstract class BaseBookshelfFragment(layoutId: Int) : VMBaseFragment<BookshelfVi
             val alertBinding =
                 DialogBookshelfConfigBinding.inflate(layoutInflater)
                     .apply {
+                        spGroupStyle.setPopupBackgroundDrawable(
+                            ThemeDrawables.get(requireContext(), R.drawable.bg_popup_menu)
+                        )
                         if (AppConfig.bookGroupStyle !in 0..<spGroupStyle.count) {
                             AppConfig.bookGroupStyle = 0
                         }
