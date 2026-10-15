@@ -12,9 +12,7 @@ import io.legado.app.data.appDb
 import io.legado.app.data.entities.AiPersona
 import io.legado.app.databinding.ActivityAiPersonaBinding
 import io.legado.app.lib.dialogs.alert
-import io.legado.app.lib.theme.primaryColor
 import io.legado.app.ui.widget.recycler.VerticalDivider
-import io.legado.app.utils.setEdgeEffectColor
 import io.legado.app.utils.showDialogFragment
 import io.legado.app.utils.toastOnUi
 import io.legado.app.utils.viewbindingdelegate.viewBinding
@@ -35,7 +33,6 @@ class AiPersonaManageActivity :
     private val adapter by lazy { AiPersonaAdapter(this, this) }
 
     override fun onActivityCreated(savedInstanceState: Bundle?) {
-        binding.recyclerView.setEdgeEffectColor(primaryColor)
         binding.recyclerView.addItemDecoration(VerticalDivider(this))
         binding.recyclerView.adapter = adapter
         lifecycleScope.launch {

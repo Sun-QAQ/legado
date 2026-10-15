@@ -12,9 +12,7 @@ import io.legado.app.data.appDb
 import io.legado.app.data.entities.AiImageSource
 import io.legado.app.databinding.ActivityAiSourceBinding
 import io.legado.app.lib.dialogs.alert
-import io.legado.app.lib.theme.primaryColor
 import io.legado.app.ui.widget.recycler.VerticalDivider
-import io.legado.app.utils.setEdgeEffectColor
 import io.legado.app.utils.showDialogFragment
 import io.legado.app.utils.toastOnUi
 import io.legado.app.utils.viewbindingdelegate.viewBinding
@@ -34,7 +32,6 @@ class AiImageSourceManageActivity :
 
     override fun onActivityCreated(savedInstanceState: Bundle?) {
         binding.titleBar.setTitle(R.string.ai_image_source_manage)
-        binding.recyclerView.setEdgeEffectColor(primaryColor)
         binding.recyclerView.addItemDecoration(VerticalDivider(this))
         binding.recyclerView.adapter = adapter
         lifecycleScope.launch {

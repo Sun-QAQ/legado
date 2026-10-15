@@ -13,9 +13,7 @@ import io.legado.app.data.entities.AiSource
 import io.legado.app.databinding.ActivityAiSourceBinding
 import io.legado.app.lib.dialogs.alert
 import io.legado.app.lib.dialogs.selector
-import io.legado.app.lib.theme.primaryColor
 import io.legado.app.ui.widget.recycler.VerticalDivider
-import io.legado.app.utils.setEdgeEffectColor
 import io.legado.app.utils.showDialogFragment
 import io.legado.app.utils.toastOnUi
 import io.legado.app.utils.viewbindingdelegate.viewBinding
@@ -36,7 +34,6 @@ class AiSourceManageActivity :
     private val adapter by lazy { AiSourceAdapter(this, this) }
 
     override fun onActivityCreated(savedInstanceState: Bundle?) {
-        binding.recyclerView.setEdgeEffectColor(primaryColor)
         binding.recyclerView.addItemDecoration(VerticalDivider(this))
         binding.recyclerView.adapter = adapter
         lifecycleScope.launch {

@@ -27,7 +27,6 @@ import android.view.View.INVISIBLE
 import android.view.View.VISIBLE
 import android.view.ViewGroup
 import android.view.inputmethod.InputMethodManager
-import android.widget.EdgeEffect
 import android.widget.EditText
 import android.widget.RadioGroup
 import android.widget.SeekBar
@@ -44,8 +43,6 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.get
 import androidx.core.view.marginBottom
 import androidx.core.view.updateLayoutParams
-import androidx.recyclerview.widget.RecyclerView
-import androidx.viewpager.widget.ViewPager
 import io.legado.app.help.config.AppConfig
 import io.legado.app.lib.theme.ThemeStore
 import io.legado.app.lib.theme.TintHelper
@@ -233,29 +230,6 @@ private class UntintableDrawableWrapper(val inner: Drawable) : Drawable() {
     override fun getChangingConfigurations(): Int = inner.changingConfigurations
     override fun getPadding(padding: Rect): Boolean = inner.getPadding(padding)
     override fun mutate(): Drawable = this
-}
-
-fun RecyclerView.setEdgeEffectColor(@ColorInt color: Int) {
-    edgeEffectFactory = object : RecyclerView.EdgeEffectFactory() {
-        override fun createEdgeEffect(view: RecyclerView, direction: Int): EdgeEffect {
-            val edgeEffect = super.createEdgeEffect(view, direction)
-            edgeEffect.color = color
-            return edgeEffect
-        }
-    }
-}
-
-fun ViewPager.setEdgeEffectColor(@ColorInt color: Int) {
-    try {
-        val clazz = ViewPager::class.java
-        for (name in arrayOf("mLeftEdge", "mRightEdge")) {
-            val field = clazz.getDeclaredField(name)
-            field.isAccessible = true
-            val edge = field.get(this)
-            (edge as EdgeEffect).color = color
-        }
-    } catch (ignored: Exception) {
-    }
 }
 
 fun EditText.disableEdit() {

@@ -36,7 +36,6 @@ import io.legado.app.utils.cnCompare
 import io.legado.app.utils.dpToPx
 import io.legado.app.utils.getInt
 import io.legado.app.utils.putInt
-import io.legado.app.utils.setEdgeEffectColor
 import io.legado.app.utils.startActivity
 import io.legado.app.utils.viewbindingdelegate.viewBinding
 import kotlinx.coroutines.Dispatchers.IO
@@ -170,7 +169,6 @@ class ReadRecordActivity : BaseActivity<ActivityReadRecordBinding>() {
         binding.recyclerView.apply {
             adapter = this@ReadRecordActivity.adapter
             applyNavigationBarPadding()
-            setEdgeEffectColor(accentColor)
         }
         headerBinding.tvClearAll.setOnClickListener {
             alert(R.string.delete, R.string.sure_del) {
