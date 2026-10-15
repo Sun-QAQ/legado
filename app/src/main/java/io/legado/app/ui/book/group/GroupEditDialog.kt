@@ -67,8 +67,9 @@ class GroupEditDialog() : BaseDialogFragment(R.layout.dialog_book_group_edit) {
     override fun onFragmentCreated(view: View, savedInstanceState: Bundle?) {
         view.applyDialogRoundedBackground()
         binding.toolBar.setBackgroundColor(backgroundColor)
-        binding.spSort.popupBackground =
+        binding.spSort.setPopupBackgroundDrawable(
             ThemeDrawables.get(requireContext(), R.drawable.bg_popup_menu)
+        )
         @Suppress("DEPRECATION")
         bookGroup = arguments?.getParcelable("group")
         bookGroup?.let {
