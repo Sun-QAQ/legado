@@ -24,7 +24,7 @@
 
     <color name="transparent">#00000000</color>
 
-    <!-- 默认封面背景基础色（亮色，运行时叠加主题设置主色） -->
+    <!-- 默认封面背景基础色（亮色，运行时使用主题强调色着色） -->
     <color name="default_cover_bg">#EDEDED</color>
 
     <color name="transparent10">#10000000</color>

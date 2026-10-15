@@ -15,7 +15,7 @@
 
     <color name="night_mask">#69000000</color>
 
-    <!-- 默认封面背景基础色（暗色，运行时叠加主题设置主色） -->
+    <!-- 默认封面背景基础色（暗色，运行时使用主题强调色着色） -->
     <color name="default_cover_bg">#757575</color>
 
     <color name="transparent10">#10ffffff</color>

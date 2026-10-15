@@ -50,7 +50,7 @@ class CoverImageView @JvmOverloads constructor(
         get() = defaultCover
 
     init {
-        imageTintList = ColorStateList.valueOf(ThemeStore.primaryColor(context))
+        imageTintList = ColorStateList.valueOf(context.accentColor)
     }
 
     var bitmapPath: String? = null
@@ -127,9 +127,9 @@ class CoverImageView @JvmOverloads constructor(
     }
 
     private fun drawNameAuthor(canvas: Canvas) {
-if (!BookCover.drawBookName) return
-        // 书名/作者文字=主题强调色
-        val textColor = context.accentColor
+        if (!BookCover.drawBookName) return
+        // 书名/作者文字=主题主色
+        val textColor = ThemeStore.primaryColor(context)
         var startX = width * 0.2f
         var startY = viewHeight * 0.2f
         name?.toStringArray()?.let { name ->
@@ -213,7 +213,7 @@ if (!BookCover.drawBookName) return
         this.name = name?.replace(AppPattern.bdRegex, "")?.trim()
         this.author = author?.replace(AppPattern.bdRegex, "")?.trim()
         defaultCover = true
-        imageTintList = ColorStateList.valueOf(ThemeStore.primaryColor(context))
+        imageTintList = ColorStateList.valueOf(context.accentColor)
         invalidate()
         //每次加载使用独立实例, 避免imageTintList(尤其onResourceReady置空)修改共享的defaultDrawable导致颜色串扰
         val defaultCoverDrawable = BookCover.defaultDrawable.constantState?.newDrawable()
