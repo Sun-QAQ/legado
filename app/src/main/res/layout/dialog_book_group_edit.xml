@@ -73,6 +73,7 @@
             android:layout_height="wrap_content"
             android:layout_marginLeft="6dp"
             android:entries="@array/book_sort"
+            android:popupElevation="6dp"
             app:layout_constraintBottom_toBottomOf="@id/tv_sort"
             app:layout_constraintLeft_toRightOf="@+id/tv_sort"
             app:layout_constraintTop_toTopOf="@id/tv_sort"
