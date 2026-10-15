@@ -3,6 +3,7 @@ package io.legado.app.ui.widget.image
 import android.content.Context
 import android.content.res.ColorStateList
 import android.graphics.Canvas
+import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Path
 import android.graphics.Typeface
@@ -22,7 +23,6 @@ import io.legado.app.constant.AppPattern
 import io.legado.app.help.config.AppConfig
 import io.legado.app.help.glide.ImageLoader
 import io.legado.app.help.glide.OkHttpModelLoader
-import io.legado.app.lib.theme.ThemeStore
 import io.legado.app.lib.theme.accentColor
 import io.legado.app.model.BookCover
 import io.legado.app.utils.dpToPx
@@ -128,8 +128,7 @@ class CoverImageView @JvmOverloads constructor(
 
     private fun drawNameAuthor(canvas: Canvas) {
         if (!BookCover.drawBookName) return
-        // 书名/作者文字=主题主色
-        val textColor = ThemeStore.primaryColor(context)
+        val textColor = Color.BLACK
         var startX = width * 0.2f
         var startY = viewHeight * 0.2f
         name?.toStringArray()?.let { name ->
