@@ -118,6 +118,8 @@ class EyePageTurnerCalibrationTest {
                 assertTrue(target.bottom < instructions.top)
                 assertEquals(root.height / 2f, (target.top + target.bottom) / 2f, 1f)
             }
+            // Layout can finish before the emulator compositor presents the new stage.
+            SystemClock.sleep(500L)
             val screenshot = requireNotNull(instrumentation.uiAutomation.takeScreenshot())
             val directory = instrumentation.targetContext.getExternalFilesDir("test-artifacts")!!
             File(directory, "eye-calibration-midpoint.png").outputStream().use {

@@ -13,11 +13,11 @@
     <string name="eye_page_target">眼动校准注视点</string>
     <string name="eye_page_prepare_top">请保持手机与头部稳定。\n请只看屏幕顶部圆点，\n不要看说明或其他地方。</string>
     <string name="eye_page_prepare_bottom">请保持手机与头部稳定。\n请只看屏幕底部圆点，\n不要看说明或其他地方。</string>
-    <string name="eye_page_prepare_midpoint">上下采样完成，请保持手机与头部稳定。\n请只看屏幕中间圆点，\n不要看下方说明，接下来验证中间视线。</string>
+    <string name="eye_page_prepare_midpoint">上下采样完成，请保持姿势稳定。\n请只看屏幕中间圆点，\n不要看下方说明。</string>
     <string name="eye_page_calibration_countdown">%1$d 秒后开始校准</string>
     <string name="eye_page_calibrate_top">请保持头部不动，注视顶部圆点约 3 秒\n请勿看此说明，正在校准视线…</string>
     <string name="eye_page_calibrate_bottom">请保持头部不动，注视底部圆点约 3 秒\n请勿看此说明，正在校准视线…</string>
-    <string name="eye_page_calibrate_midpoint">请保持头部不动，注视中间圆点约 3 秒\n请勿看下方说明，正在校验中间视线…</string>
+    <string name="eye_page_calibrate_midpoint">请保持头部不动，\n注视中间圆点约 3 秒。\n请勿看下方说明，正在校验…</string>
     <string name="eye_page_calibration_failed">未能完成视线校准，请在光线充足时保持头部稳定，重新开启</string>
     <string name="eye_page_ready">眼动翻页已开启：读到底部后向上看即可翻页</string>
     <string name="eye_page_camera_starting">正在启动前置摄像头…</string>
