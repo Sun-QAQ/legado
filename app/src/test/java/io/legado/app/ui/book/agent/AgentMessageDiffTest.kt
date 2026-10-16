@@ -30,6 +30,20 @@ class AgentMessageDiffTest {
     }
 
     @Test
+    fun `流式正文与步数同时变化时合并局部刷新`() {
+        val reply = AgentMessage(text = "部分回复", streaming = true)
+        val updated = reply.copy(text = "部分回复继续", steps = listOf(AgentStep("1", "调用工具")))
+        assertEquals(listOf("change:0:1:TEXT_AND_STEPS"), events(listOf(reply), listOf(updated)))
+        assertEquals(
+            listOf("change:0:1:TEXT_AND_STEPS"),
+            events(listOf(updated), listOf(updated.copy(
+                streaming = false,
+                steps = updated.steps.map { it.copy(state = AgentStepState.DONE) }
+            )))
+        )
+    }
+
+    @Test
     fun `内容相同不刷新并且结果结构变化需要完整绑定`() {
         val reply = AgentMessage(text = "回复", streaming = true)
         assertEquals(emptyList<String>(), events(listOf(reply), listOf(reply)))

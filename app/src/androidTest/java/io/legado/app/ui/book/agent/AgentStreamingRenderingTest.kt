@@ -1,6 +1,7 @@
 package io.legado.app.ui.book.agent
 
 import android.os.SystemClock
+import android.view.View
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.test.core.app.ActivityScenario
@@ -20,6 +21,76 @@ import org.junit.runner.RunWith
 @RunWith(AndroidJUnit4::class)
 class AgentStreamingRenderingTest {
     private val instrumentation = InstrumentationRegistry.getInstrumentation()
+
+    @Test
+    fun collapsedStepCountUpdatesWhileTextStreamsAndExpandingShowsLatestSteps() {
+        lateinit var list: RecyclerView
+        lateinit var adapter: AgentAdapter
+        val question = AgentMessage(true, "合成执行过程更新测试")
+        var reply = AgentMessage(text = "开始执行", streaming = true)
+        ActivityScenario.launch(MainActivity::class.java).use { scenario ->
+            scenario.onActivity { activity ->
+                list = RecyclerView(activity).apply {
+                    layoutManager = LinearLayoutManager(activity)
+                    itemAnimator = null
+                }
+                adapter = AgentAdapter(activity, object : AgentAdapter.CallBack {
+                    override fun openBook(book: SearchBook) = Unit
+                    override fun onLoadMore() = Unit
+                    override fun importBookSource(source: SourceRepositoryItem) = Unit
+                    override fun openGeneratedImage(path: String) = Unit
+                })
+                list.adapter = adapter
+                activity.setContentView(list)
+                adapter.setItems(listOf(question, reply))
+            }
+            try {
+                awaitMain { lastBinding(list) != null }
+                for (count in listOf(1, 2, 9, 10, 99, 100, 136, 137)) {
+                    instrumentation.runOnMainSync {
+                        reply = reply.copy(
+                            text = "正在执行 $count",
+                            steps = List(count) { AgentStep("step-$it", "执行步骤 $it") }
+                        )
+                        adapter.setItems(listOf(question, reply))
+                        adapter.updateLastText("正在执行 $count，回复分片")
+                    }
+                    awaitMain {
+                        lastBinding(list)?.tvStepsHeader?.text ==
+                            list.context.getString(R.string.agent_steps_count, count)
+                    }
+                    instrumentation.runOnMainSync {
+                        assertEquals(View.GONE, lastBinding(list)!!.llSteps.visibility)
+                        assertEquals(0, lastBinding(list)!!.llSteps.childCount)
+                    }
+                }
+                instrumentation.runOnMainSync { lastBinding(list)!!.tvStepsHeader.performClick() }
+                awaitMain { lastBinding(list)?.llSteps?.childCount == 137 }
+                instrumentation.runOnMainSync { lastBinding(list)!!.tvStepsHeader.performClick() }
+                awaitMain { lastBinding(list)?.llSteps?.visibility == View.GONE }
+                instrumentation.runOnMainSync {
+                    reply = reply.copy(steps = reply.steps + AgentStep("next", "新增步骤"))
+                    adapter.setItems(listOf(question, reply))
+                }
+                awaitMain {
+                    lastBinding(list)?.tvStepsHeader?.text ==
+                        list.context.getString(R.string.agent_steps_count, 138)
+                }
+                instrumentation.runOnMainSync {
+                    assertEquals(View.GONE, lastBinding(list)!!.llSteps.visibility)
+                    reply = reply.copy(streaming = false)
+                    adapter.setItems(listOf(question, reply))
+                }
+                awaitMain { lastBinding(list)?.tvMessage?.text?.toString() == reply.text }
+                instrumentation.runOnMainSync {
+                    assertEquals(list.context.getString(R.string.agent_steps_count, 138), lastBinding(list)!!.tvStepsHeader.text)
+                    assertEquals(View.GONE, lastBinding(list)!!.llSteps.visibility)
+                }
+            } finally {
+                instrumentation.runOnMainSync { list.adapter = null }
+            }
+        }
+    }
 
     @Test
     fun streamingKeepsStepViewsAndHistoryPositionAndDisplaysFinalText() {

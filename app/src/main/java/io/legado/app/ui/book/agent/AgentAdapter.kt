@@ -102,7 +102,8 @@ class AgentAdapter(
 
     fun setItems(newItems: List<AgentMessage>) {
         if (items == newItems) return
-        val diff = DiffUtil.calculateDiff(AgentMessageDiff(items, newItems), false)
+        // getChangePayload 在 dispatchUpdatesTo 时才调用；不能引用随后会被覆盖的 items。
+        val diff = DiffUtil.calculateDiff(AgentMessageDiff(items.toList(), newItems), false)
         if (newItems.size < items.size || newItems.firstOrNull() != items.firstOrNull()) {
             expandedSteps.clear()
         }
@@ -178,8 +179,15 @@ class AgentAdapter(
     override fun onBindViewHolder(holder: ItemViewHolder, position: Int, payloads: MutableList<Any>) {
         if (!items[position].isUser && payloads.isNotEmpty() && payloads.all { it is AgentMessagePayload }) {
             val binding = ItemAgentReplyBinding.bind(holder.itemView)
-            if (AgentMessagePayload.TEXT in payloads) bindReplyText(binding, items[position])
-            if (AgentMessagePayload.STEPS in payloads) bindSteps(binding, items[position], position)
+            val item = items[position]
+            // 正文与步骤可能交错或合并到达；折叠时也始终同步执行过程的步数。
+            bindStepsHeader(binding, item)
+            if (AgentMessagePayload.TEXT in payloads || AgentMessagePayload.TEXT_AND_STEPS in payloads) {
+                bindReplyText(binding, item)
+            }
+            if (AgentMessagePayload.STEPS in payloads || AgentMessagePayload.TEXT_AND_STEPS in payloads) {
+                bindSteps(binding, item, position)
+            }
         } else {
             onBindViewHolder(holder, position)
         }
@@ -282,18 +290,19 @@ class AgentAdapter(
         }
     }
 
+    private fun bindStepsHeader(viewBinding: ItemAgentReplyBinding, item: AgentMessage) {
+        viewBinding.llStepsRoot.visibility = if (item.steps.isEmpty()) View.GONE else View.VISIBLE
+        viewBinding.tvStepsHeader.text =
+            context.getString(R.string.agent_steps_count, item.steps.size)
+    }
+
     private fun bindSteps(
         viewBinding: ItemAgentReplyBinding,
         item: AgentMessage,
         position: Int
     ) {
-        if (item.steps.isEmpty()) {
-            viewBinding.llStepsRoot.visibility = View.GONE
-            return
-        }
-        viewBinding.llStepsRoot.visibility = View.VISIBLE
-        viewBinding.tvStepsHeader.text =
-            context.getString(R.string.agent_steps_count, item.steps.size)
+        bindStepsHeader(viewBinding, item)
+        if (item.steps.isEmpty()) return
         val expanded = expandedSteps.contains(position)
         viewBinding.llSteps.visibility = if (expanded) View.VISIBLE else View.GONE
         viewBinding.ivStepsArrow.setImageResource(

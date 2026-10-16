@@ -2,7 +2,7 @@ package io.legado.app.ui.book.agent
 
 import androidx.recyclerview.widget.DiffUtil
 
-internal enum class AgentMessagePayload { TEXT, STEPS }
+internal enum class AgentMessagePayload { TEXT, STEPS, TEXT_AND_STEPS }
 
 /** 对话仅在尾部追加/替换回复；保持既有消息的 ViewHolder 和阅读位置。 */
 internal class AgentMessageDiff(
@@ -26,6 +26,8 @@ internal class AgentMessageDiff(
             old.isUser -> null
             old.copy(text = new.text, streaming = new.streaming) == new -> AgentMessagePayload.TEXT
             old.copy(steps = new.steps) == new -> AgentMessagePayload.STEPS
+            old.copy(text = new.text, streaming = new.streaming, steps = new.steps) == new ->
+                AgentMessagePayload.TEXT_AND_STEPS
             else -> null
         }
     }
