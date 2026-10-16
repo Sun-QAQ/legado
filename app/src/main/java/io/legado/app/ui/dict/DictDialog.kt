@@ -13,6 +13,7 @@ import io.legado.app.databinding.DialogDictBinding
 import io.legado.app.lib.theme.accentColor
 import io.legado.app.utils.getCompatColor
 import io.legado.app.lib.theme.backgroundColor
+import io.legado.app.utils.applyDialogRoundedBackground
 import io.legado.app.utils.setHtml
 import io.legado.app.utils.setLayout
 import io.legado.app.utils.toastOnUi
@@ -36,10 +37,12 @@ class DictDialog() : BaseDialogFragment(R.layout.dialog_dict) {
 
     override fun onStart() {
         super.onStart()
+        dialog?.window?.setBackgroundDrawableResource(R.color.transparent)
         setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
     }
 
     override fun onFragmentCreated(view: View, savedInstanceState: Bundle?) {
+        view.applyDialogRoundedBackground()
         binding.tvDict.movementMethod = LinkMovementMethod()
         word = arguments?.getString("word")
         if (word.isNullOrEmpty()) {
