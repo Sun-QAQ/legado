@@ -197,21 +197,14 @@ class ExploreAdapter(context: Context, val callBack: CallBack) :
         flexbox.isVisible = kinds.isNotEmpty()
         kinds.forEach { kind ->
             val tv = createCategoryView(kind, sourceUrl)
-            tv.layoutParams = FlexboxLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT
-            ).apply {
-                width = 0
-                flexShrink = 1f
-                flexGrow = 0f
+            val style = kind.style()
+            tv.layoutParams = if (style.layout_flexBasisPercent < 0f) {
+                ExploreCategoryLayout.DefaultColumnLayoutParams()
+            } else {
+                FlexboxLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT)
             }
             // 书源自定义样式：flexBasisPercent / flexGrow / wrapBefore 等
-            kind.style().apply(tv)
-            val lp = tv.layoutParams as FlexboxLayout.LayoutParams
-            if (lp.flexBasisPercent < 0f) {
-                // 未指定宽度比例的按三列等宽排布
-                lp.flexBasisPercent = DEFAULT_BASIS_PERCENT
-            }
+            style.apply(tv)
             flexbox.addView(tv)
         }
     }
@@ -254,13 +247,5 @@ class ExploreAdapter(context: Context, val callBack: CallBack) :
         fun deleteSource(source: BookSourcePart)
         fun searchBook(bookSource: BookSourcePart)
         fun showSourceMenu(source: BookSourcePart)
-    }
-
-    companion object {
-        /**
-         * 未指定 layout_flexBasisPercent 时的默认宽度比例：三列等宽。
-         * 取值略小于 1/3，避免浮点累加后超出容器宽度而换行成两列。
-         */
-        private const val DEFAULT_BASIS_PERCENT = 0.3333f
     }
 }
