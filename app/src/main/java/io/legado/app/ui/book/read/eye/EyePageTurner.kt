@@ -12,6 +12,7 @@ import android.view.ViewGroup.LayoutParams.MATCH_PARENT
 import android.view.ViewGroup.LayoutParams.WRAP_CONTENT
 import android.widget.FrameLayout
 import android.widget.LinearLayout
+import android.widget.ScrollView
 import android.widget.TextView
 import io.legado.app.R
 import io.legado.app.constant.AppLog
@@ -44,8 +45,11 @@ class EyePageTurner(
     private var target: View? = null
     private var message: TextView? = null
     private var status: TextView? = null
-    private var calibratingBottom = false
+    private enum class CalibrationStage { TOP, BOTTOM, MIDPOINT }
+    private var calibrationStage = CalibrationStage.TOP
+    private var instructions: ScrollView? = null
     private var topPoint: GazeCalibrationPoint? = null
+    private var bottomPoint: GazeCalibrationPoint? = null
     private var retryCount = 0
     private var retryHint: String? = null
     private var calibrationPreparing = false
@@ -170,24 +174,44 @@ class EyePageTurner(
             if (point == null) return
             AppLog.put("眼动校准采样完成：stage=${stage()} ${describe(point)}")
             calibration.reset()
-            if (!calibratingBottom) {
-                topPoint = point
-                calibratingBottom = true
-                beginCalibrationStage()
-            } else {
-                val top = topPoint ?: return
-                val noise = maxOf(top.noise, point.noise)
-                val samePose = top.hasSimilarPose(point)
-                val separated = detector.calibrate(top.sample.vertical, point.sample.vertical, noise)
-                AppLog.put("眼动校准比较：top=${describe(top)} bottom=${describe(point)} span=${abs(point.sample.vertical - top.sample.vertical)} requiredSpan=${maxOf(0.008f, noise * 3f)} samePose=$samePose separated=$separated")
-                if (samePose && separated) {
-                    ReadBookConfig.eyePageCalibration = GazeCalibrationProfile(
-                        top.sample.vertical, point.sample.vertical, noise).encode()
-                    hideCalibration()
-                    detector.reset(time, cooldown = true)
-                    android.widget.Toast.makeText(activity, R.string.eye_page_ready, android.widget.Toast.LENGTH_SHORT).show()
-                } else {
-                    retryCalibration(if (!samePose) R.string.eye_page_pose_changed else R.string.eye_page_gaze_too_close)
+            when (calibrationStage) {
+                CalibrationStage.TOP -> {
+                    topPoint = point
+                    calibrationStage = CalibrationStage.BOTTOM
+                    beginCalibrationStage()
+                }
+                CalibrationStage.BOTTOM -> {
+                    val top = topPoint ?: return
+                    val noise = maxOf(top.noise, point.noise)
+                    val samePose = top.hasSimilarPose(point)
+                    // The active detector stays uncalibrated until the midpoint passes.
+                    val separated = GazeGestureDetector().calibrate(top.sample.vertical, point.sample.vertical, noise)
+                    AppLog.put("眼动校准比较：top=${describe(top)} bottom=${describe(point)} span=${abs(point.sample.vertical - top.sample.vertical)} requiredSpan=${maxOf(0.008f, noise * 3f)} samePose=$samePose separated=$separated")
+                    if (samePose && separated) {
+                        bottomPoint = point
+                        calibrationStage = CalibrationStage.MIDPOINT
+                        beginCalibrationStage()
+                    } else {
+                        retryCalibration(if (!samePose) R.string.eye_page_pose_changed else R.string.eye_page_gaze_too_close)
+                    }
+                }
+                CalibrationStage.MIDPOINT -> {
+                    val top = topPoint ?: return
+                    val bottom = bottomPoint ?: return
+                    val profile = GazeCalibrationProfile(top.sample.vertical, bottom.sample.vertical,
+                        maxOf(top.noise, bottom.noise), point.sample.vertical, point.noise)
+                    val samePose = top.hasSimilarPose(point) && bottom.hasSimilarPose(point)
+                    val valid = profile.hasValidMidpoint()
+                    AppLog.put("眼动中点校验：position=${(profile.midpoint - profile.top) / (profile.bottom - profile.top)} noise=${point.noise} samePose=$samePose valid=$valid")
+                    if (samePose && valid) {
+                        detector.calibrate(profile.top, profile.bottom, profile.noise)
+                        ReadBookConfig.eyePageCalibration = profile.encode()
+                        hideCalibration()
+                        detector.reset(time, cooldown = true)
+                        android.widget.Toast.makeText(activity, R.string.eye_page_ready, android.widget.Toast.LENGTH_SHORT).show()
+                    } else {
+                        retryCalibration(if (!samePose) R.string.eye_page_pose_changed else R.string.eye_page_midpoint_failed)
+                    }
                 }
             }
             return
@@ -239,8 +263,9 @@ class EyePageTurner(
 
     private fun showCalibration() {
         calibration.reset()
-        calibratingBottom = false
+        calibrationStage = CalibrationStage.TOP
         topPoint = null
+        bottomPoint = null
         retryCount = 0
         retryHint = null
         staleFrames = 0
@@ -252,7 +277,7 @@ class EyePageTurner(
         val panel = FrameLayout(activity).apply {
             setBackgroundColor(backgroundColor)
             isClickable = true
-            // Block manual page turns while learning the two targets.
+            // Block manual page turns throughout calibration and midpoint validation.
             isFocusable = true
         }
         target = View(activity).apply {
@@ -290,7 +315,12 @@ class EyePageTurner(
             setPadding(dp(24), dp(16), dp(24), dp(16))
             setOnClickListener { onCancel() }
         }, LinearLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT).apply { topMargin = dp(24) })
-        panel.addView(center, FrameLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT, Gravity.CENTER))
+        instructions = ScrollView(activity).apply {
+            isFillViewport = true
+            addView(center)
+        }
+        panel.addView(instructions, FrameLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT, Gravity.CENTER))
+        panel.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ -> updateInstructionsLayout() }
         root.addView(panel, FrameLayout.LayoutParams(MATCH_PARENT, MATCH_PARENT))
         overlay = panel
         beginCalibrationStage()
@@ -323,17 +353,39 @@ class EyePageTurner(
 
     private fun updateTarget() {
         target?.layoutParams = FrameLayout.LayoutParams(dp(24), dp(24),
-            Gravity.CENTER_HORIZONTAL or if (calibratingBottom) Gravity.BOTTOM else Gravity.TOP).apply {
-            topMargin = dp(56)
-            bottomMargin = dp(40)
+            when (calibrationStage) {
+                CalibrationStage.TOP -> Gravity.TOP or Gravity.CENTER_HORIZONTAL
+                CalibrationStage.BOTTOM -> Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
+                CalibrationStage.MIDPOINT -> Gravity.CENTER
+            }).apply {
+            if (calibrationStage != CalibrationStage.MIDPOINT) {
+                topMargin = dp(56)
+                bottomMargin = dp(40)
+            }
         }
+        updateInstructionsLayout()
         val instruction = activity.getString(when {
-            calibrationPreparing && calibratingBottom -> R.string.eye_page_prepare_bottom
+            calibrationPreparing && calibrationStage == CalibrationStage.MIDPOINT -> R.string.eye_page_prepare_midpoint
+            calibrationPreparing && calibrationStage == CalibrationStage.BOTTOM -> R.string.eye_page_prepare_bottom
             calibrationPreparing -> R.string.eye_page_prepare_top
-            calibratingBottom -> R.string.eye_page_calibrate_bottom
+            calibrationStage == CalibrationStage.MIDPOINT -> R.string.eye_page_calibrate_midpoint
+            calibrationStage == CalibrationStage.BOTTOM -> R.string.eye_page_calibrate_bottom
             else -> R.string.eye_page_calibrate_top
         })
         message?.text = instruction + (retryHint?.let { "\n\n$it" } ?: "")
+    }
+
+    private fun updateInstructionsLayout() {
+        val view = instructions ?: return
+        val midpoint = calibrationStage == CalibrationStage.MIDPOINT
+        // Keep the screen-center target clear; short windows can scroll the instructions.
+        val height = if (midpoint) ((overlay?.height ?: 0) / 2 - dp(40)).coerceAtLeast(1) else WRAP_CONTENT
+        val gravity = if (midpoint) Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL else Gravity.CENTER
+        val margin = if (midpoint) dp(16) else 0
+        val current = view.layoutParams as FrameLayout.LayoutParams
+        if (current.height != height || current.gravity != gravity || current.bottomMargin != margin) {
+            view.layoutParams = FrameLayout.LayoutParams(MATCH_PARENT, height, gravity).apply { bottomMargin = margin }
+        }
     }
 
     private fun retryCalibration(reason: Int) {
@@ -344,15 +396,16 @@ class EyePageTurner(
         }
         retryCount++
         calibration.reset()
-        calibratingBottom = false
+        calibrationStage = CalibrationStage.TOP
         topPoint = null
-        // A rejected pair must not leave an otherwise valid detector active.
+        bottomPoint = null
+        // Rejected calibration must never leave a valid detector active.
         detector.calibrate(0f, 0f)
         retryHint = activity.getString(reason)
         beginCalibrationStage()
     }
 
-    private fun stage() = if (calibratingBottom) "bottom" else "top"
+    private fun stage() = calibrationStage.name.lowercase(Locale.ROOT)
 
     private fun issueMessage(): String = activity.getString(
         if (lastIssue == R.string.eye_page_sampling) R.string.eye_page_gaze_unstable else lastIssue)
@@ -375,6 +428,9 @@ class EyePageTurner(
         message = null
         status = null
         target = null
+        instructions = null
+        topPoint = null
+        bottomPoint = null
         calibration.reset()
     }
 
