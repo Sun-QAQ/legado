@@ -37,7 +37,6 @@ class AiSourceEditDialog() : BaseDialogFragment(R.layout.dialog_ai_source_edit, 
     private val presets by lazy {
         listOf(
             AiSourcePreset("DeepSeek", "https://api.deepseek.com/v1", "deepseek-chat"),
-            AiSourcePreset("OpenCodeGO", "https://opencode.ai/zen/go/v1", "glm-5.2"),
             AiSourcePreset("", "", "", getString(R.string.ai_source_custom))
         )
     }
