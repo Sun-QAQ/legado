@@ -74,6 +74,29 @@ class EyePageTurnerReadyWindowTest {
     }
 
     @Test
+    fun bottomGazeReschedulesHintAndAllowsTurningAfterOriginalDeadline() {
+        withReadyTurner { turner, ready, turns ->
+            SystemClock.sleep(2100L)
+            instrumentation.runOnMainSync {
+                accept.invoke(turner, sample(0.8f), SystemClock.uptimeMillis())
+                assertTrue(ready.get())
+            }
+            // The original three-second timer must not clear the renewed hint.
+            SystemClock.sleep(1300L)
+            instrumentation.runOnMainSync {
+                assertTrue(ready.get())
+                val now = SystemClock.uptimeMillis()
+                accept.invoke(turner, sample(0f), now - 200L)
+                assertEquals(0, turns.get())
+                assertTrue(ready.get())
+                accept.invoke(turner, sample(0f), now)
+                assertEquals(1, turns.get())
+                assertFalse(ready.get())
+            }
+        }
+    }
+
+    @Test
     fun upwardGazeInThirdSecondTurnsOnceAndClearsHint() {
         withReadyTurner { turner, ready, turns ->
             SystemClock.sleep(2250L)

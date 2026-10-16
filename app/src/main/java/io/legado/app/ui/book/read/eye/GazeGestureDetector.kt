@@ -64,7 +64,7 @@ internal class GazeGestureDetector {
         return true
     }
 
-    /** Keep the fixed ready window, but require fresh upward evidence after a bad frame. */
+    /** Keep the ready window, but require fresh upward evidence after a bad frame. */
     fun interruptTracking(reason: String) {
         if (!armed) {
             reset(reason = reason)
@@ -116,8 +116,13 @@ internal class GazeGestureDetector {
             interruptTracking("head_moved")
             return false
         }
+        val bottomThreshold = if (bottomPose == null) 0.85f else 0.78f
         if (armed) {
-            if (position in -0.5f..0.45f) {
+            if (position >= bottomThreshold) {
+                armedUntil = now + READY_WINDOW_MS
+                upperSince = null
+                state = "armed"
+            } else if (position in -0.5f..0.45f) {
                 state = "upward_dwell"
                 if (upperSince == null) upperSince = now
                 if (now - upperSince!! >= 180L) {
@@ -126,12 +131,11 @@ internal class GazeGestureDetector {
                 }
             } else {
                 upperSince = null
-                state = if (position >= 0.78f) "armed" else "waiting_upward"
+                state = "waiting_upward"
             }
             return false
         }
         // Enter at the lower part of the page; retain the dwell across small gaze jitter.
-        val bottomThreshold = if (bottomPose == null) 0.85f else 0.78f
         // Looking below the calibration target is still a bottom gaze.
         if (position >= bottomThreshold) {
             if (bottomPose == null) {
@@ -142,13 +146,17 @@ internal class GazeGestureDetector {
             upperSince = null
             if (bottomDwellMs >= 100L) {
                 armed = true
-                armedUntil = now + 3000L
+                armedUntil = now + READY_WINDOW_MS
             }
             state = if (armed) "armed" else "bottom_dwell"
         } else {
             reset(reason = "waiting_bottom")
         }
         return false
+    }
+
+    private companion object {
+        const val READY_WINDOW_MS = 3000L
     }
 }
 
