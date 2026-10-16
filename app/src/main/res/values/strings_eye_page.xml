@@ -11,6 +11,9 @@
     <string name="eye_page_unsupported">眼动翻页需要 Android 7.0 及以上系统和前置摄像头</string>
     <string name="eye_page_error">眼动翻页已关闭：%1$s</string>
     <string name="eye_page_target">眼动校准注视点</string>
+    <string name="eye_page_prepare_top">请保持手机与头部稳定。\n请只看屏幕顶部圆点，\n不要看说明或其他地方。</string>
+    <string name="eye_page_prepare_bottom">请保持手机与头部稳定。\n请只看屏幕底部圆点，\n不要看说明或其他地方。</string>
+    <string name="eye_page_calibration_countdown">%1$d 秒后开始校准</string>
     <string name="eye_page_calibrate_top">请保持头部不动，注视顶部圆点约 3 秒\n请勿看此说明，正在校准视线…</string>
     <string name="eye_page_calibrate_bottom">请保持头部不动，注视底部圆点约 3 秒\n请勿看此说明，正在校准视线…</string>
     <string name="eye_page_calibration_failed">未能完成视线校准，请在光线充足时保持头部稳定，重新开启</string>

@@ -48,6 +48,34 @@ class EyePageTurner(
     private var topPoint: GazeCalibrationPoint? = null
     private var retryCount = 0
     private var retryHint: String? = null
+    private var calibrationPreparing = false
+    private var calibrationPaused = false
+    private var calibrationReadyAt = 0L
+    private val calibrationCountdown = object : Runnable {
+        override fun run() {
+            if (overlay == null || !calibrationPreparing) return
+            if (!canCalibrate()) {
+                pauseCalibration()
+                return
+            }
+            if (calibrationPaused) {
+                beginCalibrationStage()
+                return
+            }
+            val remaining = calibrationReadyAt - SystemClock.uptimeMillis()
+            if (remaining > 0L) {
+                status?.text = activity.getString(R.string.eye_page_calibration_countdown,
+                    ((remaining + 999L) / 1000L).toInt())
+                handler.postDelayed(this, minOf(remaining, 1000L))
+            } else {
+                calibrationPreparing = false
+                updateTarget()
+                lastIssue = R.string.eye_page_sampling
+                status?.text = activity.getString(lastIssue, 0)
+                handler.postDelayed(timeout, CALIBRATION_TIMEOUT_MS)
+            }
+        }
+    }
     private var lastIssue = R.string.eye_page_camera_starting
     private var staleFrames = 0
     private var receivedFrames = 0
@@ -100,6 +128,18 @@ class EyePageTurner(
     private fun accept(observation: GazeObservation, time: Long) {
         receivedFrames++
         val sample = observation.sample
+        if (overlay != null) {
+            if (!canCalibrate()) {
+                pauseCalibration()
+                return
+            }
+            if (calibrationPaused) {
+                beginCalibrationStage()
+                return
+            }
+            // Preparation frames must never enter the calibration, even if delivered late.
+            if (calibrationPreparing || time < calibrationReadyAt) return
+        }
         // Discard results queued while the UI thread was busy.
         if (SystemClock.uptimeMillis() - time > 350L) {
             staleFrames++
@@ -113,11 +153,6 @@ class EyePageTurner(
             return
         }
         if (overlay != null) {
-            if (!canCalibrate()) {
-                lastIssue = R.string.eye_page_calibration_paused
-                calibration.reset()
-                return
-            }
             val point = calibration.add(sample, time)
             lastIssue = when {
                 calibration.unstable -> R.string.eye_page_gaze_unstable
@@ -138,10 +173,7 @@ class EyePageTurner(
             if (!calibratingBottom) {
                 topPoint = point
                 calibratingBottom = true
-                updateTarget()
-                status?.setText(R.string.eye_page_target_changed)
-                handler.removeCallbacks(timeout)
-                handler.postDelayed(timeout, 20000L)
+                beginCalibrationStage()
             } else {
                 val top = topPoint ?: return
                 val noise = maxOf(top.noise, point.noise)
@@ -261,8 +293,32 @@ class EyePageTurner(
         panel.addView(center, FrameLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT, Gravity.CENTER))
         root.addView(panel, FrameLayout.LayoutParams(MATCH_PARENT, MATCH_PARENT))
         overlay = panel
+        beginCalibrationStage()
+    }
+
+    private fun beginCalibrationStage() {
+        handler.removeCallbacks(calibrationCountdown)
+        handler.removeCallbacks(timeout)
+        calibration.reset()
+        calibrationPaused = false
+        calibrationPreparing = true
+        calibrationReadyAt = SystemClock.uptimeMillis() + CALIBRATION_PREPARATION_MS
         updateTarget()
-        handler.postDelayed(timeout, 20000L)
+        calibrationCountdown.run()
+    }
+
+    private fun pauseCalibration() {
+        if (!calibrationPaused) {
+            calibration.reset()
+            calibrationPaused = true
+            calibrationPreparing = true
+            handler.removeCallbacks(timeout)
+            lastIssue = R.string.eye_page_calibration_paused
+            updateTarget()
+            status?.setText(lastIssue)
+        }
+        handler.removeCallbacks(calibrationCountdown)
+        handler.postDelayed(calibrationCountdown, 200L)
     }
 
     private fun updateTarget() {
@@ -271,7 +327,12 @@ class EyePageTurner(
             topMargin = dp(56)
             bottomMargin = dp(40)
         }
-        val instruction = activity.getString(if (calibratingBottom) R.string.eye_page_calibrate_bottom else R.string.eye_page_calibrate_top)
+        val instruction = activity.getString(when {
+            calibrationPreparing && calibratingBottom -> R.string.eye_page_prepare_bottom
+            calibrationPreparing -> R.string.eye_page_prepare_top
+            calibratingBottom -> R.string.eye_page_calibrate_bottom
+            else -> R.string.eye_page_calibrate_top
+        })
         message?.text = instruction + (retryHint?.let { "\n\n$it" } ?: "")
     }
 
@@ -288,10 +349,7 @@ class EyePageTurner(
         // A rejected pair must not leave an otherwise valid detector active.
         detector.calibrate(0f, 0f)
         retryHint = activity.getString(reason)
-        updateTarget()
-        status?.setText(R.string.eye_page_retrying)
-        handler.removeCallbacks(timeout)
-        handler.postDelayed(timeout, 20000L)
+        beginCalibrationStage()
     }
 
     private fun stage() = if (calibratingBottom) "bottom" else "top"
@@ -308,6 +366,10 @@ class EyePageTurner(
 
     private fun hideCalibration() {
         handler.removeCallbacks(timeout)
+        handler.removeCallbacks(calibrationCountdown)
+        calibrationPreparing = false
+        calibrationPaused = false
+        calibrationReadyAt = 0L
         overlay?.let(root::removeView)
         overlay = null
         message = null
@@ -327,5 +389,10 @@ class EyePageTurner(
         camera = null
         hideCalibration()
         resetGesture()
+    }
+
+    private companion object {
+        const val CALIBRATION_PREPARATION_MS = 3000L
+        const val CALIBRATION_TIMEOUT_MS = 20000L
     }
 }
