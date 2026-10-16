@@ -12,6 +12,7 @@ import android.text.TextPaint
 import android.util.AttributeSet
 import android.view.ViewGroup
 import androidx.appcompat.widget.AppCompatImageView
+import androidx.core.graphics.ColorUtils
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.Lifecycle
 import com.bumptech.glide.load.DataSource
@@ -128,7 +129,12 @@ class CoverImageView @JvmOverloads constructor(
 
     private fun drawNameAuthor(canvas: Canvas) {
         if (!BookCover.drawBookName) return
-        val textColor = Color.BLACK
+        val tintColor = imageTintList?.getColorForState(drawableState, context.accentColor)
+            ?: context.accentColor
+        val coverColor = ColorUtils.setAlphaComponent(tintColor, 255)
+        val blackContrast = ColorUtils.calculateContrast(Color.BLACK, coverColor)
+        val whiteContrast = ColorUtils.calculateContrast(Color.WHITE, coverColor)
+        val textColor = if (blackContrast >= whiteContrast) Color.BLACK else Color.WHITE
         var startX = width * 0.2f
         var startY = viewHeight * 0.2f
         name?.toStringArray()?.let { name ->
