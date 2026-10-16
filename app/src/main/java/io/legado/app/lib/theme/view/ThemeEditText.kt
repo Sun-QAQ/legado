@@ -6,6 +6,7 @@ import android.util.AttributeSet
 import androidx.appcompat.widget.AppCompatEditText
 import io.legado.app.lib.theme.accentColor
 import io.legado.app.utils.applyTint
+import io.legado.app.utils.setAccentCursor
 
 open class ThemeEditText @JvmOverloads constructor(
     context: Context,
@@ -15,6 +16,7 @@ open class ThemeEditText @JvmOverloads constructor(
     init {
         if (!isInEditMode) {
             applyTint(context.accentColor)
+            setAccentCursor()
         }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM) {
             isLocalePreferredLineHeightForMinimumUsed = false
@@ -26,6 +28,7 @@ open class ThemeEditText @JvmOverloads constructor(
         //ViewHolder 复用或宿主未重建时,重新附着会再次读取当前主题强调色
         if (!isInEditMode) {
             applyTint(context.accentColor)
+            setAccentCursor()
         }
     }
 }

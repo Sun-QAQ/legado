@@ -111,7 +111,8 @@ fun View.applyBackgroundTint(
 }
 
 /**
- * 输入框闪烁光标统一使用主题强调色
+ * 输入框闪烁光标和拖动/选择手柄统一使用主题强调色。
+ * 可重复调用，不修改输入框的焦点监听器。
  */
 @SuppressLint("DiscouragedPrivateApi", "SoonBlockedPrivateApi")
 fun EditText.setAccentCursor() {
@@ -132,33 +133,51 @@ fun EditText.setAccentCursor() {
         }
     }
     tintCursorHandles(accent)
-    // 手柄在聚焦时会被框架用 colorControlActivated 重新着色, 在获得焦点时重刷
-    val existing = onFocusChangeListener
-    setOnFocusChangeListener { v, hasFocus ->
-        existing?.onFocusChange(v, hasFocus)
-        if (hasFocus) {
-            tintCursorHandles(accent)
-            v.post { tintCursorHandles(accent) }
-        }
-    }
 }
 
 /**
  * 光标拖动/选择手柄统一使用主题强调色
  */
+@SuppressLint("DiscouragedPrivateApi", "SoonBlockedPrivateApi")
 private fun EditText.tintCursorHandles(@ColorInt accent: Int) {
+    fun tinted(current: Drawable): Drawable {
+        val inner = (current as? UntintableDrawableWrapper)?.inner ?: current
+        tintDrawableRecursively(inner, accent)
+        return UntintableDrawableWrapper(inner)
+    }
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+        textSelectHandle?.let { setTextSelectHandle(tinted(it)) }
+        textSelectHandleLeft?.let { setTextSelectHandleLeft(tinted(it)) }
+        textSelectHandleRight?.let { setTextSelectHandleRight(tinted(it)) }
+        return
+    }
     try {
         val fEditor = TextView::class.java.getDeclaredField("mEditor")
         fEditor.isAccessible = true
         val editor = fEditor.get(this)
-        val names = arrayOf("mTextSelectHandleLeft", "mTextSelectHandleRight", "mTextSelectHandle")
-        for (name in names) {
-            val f = editor.javaClass.getDeclaredField(name)
+        val names = arrayOf(
+            "mTextSelectHandleLeft" to "mSelectHandleLeft",
+            "mTextSelectHandleRight" to "mSelectHandleRight",
+            "mTextSelectHandle" to "mSelectHandleCenter"
+        )
+        for ((name, editorName) in names) {
+            val f = TextView::class.java.getDeclaredField(name)
             f.isAccessible = true
-            val current = f.get(editor) as? Drawable ?: continue
-            val inner = (current as? UntintableDrawableWrapper)?.inner ?: current
-            tintDrawableRecursively(inner, accent)
-            f.set(editor, UntintableDrawableWrapper(inner))
+            val current = f.get(this) as? Drawable ?: run {
+                val resourceField = TextView::class.java.getDeclaredField("${name}Res")
+                resourceField.isAccessible = true
+                val resourceId = resourceField.getInt(this)
+                if (resourceId == 0) null else context.getDrawable(resourceId)
+            } ?: continue
+            val drawable = tinted(current)
+            f.set(this, drawable)
+            // 旧系统可能已缓存手柄，也同步更新 Editor 中的绘制资源。
+            try {
+                val editorField = editor.javaClass.getDeclaredField(editorName)
+                editorField.isAccessible = true
+                editorField.set(editor, drawable)
+            } catch (ignored: Exception) {
+            }
         }
     } catch (ignored: Exception) {
     }
