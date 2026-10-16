@@ -60,9 +60,9 @@ class EyePageTurnerReadyWindowTest {
                 accept.invoke(turner, sample(0f), SystemClock.uptimeMillis() - 400L)
                 assertTrue(ready.get())
             }
-            SystemClock.sleep(700L)
+            SystemClock.sleep(2200L)
             instrumentation.runOnMainSync { assertTrue(ready.get()) }
-            val waitUntil = SystemClock.uptimeMillis() + 2500L
+            val waitUntil = SystemClock.uptimeMillis() + 1500L
             while (ready.get() && SystemClock.uptimeMillis() < waitUntil) {
                 SystemClock.sleep(50L)
             }
@@ -74,9 +74,9 @@ class EyePageTurnerReadyWindowTest {
     }
 
     @Test
-    fun upwardGazeWithinWindowTurnsOnceAndClearsHint() {
+    fun upwardGazeInThirdSecondTurnsOnceAndClearsHint() {
         withReadyTurner { turner, ready, turns ->
-            SystemClock.sleep(250L)
+            SystemClock.sleep(2250L)
             instrumentation.runOnMainSync {
                 val now = SystemClock.uptimeMillis()
                 // Two fresh synthetic frames avoid depending on emulator rendering speed.
@@ -87,7 +87,7 @@ class EyePageTurnerReadyWindowTest {
                 assertEquals(1, turns.get())
                 assertFalse(ready.get())
             }
-            SystemClock.sleep(2100L)
+            SystemClock.sleep(3100L)
             instrumentation.runOnMainSync {
                 assertEquals(1, turns.get())
                 assertFalse(ready.get())

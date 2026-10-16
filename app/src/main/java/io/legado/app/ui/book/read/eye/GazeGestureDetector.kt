@@ -142,7 +142,7 @@ internal class GazeGestureDetector {
             upperSince = null
             if (bottomDwellMs >= 100L) {
                 armed = true
-                armedUntil = now + 2000L
+                armedUntil = now + 3000L
             }
             state = if (armed) "armed" else "bottom_dwell"
         } else {

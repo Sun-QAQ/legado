@@ -38,18 +38,18 @@ class GazeGestureDetectorTest {
             assertFalse(detector.update(gaze(0.9f), 1000))
             assertFalse(detector.update(gaze(0.9f), 1100))
             assertTrue(detector.armed)
-            // Continuing down must not cancel the fixed two-second ready window.
-            for (time in 1200L..2700L step 100L) {
+            // Continuing down must not cancel the fixed three-second ready window.
+            for (time in 1200L..3700L step 100L) {
                 val position = (0.9f + (time - 1100L) / 1000f).coerceAtMost(2f)
                 assertFalse(detector.update(gaze(position), time))
                 assertTrue(detector.armed)
                 assertEquals("armed", detector.state)
             }
-            assertFalse(detector.update(gaze(0.2f), 2800))
-            assertFalse(detector.update(gaze(0.2f), 2900))
-            assertTrue(detector.update(gaze(0.2f), 3000))
+            assertFalse(detector.update(gaze(0.2f), 3800))
+            assertFalse(detector.update(gaze(0.2f), 3900))
+            assertTrue(detector.update(gaze(0.2f), 4000))
             assertFalse(detector.armed)
-            assertFalse(detector.update(gaze(0.2f), 3100))
+            assertFalse(detector.update(gaze(0.2f), 4100))
         }
     }
 
@@ -91,7 +91,7 @@ class GazeGestureDetectorTest {
         assertFalse(detector.update(sample(0f), 1900))
         assertFalse(detector.update(null, 2000))
         assertTrue(detector.armed)
-        assertEquals(3100L, detector.armedUntil)
+        assertEquals(4100L, detector.armedUntil)
         assertFalse(detector.update(sample(0f), 2100))
         assertFalse(detector.update(sample(0f), 2200))
         assertTrue(detector.update(sample(0f), 2300))
@@ -227,42 +227,42 @@ class GazeGestureDetectorTest {
     fun continuingBottomGazeCannotExtendReadyWindow() {
         val detector = detector()
         readBottom(detector)
-        for (time in 1900L..3000L step 100L) {
+        for (time in 1900L..4000L step 100L) {
             assertFalse(detector.update(sample(2f), time))
             assertTrue(detector.armed)
-            assertEquals(3100L, detector.armedUntil)
+            assertEquals(4100L, detector.armedUntil)
         }
-        assertFalse(detector.update(sample(2f), 3100))
+        assertFalse(detector.update(sample(2f), 4100))
         assertFalse(detector.armed)
         assertEquals("transition_timeout", detector.state)
-        assertFalse(detector.update(sample(0f), 3200))
-        assertFalse(detector.update(sample(0f), 3400))
-        assertFalse(detector.update(sample(1f), 3500))
-        assertFalse(detector.update(sample(1f), 3600))
+        assertFalse(detector.update(sample(0f), 4200))
+        assertFalse(detector.update(sample(0f), 4400))
+        assertFalse(detector.update(sample(1f), 4500))
+        assertFalse(detector.update(sample(1f), 4600))
         assertTrue(detector.armed)
-        assertEquals(5600L, detector.armedUntil)
+        assertEquals(7600L, detector.armedUntil)
     }
 
     @Test
     fun readyWindowExpiresEvenWithoutNewCameraFrames() {
         val detector = detector()
         readBottom(detector)
-        assertFalse(detector.expireReadyWindow(3099))
+        assertFalse(detector.expireReadyWindow(4099))
         assertTrue(detector.armed)
-        assertTrue(detector.expireReadyWindow(3100))
+        assertTrue(detector.expireReadyWindow(4100))
         assertFalse(detector.armed)
-        assertFalse(detector.expireReadyWindow(3200))
+        assertFalse(detector.expireReadyWindow(4200))
     }
 
     @Test
     fun upwardDwellMustCompleteBeforeReadyWindowExpires() {
         val detector = detector()
         readBottom(detector)
-        assertFalse(detector.update(sample(0f), 2910))
-        assertFalse(detector.update(sample(0f), 3010))
-        assertFalse(detector.update(sample(0f), 3110))
+        assertFalse(detector.update(sample(0f), 3910))
+        assertFalse(detector.update(sample(0f), 4010))
+        assertFalse(detector.update(sample(0f), 4110))
         assertFalse(detector.armed)
-        assertFalse(detector.update(sample(0f), 3210))
+        assertFalse(detector.update(sample(0f), 4210))
     }
 
     @Test
@@ -277,7 +277,7 @@ class GazeGestureDetectorTest {
                 assertFalse(detector.update(sample(0f).copy(vertical = Float.NaN), 2000))
             }
             assertTrue(detector.armed)
-            assertEquals(3100L, detector.armedUntil)
+            assertEquals(4100L, detector.armedUntil)
             assertFalse(detector.update(sample(0f), 2100))
             assertFalse(detector.update(sample(0f), 2200))
             assertTrue(detector.update(sample(0f), 2300))
