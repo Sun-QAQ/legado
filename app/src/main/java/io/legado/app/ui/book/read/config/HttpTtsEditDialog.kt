@@ -18,6 +18,7 @@ import io.legado.app.ui.widget.code.addJsPattern
 import io.legado.app.ui.widget.code.addJsonPattern
 import io.legado.app.ui.widget.code.addLegadoPattern
 import io.legado.app.utils.GSON
+import io.legado.app.utils.applyDialogRoundedBackground
 import io.legado.app.utils.applyTint
 import io.legado.app.utils.sendToClip
 import io.legado.app.utils.setLayout
@@ -45,6 +46,7 @@ class HttpTtsEditDialog() : BaseDialogFragment(R.layout.dialog_http_tts_edit, tr
     }
 
     override fun onFragmentCreated(view: View, savedInstanceState: Bundle?) {
+        binding.vwBg.applyDialogRoundedBackground()
         binding.toolBar.setBackgroundColor(backgroundColor)
         binding.tvUrl.run {
             addLegadoPattern()
