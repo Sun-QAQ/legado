@@ -23,6 +23,7 @@ import io.legado.app.ui.file.HandleFileContract
 import io.legado.app.utils.FileDoc
 import io.legado.app.utils.FileUtils
 import io.legado.app.utils.RealPathUtil
+import io.legado.app.utils.applyDialogRoundedBackground
 import io.legado.app.utils.applyTint
 import io.legado.app.utils.cnCompare
 import io.legado.app.utils.externalFiles
@@ -73,10 +74,12 @@ class FontSelectDialog : BaseDialogFragment(R.layout.dialog_font_select),
 
     override fun onStart() {
         super.onStart()
+        dialog?.window?.setBackgroundDrawableResource(R.color.transparent)
         setLayout(0.9f, 0.9f)
     }
 
     override fun onFragmentCreated(view: View, savedInstanceState: Bundle?) {
+        view.applyDialogRoundedBackground()
         binding.toolBar.setBackgroundColor(backgroundColor)
         binding.toolBar.setTitle(R.string.select_font)
         binding.toolBar.inflateMenu(R.menu.font_select)
