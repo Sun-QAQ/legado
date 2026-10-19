@@ -15,6 +15,7 @@ import io.legado.app.databinding.DialogWebdavServerBinding
 import io.legado.app.databinding.ItemSourceEditBinding
 import io.legado.app.lib.theme.backgroundColor
 import io.legado.app.utils.GSON
+import io.legado.app.utils.applyDialogRoundedBackground
 import io.legado.app.utils.applyTint
 import io.legado.app.utils.setLayout
 import io.legado.app.utils.viewbindingdelegate.viewBinding
@@ -44,6 +45,7 @@ class ServerConfigDialog() : BaseDialogFragment(R.layout.dialog_webdav_server, t
     }
 
     override fun onFragmentCreated(view: View, savedInstanceState: Bundle?) {
+        binding.vwBg.applyDialogRoundedBackground()
         binding.toolBar.setBackgroundColor(backgroundColor)
         binding.toolBar.inflateMenu(R.menu.server_config)
         binding.toolBar.menu.applyTint(requireContext())
@@ -81,7 +83,7 @@ class ServerConfigDialog() : BaseDialogFragment(R.layout.dialog_webdav_server, t
             when (rowUi.type) {
                 RowUi.Type.text -> ItemSourceEditBinding.inflate(
                     layoutInflater,
-                    binding.root,
+                    binding.flexbox,
                     false
                 ).let {
                     binding.flexbox.addView(it.root)
@@ -91,7 +93,7 @@ class ServerConfigDialog() : BaseDialogFragment(R.layout.dialog_webdav_server, t
                 }
                 RowUi.Type.password -> ItemSourceEditBinding.inflate(
                     layoutInflater,
-                    binding.root,
+                    binding.flexbox,
                     false
                 ).let {
                     binding.flexbox.addView(it.root)
