@@ -12,6 +12,7 @@ import io.legado.app.databinding.DialogTipConfigBinding
 import io.legado.app.help.config.ReadBookConfig
 import io.legado.app.help.config.ReadTipConfig
 import io.legado.app.lib.dialogs.selector
+import io.legado.app.utils.applyDialogRoundedBackground
 import io.legado.app.utils.checkByIndex
 import io.legado.app.utils.getIndexById
 import io.legado.app.utils.hexString
@@ -32,10 +33,12 @@ class TipConfigDialog : BaseDialogFragment(R.layout.dialog_tip_config) {
 
     override fun onStart() {
         super.onStart()
-        setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
+        dialog?.window?.setBackgroundDrawableResource(R.color.transparent)
+        setLayout(0.9f, ViewGroup.LayoutParams.WRAP_CONTENT)
     }
 
     override fun onFragmentCreated(view: View, savedInstanceState: Bundle?) {
+        view.applyDialogRoundedBackground()
         initView()
         initEvent()
         observeEvent<String>(EventBus.TIP_COLOR) {
