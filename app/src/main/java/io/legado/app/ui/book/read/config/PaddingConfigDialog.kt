@@ -10,6 +10,7 @@ import io.legado.app.base.BaseDialogFragment
 import io.legado.app.constant.EventBus
 import io.legado.app.databinding.DialogReadPaddingBinding
 import io.legado.app.help.config.ReadBookConfig
+import io.legado.app.utils.applyDialogRoundedBackground
 import io.legado.app.utils.postEvent
 import io.legado.app.utils.setLayout
 import io.legado.app.utils.viewbindingdelegate.viewBinding
@@ -21,6 +22,7 @@ class PaddingConfigDialog : BaseDialogFragment(R.layout.dialog_read_padding) {
     override fun onStart() {
         super.onStart()
         dialog?.window?.let {
+            it.setBackgroundDrawableResource(R.color.transparent)
             it.clearFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND)
             val attr = it.attributes
             attr.dimAmount = 0.0f
@@ -30,6 +32,7 @@ class PaddingConfigDialog : BaseDialogFragment(R.layout.dialog_read_padding) {
     }
 
     override fun onFragmentCreated(view: View, savedInstanceState: Bundle?) {
+        view.applyDialogRoundedBackground()
         initData()
         initView()
     }
