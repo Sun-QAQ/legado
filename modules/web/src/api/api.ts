@@ -74,6 +74,13 @@ const saveBookProgressWithBeacon = (bookProgress: BookProgress) => {
 }
 
 const getBookShelf = () => ajax.get<LeagdoApiResponse<Book[]>>('getBookshelf')
+export type ShelfBookGroup = {
+  groupId: string
+  groupName: string
+  bookUrls: string[]
+}
+const getBookGroups = () =>
+  ajax.get<LeagdoApiResponse<ShelfBookGroup[]>>('getBookGroups')
 export type ExploreSource = { url: string; name: string; group?: string }
 export type ExploreKind = { title: string; url?: string }
 const getExploreSources = (signal?: AbortSignal) =>
@@ -245,6 +252,7 @@ export default {
   saveBookProgress,
   saveBookProgressWithBeacon,
   getBookShelf,
+  getBookGroups,
   getBookSourceGroups,
   getChapterList,
   getBookContent,

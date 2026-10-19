@@ -42,6 +42,11 @@ object BookController {
     private var bookUrl: String = ""
     private val defaultCoverCache by lazy { WeakHashMap<Drawable, Bitmap>() }
 
+    val bookGroups: ReturnData
+        get() = ReturnData().setData(
+            BookshelfGroups.create(appDb.bookGroupDao.all, appDb.bookDao.all)
+        )
+
     /**
      * 书架所有书籍
      */

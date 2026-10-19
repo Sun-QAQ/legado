@@ -90,6 +90,7 @@ class HttpServer(port: Int) : NanoHTTPD("::", port) {
                         "/getBookSources" -> BookSourceController.sources
                         "/getBookSourceGroups" -> BookSourceController.enabledGroups
                         "/getBookshelf" -> BookController.bookshelf
+                        "/getBookGroups" -> BookController.bookGroups
                         "/getExploreSources" -> ExploreController.sources
                         "/getExploreKinds" -> ExploreController.explore(parameters, true)
                         "/exploreBooks" -> ExploreController.explore(parameters, false)

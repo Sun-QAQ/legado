@@ -89,6 +89,22 @@
         </button>
       </div>
       <div class="shelf-tools">
+        <el-select
+          v-model="shelfGroup"
+          class="shelf-group"
+          aria-label="App 书籍分组"
+          placeholder="App 书籍分组"
+          filterable
+          :disabled="loading"
+        >
+          <el-option label="不限分组" value="" />
+          <el-option
+            v-for="group in shelfGroups"
+            :key="group.groupId"
+            :label="`${group.groupName}（${group.bookUrls.length}）`"
+            :value="group.groupId"
+          />
+        </el-select>
         <el-input
           v-model="searchWord"
           placeholder="搜索书名或作者"
@@ -172,6 +188,7 @@
 <script setup lang="ts">
 import { Grid, List, Refresh, Search } from '@element-plus/icons-vue'
 import API from '@api'
+import type { ShelfBookGroup } from '@/api/api'
 import type { Book, SeachBook } from '@/book'
 import { bookProgress } from '@/utils/bookPresentation'
 import { openBookDetail, startBookReading } from '@/utils/bookNavigation'
@@ -186,10 +203,17 @@ const filter = ref('全部书籍'),
     online.value ? sessionStorage.getItem('web-book-search-word') || '' : '',
   )
 const list = ref(localStorage.getItem('web-shelf-layout') === 'list')
+const shelfGroup = ref(localStorage.getItem('web-shelf-group') || ''),
+  shelfGroups = ref<ShelfBookGroup[]>([])
+const groupBookUrls = computed(() => {
+  const group = shelfGroups.value.find(g => g.groupId === shelfGroup.value)
+  return group ? new Set(group.bookUrls) : undefined
+})
+watch(shelfGroup, value => localStorage.setItem('web-shelf-group', value))
 const pageSize = ref(50),
   currentPage = ref(1)
 watch(
-  [filter, sort, searchWord, pageSize],
+  [filter, sort, searchWord, pageSize, shelfGroup],
   () => {
     currentPage.value = 1
   },
@@ -226,6 +250,8 @@ const books = computed(() => {
   let items = store.shelf.filter(b =>
     `${b.name}${b.author}`.includes(searchWord.value.trim()),
   )
+  if (groupBookUrls.value)
+    items = items.filter(b => groupBookUrls.value!.has(b.bookUrl))
   if (filter.value === '阅读中')
     items = items.filter(b => b.durChapterTime > 0 && bookProgress(b) < 100)
   if (filter.value === '已读完')
@@ -259,7 +285,15 @@ const loadShelf = async () => {
   try {
     await store.loadWebConfig()
     await store.saveBookProgress()
-    await store.loadBookShelf()
+    const [, response] = await Promise.all([
+      store.loadBookShelf(),
+      API.getBookGroups(),
+    ])
+    if (disposed) return
+    if (!response.data.isSuccess) throw new Error(response.data.errorMsg)
+    shelfGroups.value = response.data.data
+    if (!shelfGroups.value.some(g => g.groupId === shelfGroup.value))
+      shelfGroup.value = ''
   } catch {
     error.value = '请确认阅读 App 的 Web 服务已开启，且服务地址可用。'
   } finally {
@@ -344,6 +378,7 @@ const searchFromNavigation = async () => {
 watch(() => [online.value, route.query.q], searchFromNavigation)
 watch(online, active => {
   if (active) void loadSearchGroups()
+  else void loadShelf()
 })
 onMounted(() => {
   if (!online.value) loadShelf()
@@ -432,6 +467,9 @@ onUnmounted(() => {
 }
 .shelf-tools .el-select {
   width: 130px;
+}
+.shelf-tools .shelf-group {
+  width: 180px;
 }
 .shelf-content {
   min-height: 200px;
