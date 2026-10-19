@@ -20,6 +20,7 @@ import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
 import okhttp3.HttpUrl.Companion.toHttpUrl
+import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.Interceptor
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody.Companion.asRequestBody
@@ -134,8 +135,8 @@ open class WebDav(
     @Throws(WebDavException::class)
     suspend fun listFiles(): List<WebDavFile> {
         propFindResponse()?.let { body ->
-            return parseBody(body).filter {
-                it.path != path
+            return parseBody(body).filterNot {
+                isSameWebDavResource(httpUrl ?: path, it.path)
             }
         }
         return emptyList()
@@ -454,4 +455,16 @@ open class WebDav(
         }
     }
 
+}
+
+/** 忽略目录末尾的斜杠和 URL 编码差异，避免把当前目录列为自己的子目录。 */
+internal fun isSameWebDavResource(first: String, second: String): Boolean {
+    val firstUrl = first.toHttpUrlOrNull() ?: return first == second
+    val secondUrl = second.toHttpUrlOrNull() ?: return false
+    return firstUrl.scheme == secondUrl.scheme
+            && firstUrl.host == secondUrl.host
+            && firstUrl.port == secondUrl.port
+            && firstUrl.pathSegments.dropLastWhile { it.isEmpty() } ==
+            secondUrl.pathSegments.dropLastWhile { it.isEmpty() }
+            && firstUrl.encodedQuery == secondUrl.encodedQuery
 }
