@@ -42,7 +42,8 @@ class AiImageSourceAdapter(
         val prefix = if (item.id == currentId) "[${context.getString(R.string.ai_image_source_default)}] " else ""
         binding.tvName.text = prefix + item.name
         binding.tvName.setTextColor(if (item.id == currentId) context.accentColor else context.primaryTextColor)
-        binding.tvModel.text = listOf(item.model, item.imageSize).filter { it.isNotBlank() }.joinToString(" · ")
+        val model = if (item.apiType == AiImageSource.TYPE_COMFYUI) "ComfyUI" else item.model
+        binding.tvModel.text = listOf(model, item.imageSize).filter { it.isNotBlank() }.joinToString(" · ")
         binding.swtEnabled.isChecked = item.enabled
     }
 

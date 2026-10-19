@@ -1062,6 +1062,7 @@ class AgentViewModel @JvmOverloads constructor(
             finishStep(stepId, getString(R.string.agent_step_image_done))
             getString(R.string.agent_image_generated)
         } catch (e: Exception) {
+            if (e is CancellationException) throw e
             failStep(stepId, e)
             getString(
                 R.string.agent_image_generate_failed,

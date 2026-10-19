@@ -777,6 +777,11 @@
     <string name="ai_image_response_auto">自动（推荐）</string>
     <string name="ai_image_response_url">URL</string>
     <string name="ai_image_response_base64">Base64</string>
+    <string name="ai_image_api_type">生图接口类型</string>
+    <string name="ai_image_api_openai">OpenAI 兼容</string>
+    <string name="ai_image_comfyui_workflow">ComfyUI 工作流（API 格式 JSON）</string>
+    <string name="ai_image_comfyui_invalid">ComfyUI 工作流无效：%1$s</string>
+    <string name="ai_image_comfyui_help">填写本设备可访问的 ComfyUI 服务地址，例如 http://192.168.1.10:8188。API Key 可留空。\n粘贴以 API 格式导出的工作流，将正向提示词文本替换为 {{prompt}}。可选占位符：{{width}}、{{height}}、{{seed}}（在 JSON 中用双引号包裹，发送时会转为数字）。模型在工作流中配置，并添加 SaveImage 输出节点。\n输入示例：{\"text\":\"{{prompt}}\"} 或 {\"width\":\"{{width}}\",\"height\":\"{{height}}\"}。显示首张最终图片，最长等待 10 分钟；停止对话不会停止服务端任务。</string>
     <string name="agent_image_not_configured">尚未配置已启用的生图供应商，请先前往“图像生成配置”。</string>
     <string name="agent_step_generating_image">正在生成图片</string>
     <string name="agent_step_image_done">图片生成完成</string>

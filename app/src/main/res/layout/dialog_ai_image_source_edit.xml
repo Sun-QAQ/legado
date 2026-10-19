@@ -37,6 +37,21 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginHorizontal="12dp"
+                    android:hint="@string/ai_image_api_type">
+                    <io.legado.app.lib.theme.view.ThemeEditText
+                        android:id="@+id/tv_api_type"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:clickable="true"
+                        android:cursorVisible="false"
+                        android:focusable="false"
+                        android:padding="14dp" />
+                </io.legado.app.ui.widget.text.TextInputLayout>
+
+                <io.legado.app.ui.widget.text.TextInputLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginHorizontal="12dp"
                     android:hint="@string/ai_source_name">
                     <io.legado.app.lib.theme.view.ThemeEditText
                         android:id="@+id/tv_name"
@@ -75,6 +90,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginHorizontal="12dp"
+                    android:id="@+id/layout_model"
                     android:hint="@string/ai_source_model">
                     <io.legado.app.lib.theme.view.ThemeEditText
                         android:id="@+id/tv_model"
@@ -99,6 +115,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginHorizontal="12dp"
+                    android:id="@+id/layout_response_format"
                     android:hint="@string/ai_image_response_format">
                     <io.legado.app.lib.theme.view.ThemeEditText
                         android:id="@+id/tv_response_format"
@@ -114,6 +131,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginHorizontal="12dp"
+                    android:id="@+id/layout_custom_body"
                     android:hint="@string/ai_image_custom_body">
                     <io.legado.app.lib.theme.view.ThemeEditText
                         android:id="@+id/tv_custom_body"
@@ -124,6 +142,16 @@
                         android:minLines="5"
                         android:padding="14dp" />
                 </io.legado.app.ui.widget.text.TextInputLayout>
+
+                <TextView
+                    android:id="@+id/tv_workflow_help"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginHorizontal="26dp"
+                    android:paddingVertical="8dp"
+                    android:text="@string/ai_image_comfyui_help"
+                    android:textIsSelectable="true"
+                    android:visibility="gone" />
 
                 <io.legado.app.ui.widget.text.TextInputLayout
                     android:layout_width="match_parent"

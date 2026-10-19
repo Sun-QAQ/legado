@@ -8,7 +8,7 @@ import io.legado.app.utils.GSON
 import io.legado.app.utils.fromJsonObject
 import kotlinx.parcelize.Parcelize
 
-/** OpenAI 兼容的图像生成供应商。 */
+/** 支持 OpenAI 兼容接口及 ComfyUI 工作流的图像生成供应商。 */
 @Parcelize
 @Entity(tableName = "aiImageSources")
 data class AiImageSource(
@@ -24,7 +24,9 @@ data class AiImageSource(
     var headers: String? = null,
     @ColumnInfo(defaultValue = "1")
     var enabled: Boolean = true,
-    var lastUpdateTime: Long = System.currentTimeMillis()
+    var lastUpdateTime: Long = System.currentTimeMillis(),
+    @ColumnInfo(defaultValue = "'openai'")
+    var apiType: String = TYPE_OPENAI
 ) : Parcelable {
 
     fun getHeaderMap(): Map<String, String> {
@@ -33,6 +35,8 @@ data class AiImageSource(
     }
 
     companion object {
+        const val TYPE_OPENAI = "openai"
+        const val TYPE_COMFYUI = "comfyui"
         const val RESPONSE_FORMAT_AUTO = "auto"
         const val RESPONSE_FORMAT_URL = "url"
         const val RESPONSE_FORMAT_BASE64 = "b64_json"

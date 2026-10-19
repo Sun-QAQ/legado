@@ -75,6 +75,22 @@
 | `AiImageSourceEditDialog.kt` | 编辑图片生成接口、模型、尺寸、响应格式及自定义请求参数。 |
 | `AiImageSourceEditViewModel.kt` | 加载并保存图片生成源配置。 |
 | `AgentImageSourceSelection.kt` | 保存当前图片生成源 ID，在所选源不可用时回退到首个启用源。 |
-| `AiImageGenerationHelper.kt` | 请求图片生成接口，解析 URL 或 Base64 响应并获取图片字节，同时限制图片大小。 |
+| `AiImageGenerationHelper.kt` | 按接口类型请求图片生成，解析 OpenAI URL 或 Base64 响应，下载图片并限制大小。 |
+| `ComfyUiImageGenerationHelper.kt` | 校验和填充 ComfyUI API 工作流，提交任务、轮询历史并获取最终图片地址。 |
 | `AgentGeneratedImage.kt` | 定义生成图片的本地路径和对应提示词。 |
 | `AgentImageStorage.kt` | 按会话保存生成图片，支持删除单个会话图片或清空全部图片。 |
+
+### ComfyUI 配置
+
+在 AI 的图片生成设置中新增供应商，将「生图接口类型」设为 ComfyUI。
+填写手机或模拟器可访问的服务根地址，例如 `http://192.168.1.10:8188`（也支持以 `/prompt` 结尾的地址及反向代理路径）。
+服务需要允许来自该设备的连接。API Key 可留空；填写后使用 Bearer 认证，自定义请求头可覆盖认证。
+
+在 ComfyUI 中导出 API 格式工作流，粘贴到工作流输入框。支持直接的节点映射，以及包含 `prompt` 节点映射的完整请求体；不支持普通画布 JSON。
+将正向提示词节点的文本改为 `"{{prompt}}"`，也可以嵌入已有文本，例如 `"油画风格，{{prompt}}"`。
+可将宽、高和种子分别设为 `"{{width}}"`、`"{{height}}"`、`"{{seed}}"`，完整占位符发送时会转为数值；种子每次随机生成。
+不使用这些可选占位符时，沿用工作流中的尺寸及种子。模型和负面提示词等参数直接在工作流中配置。
+
+调用使用 ComfyUI 原生 `/prompt` → `/history/{prompt_id}` → `/view` 流程，所有请求携带配置的认证头。
+优先展示首张 `output` 图片，无最终输出时可使用预览图片。任务失败或完成后无图片会明确报错，最长等待 10 分钟。
+取消对话会停止客户端等待，不会调用影响其他任务的服务端全局中断接口。

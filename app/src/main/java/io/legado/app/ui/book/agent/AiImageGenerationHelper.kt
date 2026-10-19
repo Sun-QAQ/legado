@@ -8,8 +8,10 @@ import io.legado.app.help.http.newCallResponse
 import io.legado.app.help.http.newCallStrResponse
 import io.legado.app.help.http.okHttpClient
 import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.OkHttpClient
 import okhttp3.RequestBody.Companion.toRequestBody
 import okio.ByteString.Companion.decodeBase64
+import okio.Buffer
 import java.util.concurrent.TimeUnit
 
 internal data class AiGeneratedImageReference(
@@ -50,18 +52,29 @@ internal object AiImageGenerationHelper {
         return AiGeneratedImageReference(url, base64)
     }
 
-    suspend fun generate(source: AiImageSource, prompt: String, size: String): ByteArray {
-        val client = okHttpClient.newBuilder()
+    suspend fun generate(
+        source: AiImageSource,
+        prompt: String,
+        size: String,
+        httpClient: OkHttpClient = okHttpClient
+    ): ByteArray {
+        val client = httpClient.newBuilder()
             .callTimeout(180, TimeUnit.SECONDS)
             .readTimeout(180, TimeUnit.SECONDS)
             .build()
         val headers = HashMap(source.getHeaderMap())
-        if (source.apiKey.isNotBlank() && !headers.containsKey("Authorization")) {
+        if (source.apiKey.isNotBlank() && headers.keys.none { it.equals("Authorization", true) }) {
             headers["Authorization"] = if (source.apiKey.startsWith("Bearer ")) {
                 source.apiKey
             } else {
                 "Bearer ${source.apiKey}"
             }
+        }
+        if (source.apiType == AiImageSource.TYPE_COMFYUI) {
+            val imageUrl = ComfyUiImageGenerationHelper.generateImageUrl(
+                client, source, prompt, size, headers
+            )
+            return downloadImage(client, imageUrl, headers)
         }
         val endpoint = source.baseUrl.trimEnd('/').let {
             if (it.endsWith("/images/generations")) it else "$it/images/generations"
@@ -87,15 +100,29 @@ internal object AiImageGenerationHelper {
             require(bytes.size <= MAX_IMAGE_BYTES) { "图片数据过大" }
             return bytes
         }
-        val imageResponse = client.newCallResponse { url(requireNotNull(reference.url)) }
+        return downloadImage(client, requireNotNull(reference.url))
+    }
+
+    private suspend fun downloadImage(
+        client: OkHttpClient,
+        imageUrl: String,
+        headers: Map<String, String> = emptyMap()
+    ): ByteArray {
+        val imageResponse = client.newCallResponse {
+            url(imageUrl)
+            addHeaders(headers)
+        }
         imageResponse.use {
             if (!it.isSuccessful) throw IllegalStateException("下载图片失败：HTTP ${it.code}")
             val responseBody = it.body
             val length = responseBody.contentLength()
             require(length < 0 || length <= MAX_IMAGE_BYTES) { "图片文件过大" }
-            val bytes = responseBody.source().readByteArray(MAX_IMAGE_BYTES.toLong() + 1)
-            require(bytes.size <= MAX_IMAGE_BYTES) { "图片文件过大" }
-            return bytes
+            val buffer = Buffer()
+            val input = responseBody.source()
+            while (input.read(buffer, minOf(8192L, MAX_IMAGE_BYTES + 1L - buffer.size)) != -1L) {
+                require(buffer.size <= MAX_IMAGE_BYTES) { "图片文件过大" }
+            }
+            return buffer.readByteArray()
         }
     }
 

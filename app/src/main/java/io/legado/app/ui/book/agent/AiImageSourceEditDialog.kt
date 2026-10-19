@@ -5,6 +5,7 @@ import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
 import androidx.appcompat.widget.Toolbar
+import androidx.core.view.isVisible
 import androidx.fragment.app.viewModels
 import com.google.gson.JsonParser
 import io.legado.app.R
@@ -28,6 +29,7 @@ class AiImageSourceEditDialog() : BaseDialogFragment(R.layout.dialog_ai_image_so
     private val binding by viewBinding(DialogAiImageSourceEditBinding::bind)
     private val viewModel by viewModels<AiImageSourceEditViewModel>()
     private var source = AiImageSource()
+    private var apiType = AiImageSource.TYPE_OPENAI
     private val responseFormats = listOf(
         AiImageSource.RESPONSE_FORMAT_AUTO,
         AiImageSource.RESPONSE_FORMAT_URL,
@@ -44,6 +46,13 @@ class AiImageSourceEditDialog() : BaseDialogFragment(R.layout.dialog_ai_image_so
         binding.toolBar.inflateMenu(R.menu.ai_image_source_edit)
         binding.toolBar.menu.applyTint(requireContext())
         binding.toolBar.setOnMenuItemClickListener(this)
+        binding.tvApiType.setOnClickListener {
+            val types = listOf(AiImageSource.TYPE_OPENAI, AiImageSource.TYPE_COMFYUI)
+            context?.selector(getString(R.string.ai_image_api_type), types.map(::typeLabel)) { _, index ->
+                apiType = types[index]
+                updateTypeFields()
+            }
+        }
         binding.tvResponseFormat.setOnClickListener {
             context?.selector(
                 getString(R.string.ai_image_response_format),
@@ -58,6 +67,7 @@ class AiImageSourceEditDialog() : BaseDialogFragment(R.layout.dialog_ai_image_so
     }
 
     private fun bindSource() = binding.run {
+        apiType = source.apiType
         tvName.setText(source.name)
         tvBaseUrl.setText(source.baseUrl)
         tvApiKey.setText(source.apiKey)
@@ -66,6 +76,24 @@ class AiImageSourceEditDialog() : BaseDialogFragment(R.layout.dialog_ai_image_so
         tvResponseFormat.setText(source.responseFormat)
         tvCustomBody.setText(source.customBody)
         tvHeaders.setText(source.headers)
+        updateTypeFields()
+    }
+
+    private fun typeLabel(type: String): String = if (type == AiImageSource.TYPE_COMFYUI) {
+        "ComfyUI"
+    } else {
+        getString(R.string.ai_image_api_openai)
+    }
+
+    private fun updateTypeFields() = binding.run {
+        val comfyUi = apiType == AiImageSource.TYPE_COMFYUI
+        tvApiType.setText(typeLabel(apiType))
+        layoutModel.isVisible = !comfyUi
+        layoutResponseFormat.isVisible = !comfyUi
+        tvWorkflowHelp.isVisible = comfyUi
+        layoutCustomBody.hint = getString(
+            if (comfyUi) R.string.ai_image_comfyui_workflow else R.string.ai_image_custom_body
+        )
     }
 
     private fun formatLabel(value: String): String = when (value) {
@@ -86,16 +114,23 @@ class AiImageSourceEditDialog() : BaseDialogFragment(R.layout.dialog_ai_image_so
         val size = binding.tvImageSize.text?.toString()?.trim().orEmpty()
         if (name.isBlank()) return toastOnUi(R.string.ai_source_name)
         if (baseUrl.isBlank()) return toastOnUi(R.string.input_base_url)
-        if (model.isBlank()) return toastOnUi(R.string.ai_source_model)
+        if (apiType != AiImageSource.TYPE_COMFYUI && model.isBlank()) return toastOnUi(R.string.ai_source_model)
         if (!SIZE_PATTERN.matches(size)) return toastOnUi(R.string.ai_image_size_invalid)
         val customBody = binding.tvCustomBody.text?.toString()?.trim()?.takeIf { it.isNotBlank() }
-        if (customBody != null && !isJsonObject(customBody)) {
+        if (apiType == AiImageSource.TYPE_COMFYUI) {
+            try {
+                ComfyUiImageGenerationHelper.validateWorkflow(customBody.orEmpty())
+            } catch (e: Exception) {
+                return toastOnUi(getString(R.string.ai_image_comfyui_invalid, e.localizedMessage.orEmpty()))
+            }
+        } else if (customBody != null && !isJsonObject(customBody)) {
             return toastOnUi(R.string.ai_image_custom_body_invalid)
         }
         val responseFormat = binding.tvResponseFormat.text?.toString()?.trim()
             ?.takeIf { it in responseFormats } ?: AiImageSource.RESPONSE_FORMAT_AUTO
         source = source.copy(
             name = name,
+            apiType = apiType,
             baseUrl = baseUrl,
             apiKey = binding.tvApiKey.text?.toString()?.trim().orEmpty(),
             model = model,
