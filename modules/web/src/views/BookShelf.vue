@@ -496,7 +496,8 @@ onUnmounted(() => {
   width: 180px;
   flex-shrink: 0;
 }
-.search-group :deep(.el-select__input:focus-visible) {
+.search-group :deep(.el-select__input:focus-visible),
+.shelf-group :deep(.el-select__input:focus-visible) {
   outline: none;
 }
 .search-hint {
