@@ -6,6 +6,7 @@ import io.legado.app.data.entities.BookGroup
 import io.legado.app.utils.GSON
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
+import org.junit.Assert.assertThrows
 import org.junit.Test
 
 class BookshelfGroupsTest {
@@ -65,5 +66,53 @@ class BookshelfGroupsTest {
         assertEquals(listOf("error"), urls(BookGroup.IdError))
         assertEquals(listOf("net", "deleted-group", "video", "error"), urls(BookGroup.IdNetNone))
         assertEquals(listOf("local"), urls(BookGroup.IdLocalNone))
+    }
+
+    @Test
+    fun detailSelectionIncludesHiddenCustomGroupsAndKeepsLongIdsAsStrings() {
+        val highId = 1L shl 60
+        val result = BookshelfGroups.selection(listOf(
+            BookGroup(1, "待读", order = 2),
+            BookGroup(highId, "隐藏收藏", order = 1, show = false),
+            BookGroup(BookGroup.IdAll, "全部"), BookGroup(BookGroup.IdLocal, "本地")
+        ), book("book", highId or 1))
+        assertEquals(listOf("隐藏收藏", "待读"), result.groups.map { it.groupName })
+        assertEquals(listOf(highId.toString(), "1"), result.selectedGroupIds)
+    }
+
+    @Test
+    fun saveSelectionSupportsMultipleGroupsDuplicatesAndClearingAllGroups() {
+        val highId = 1L shl 60
+        val groups = listOf(BookGroup(1), BookGroup(highId, show = false))
+        val update = BookshelfGroups.parseUpdate(
+            """{"bookUrl":"book","groupIds":["1","$highId","1"]}""", groups
+        )
+        assertEquals("book", update.bookUrl)
+        assertEquals(highId or 1, update.group)
+        assertEquals(0L, BookshelfGroups.parseUpdate(
+            """{"bookUrl":"book","groupIds":[]}""", groups
+        ).group)
+    }
+
+    @Test
+    fun saveSelectionRejectsBuiltInDeletedMalformedAndNumericGroupIds() {
+        val groups = listOf(BookGroup(1), BookGroup(3))
+        for (ids in listOf("[\"-1\"]", "[\"2\"]", "[\"3\"]", "[1]", "[null]",
+            "[\"invalid\"]", "[\"9223372036854775808\"]", "[\"0\"]")) {
+            assertThrows(IllegalArgumentException::class.java) {
+                BookshelfGroups.parseUpdate("""{"bookUrl":"book","groupIds":$ids}""", groups)
+            }
+        }
+    }
+
+    @Test
+    fun saveSelectionRejectsMissingOrInvalidFieldsInsteadOfClearingMembership() {
+        for (json in listOf("{}", """{"bookUrl":"book"}""",
+            """{"bookUrl":"","groupIds":[]}""", """{"bookUrl":12,"groupIds":[]}""",
+            """{"bookUrl":"book","groupIds":null}""", """{"bookUrl":"book","groupIds":{}}""")) {
+            assertThrows(IllegalArgumentException::class.java) {
+                BookshelfGroups.parseUpdate(json, listOf(BookGroup(1)))
+            }
+        }
     }
 }

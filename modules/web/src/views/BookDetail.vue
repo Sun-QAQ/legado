@@ -61,6 +61,63 @@
       />
       <el-button v-if="error" @click="loadDetail">重新加载</el-button>
       <section v-if="shelfBook" class="detail-section web-panel">
+        <div class="group-heading">
+          <h2>书籍分组</h2>
+          <el-button
+            v-if="!editingGroups && groupState"
+            :disabled="loading || groupsLoading || !!busy"
+            @click="editGroups"
+            >编辑分组</el-button
+          >
+        </div>
+        <p v-if="groupsLoading" class="muted">正在加载分组…</p>
+        <template v-else-if="groupError">
+          <p role="alert">{{ groupError }}</p>
+          <el-button :disabled="!!busy" @click="loadGroups(generation)"
+            >重新加载分组</el-button
+          >
+        </template>
+        <template v-else-if="editingGroups && groupState">
+          <el-checkbox-group
+            v-model="selectedGroupIds"
+            class="group-options"
+            aria-label="选择书籍分组"
+            :disabled="busy === 'groups'"
+          >
+            <el-checkbox
+              v-for="group in groupState.groups"
+              :key="group.groupId"
+              :value="group.groupId"
+              >{{ group.groupName }}</el-checkbox
+            >
+          </el-checkbox-group>
+          <p class="muted">可同时选择多个分组，取消全部选择后为未分组。</p>
+          <div class="group-actions">
+            <el-button
+              type="primary"
+              :loading="busy === 'groups'"
+              :disabled="!!busy"
+              @click="saveGroups"
+              >保存分组</el-button
+            >
+            <el-button :disabled="!!busy" @click="editingGroups = false"
+              >取消</el-button
+            >
+          </div>
+        </template>
+        <template v-else-if="groupState">
+          <div v-if="currentGroups.length" class="detail-tags">
+            <span v-for="group in currentGroups" :key="group.groupId">
+              {{ group.groupName }}
+            </span>
+          </div>
+          <p v-else class="muted">未分组</p>
+          <p v-if="!groupState.groups.length" class="muted">
+            暂无自定义分组，可先在 App 中创建。
+          </p>
+        </template>
+      </section>
+      <section v-if="shelfBook" class="detail-section web-panel">
         <h2>阅读进度</h2>
         <p>已读：{{ shelfBook.durChapterTitle || '尚未开始阅读' }}</p>
         <el-progress :percentage="bookProgress(shelfBook)" :stroke-width="6" />
@@ -80,6 +137,7 @@
 </template>
 <script setup lang="ts">
 import API from '@api'
+import type { BookGroupSelection } from '@api'
 import type { Book } from '@/book'
 import { bookProgress } from '@/utils/bookPresentation'
 import { restoreDetailBook, startBookReading } from '@/utils/bookNavigation'
@@ -129,16 +187,73 @@ const intro = computed(() => {
 })
 const loading = ref(true),
   error = ref(''),
-  busy = ref<'read' | 'add' | ''>('')
+  busy = ref<'read' | 'add' | 'groups' | ''>('')
+const groupState = ref<BookGroupSelection>(),
+  groupsLoading = ref(false),
+  groupError = ref(''),
+  editingGroups = ref(false),
+  selectedGroupIds = ref<string[]>([])
+const currentGroups = computed(
+  () =>
+    groupState.value?.groups.filter(group =>
+      groupState.value?.selectedGroupIds.includes(group.groupId),
+    ) || [],
+)
 let generation = 0
 let disposed = false
+const loadGroups = async (current: number) => {
+  if (!shelfBook.value) return
+  const bookUrl = url.value
+  groupsLoading.value = true
+  groupError.value = ''
+  try {
+    const { data } = await API.getBookGroup(bookUrl)
+    if (disposed || current !== generation || bookUrl !== url.value) return
+    if (!data.isSuccess) throw new Error(data.errorMsg || '分组加载失败')
+    groupState.value = data.data
+  } catch {
+    if (!disposed && current === generation)
+      groupError.value = '分组加载失败，请检查连接后重试。'
+  } finally {
+    if (!disposed && current === generation) groupsLoading.value = false
+  }
+}
+const editGroups = () => {
+  selectedGroupIds.value = [...(groupState.value?.selectedGroupIds || [])]
+  editingGroups.value = true
+}
+const saveGroups = async () => {
+  if (busy.value || loading.value || !shelfBook.value) return
+  const current = generation,
+    bookUrl = url.value
+  busy.value = 'groups'
+  try {
+    const { data } = await API.saveBookGroups(bookUrl, selectedGroupIds.value)
+    if (disposed || current !== generation) return
+    if (!data.isSuccess) throw new Error(data.errorMsg || '保存分组失败')
+    groupState.value = data.data
+    editingGroups.value = false
+    ElMessage.success('书籍分组已保存')
+  } catch (e) {
+    if (!disposed && current === generation)
+      ElMessage.error(e instanceof Error ? e.message : '保存分组失败，请重试')
+  } finally {
+    if (!disposed && current === generation) busy.value = ''
+  }
+}
 const loadDetail = async () => {
   const current = ++generation
   loading.value = true
   error.value = ''
+  groupState.value = undefined
+  groupError.value = ''
+  groupsLoading.value = false
+  editingGroups.value = false
+  busy.value = ''
   try {
     await store.loadWebConfig()
     await store.loadBookShelf()
+    if (!disposed && current === generation) await loadGroups(current)
   } catch {
     if (current === generation) error.value = '书架同步失败，请检查连接后重试。'
   } finally {
@@ -167,7 +282,10 @@ const performAction = async (action: 'read' | 'add') => {
     const selected = await ensureShelfBook()
     if (disposed) return
     if (action === 'read') await startBookReading(router, selected)
-    else ElMessage.success('已加入书架')
+    else {
+      ElMessage.success('已加入书架')
+      await loadGroups(generation)
+    }
   } catch (e) {
     if (!disposed)
       ElMessage.error(e instanceof Error ? e.message : '操作失败，请重试')
@@ -248,6 +366,35 @@ onBeforeUnmount(() => {
 .detail-section h2 {
   font-size: 18px;
   margin: 0 0 18px;
+}
+.group-heading,
+.group-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.group-heading {
+  justify-content: space-between;
+  margin-bottom: 18px;
+}
+.group-heading h2 {
+  margin: 0;
+}
+.group-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 24px;
+}
+.group-options :deep(.el-checkbox) {
+  margin: 0;
+  max-width: 100%;
+  height: auto;
+  min-height: 32px;
+}
+.group-options :deep(.el-checkbox__label) {
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 .detail-section p {
   font-size: 14px;

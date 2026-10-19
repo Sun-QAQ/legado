@@ -64,6 +64,7 @@ class HttpServer(port: Int) : NanoHTTPD("::", port) {
                             "/saveBookSources" -> BookSourceController.saveSources(postData)
                             "/deleteBookSources" -> BookSourceController.deleteSources(postData)
                             "/saveBook" -> BookController.saveBook(postData)
+                            "/saveBookGroups" -> BookController.saveBookGroups(postData)
                             "/deleteBook" -> BookController.deleteBook(postData)
                             "/saveBookProgress" -> BookController.saveBookProgress(postData)
                             "/addLocalBook" -> BookController.addLocalBook(session.parameters, files)
@@ -91,6 +92,7 @@ class HttpServer(port: Int) : NanoHTTPD("::", port) {
                         "/getBookSourceGroups" -> BookSourceController.enabledGroups
                         "/getBookshelf" -> BookController.bookshelf
                         "/getBookGroups" -> BookController.bookGroups
+                        "/getBookGroup" -> BookController.getBookGroup(parameters)
                         "/getExploreSources" -> ExploreController.sources
                         "/getExploreKinds" -> ExploreController.explore(parameters, true)
                         "/exploreBooks" -> ExploreController.explore(parameters, false)

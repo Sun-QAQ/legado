@@ -15,6 +15,7 @@ import io.legado.app.help.CacheManager
 import io.legado.app.help.book.BookHelp
 import io.legado.app.help.book.ContentProcessor
 import io.legado.app.help.book.isLocal
+import io.legado.app.help.book.isNotShelf
 import io.legado.app.help.config.AppConfig
 import io.legado.app.help.glide.ImageLoader
 import io.legado.app.lib.theme.ThemeStore
@@ -46,6 +47,28 @@ object BookController {
         get() = ReturnData().setData(
             BookshelfGroups.create(appDb.bookGroupDao.all, appDb.bookDao.all)
         )
+
+    fun getBookGroup(parameters: Map<String, List<String>>): ReturnData {
+        val book = parameters["url"]?.firstOrNull()?.let { appDb.bookDao.getBook(it) }
+            ?.takeUnless { it.isNotShelf }
+            ?: return ReturnData().setErrorMsg("书籍已不在书架，请重新加载")
+        return ReturnData().setData(BookshelfGroups.selection(appDb.bookGroupDao.all, book))
+    }
+
+    fun saveBookGroups(postData: String?): ReturnData = try {
+        var selection: BookshelfGroups.Selection? = null
+        appDb.runInTransaction {
+            val groups = appDb.bookGroupDao.all
+            val update = BookshelfGroups.parseUpdate(postData, groups)
+            val book = appDb.bookDao.getBook(update.bookUrl)?.takeUnless { it.isNotShelf }
+            requireNotNull(book) { "书籍已不在书架，请重新加载" }
+            appDb.bookDao.updateBookGroup(update.bookUrl, update.group)
+            selection = BookshelfGroups.selection(groups, book.copy(group = update.group))
+        }
+        ReturnData().setData(requireNotNull(selection))
+    } catch (e: Exception) {
+        ReturnData().setErrorMsg(e.localizedMessage ?: "保存分组失败")
+    }
 
     /**
      * 书架所有书籍
