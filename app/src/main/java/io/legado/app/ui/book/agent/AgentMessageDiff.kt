@@ -4,7 +4,7 @@ import androidx.recyclerview.widget.DiffUtil
 
 internal enum class AgentMessagePayload { TEXT, STEPS, TEXT_AND_STEPS }
 
-/** 对话仅在尾部追加/替换回复；保持既有消息的 ViewHolder 和阅读位置。 */
+/** 用稳定 ID 跟踪编辑、删除和流式更新，兼容没有 ID 的旧调用。 */
 internal class AgentMessageDiff(
     private val oldItems: List<AgentMessage>,
     private val newItems: List<AgentMessage>
@@ -12,9 +12,13 @@ internal class AgentMessageDiff(
     override fun getOldListSize() = oldItems.size
     override fun getNewListSize() = newItems.size
 
-    override fun areItemsTheSame(oldItemPosition: Int, newItemPosition: Int): Boolean =
-        oldItemPosition == newItemPosition &&
-            oldItems[oldItemPosition].isUser == newItems[newItemPosition].isUser
+    override fun areItemsTheSame(oldItemPosition: Int, newItemPosition: Int): Boolean {
+        val old = oldItems[oldItemPosition]
+        val new = newItems[newItemPosition]
+        return old.isUser == new.isUser && if (old.id != null && new.id != null) {
+            old.id == new.id
+        } else oldItemPosition == newItemPosition
+    }
 
     override fun areContentsTheSame(oldItemPosition: Int, newItemPosition: Int): Boolean =
         oldItems[oldItemPosition] == newItems[newItemPosition]

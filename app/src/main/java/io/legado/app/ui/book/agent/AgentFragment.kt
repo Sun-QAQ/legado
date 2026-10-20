@@ -16,6 +16,7 @@ import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updateLayoutParams
+import androidx.appcompat.widget.PopupMenu
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
@@ -102,6 +103,26 @@ class AgentFragment() : BaseFragment(R.layout.fragment_agent), MainFragmentInter
         }
         override fun openGeneratedImage(path: String) {
             showDialogFragment(PhotoDialog(path))
+        }
+        override fun onMessageLongClick(message: AgentMessage, anchor: View) {
+            val id = message.id ?: return
+            if (!viewModel.canModifyMessages()) {
+                toastOnUi(R.string.agent_message_busy)
+                return
+            }
+            PopupMenu(requireContext(), anchor).apply {
+                menu.add(0, R.id.menu_edit, 0, R.string.agent_message_edit)
+                menu.add(0, R.id.menu_del, 1, R.string.delete)
+                setOnMenuItemClickListener { item ->
+                    when (item.itemId) {
+                        R.id.menu_edit -> showDialogFragment(AgentMessageEditDialog(id))
+                        R.id.menu_del -> if (!viewModel.deleteMessage(id) && viewModel.canModifyMessages()) {
+                            toastOnUi(R.string.agent_message_missing)
+                        }
+                    }
+                    true
+                }
+            }.show()
         }
     }) }
 

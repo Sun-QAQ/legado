@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="agent_message_edit">Edit message</string>
+    <string name="agent_message_content">Message content</string>
+    <string name="agent_message_empty">Message content cannot be empty</string>
+    <string name="agent_message_missing">This message is no longer available</string>
+    <string name="agent_message_busy">Stop the current reply before editing or deleting messages</string>
+</resources>

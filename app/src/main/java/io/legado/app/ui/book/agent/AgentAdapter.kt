@@ -57,7 +57,7 @@ class AgentAdapter(
 ) : RecyclerView.Adapter<ItemViewHolder>() {
 
     private val items = arrayListOf<AgentMessage>()
-    private val expandedSteps = HashSet<Int>()
+    private val expandedSteps = HashSet<String>()
     private var renderScope: CoroutineScope? = null
     private val renderJobs = mutableMapOf<TextView, Job>()
     private val pendingTexts = mutableMapOf<TextView, String>()
@@ -162,7 +162,7 @@ class AgentAdapter(
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ItemViewHolder {
         val inflater = LayoutInflater.from(parent.context)
-        return when (viewType) {
+        val holder = when (viewType) {
             TYPE_USER -> ItemViewHolder(
                 ItemAgentMessageBinding.inflate(inflater, parent, false)
             )
@@ -172,6 +172,25 @@ class AgentAdapter(
             )
             else -> throw IllegalArgumentException("Unknown view type: $viewType")
         }
+        holder.itemView.setOnLongClickListener { showMessageActions(holder, it) }
+        holder.itemView.findViewById<View>(R.id.tv_message).setOnLongClickListener { showMessageActions(holder, it) }
+        if (holder.binding is ItemAgentReplyBinding) {
+            val binding = holder.binding
+            listOf(binding.llStepsRoot, binding.tvStepsHeader, binding.llBookResult,
+                binding.tvResultTitle, binding.llSourceRepositoryResult, binding.tvSourceRepositoryTitle,
+                binding.llGeneratedImages).forEach { view ->
+                view.setOnLongClickListener { showMessageActions(holder, it) }
+            }
+        }
+        return holder
+    }
+
+    private fun showMessageActions(holder: ItemViewHolder, anchor: View): Boolean {
+        val position = holder.bindingAdapterPosition
+        val message = items.getOrNull(position) ?: return false
+        if (message.streaming || message.placeholder) return false
+        callBack.onMessageLongClick(message, anchor)
+        return true
     }
 
     override fun getItemCount(): Int = items.size
@@ -207,6 +226,7 @@ class AgentAdapter(
                     LayoutInflater.from(context), viewBinding.llAttachments, false
                 )
                 attachmentBinding.tvName.text = attachment.name
+                attachmentBinding.root.setOnLongClickListener { showMessageActions(holder, it) }
                 attachmentBinding.btnRemove.visibility = View.GONE
                 if (attachment.mimeType.startsWith("image/")) {
                     imageRequestManager.load(File(attachment.path))
@@ -237,7 +257,7 @@ class AgentAdapter(
                         item.books.size,
                         item.books.size
                     )
-                val bookAdapter = BookListAdapter(context, callBack)
+                val bookAdapter = BookListAdapter(context, callBack) { showMessageActions(holder, it) }
                 bookAdapter.setItems(item.books)
                 viewBinding.rvBooks.layoutManager = WrapContentLinearLayoutManager(context)
                 viewBinding.rvBooks.adapter = bookAdapter
@@ -250,7 +270,7 @@ class AgentAdapter(
                     R.string.agent_source_repository_count,
                     item.repositorySources.size
                 )
-                val sourceAdapter = SourceListAdapter(context, callBack)
+                val sourceAdapter = SourceListAdapter(context, callBack) { showMessageActions(holder, it) }
                 sourceAdapter.setItems(item.repositorySources)
                 viewBinding.rvSourceRepository.layoutManager =
                     WrapContentLinearLayoutManager(context)
@@ -303,16 +323,18 @@ class AgentAdapter(
     ) {
         bindStepsHeader(viewBinding, item)
         if (item.steps.isEmpty()) return
-        val expanded = expandedSteps.contains(position)
+        val key = item.id ?: "position:$position"
+        val expanded = expandedSteps.contains(key)
         viewBinding.llSteps.visibility = if (expanded) View.VISIBLE else View.GONE
         viewBinding.ivStepsArrow.setImageResource(
             if (expanded) R.drawable.ic_expand_less else R.drawable.ic_expand_more
         )
         viewBinding.tvStepsHeader.setOnClickListener {
-            if (!expandedSteps.add(position)) {
-                expandedSteps.remove(position)
+            if (!expandedSteps.add(key)) {
+                expandedSteps.remove(key)
             }
-            notifyItemChanged(position)
+            val current = if (item.id != null) items.indexOfFirst { it.id == item.id } else position
+            if (current in items.indices) notifyItemChanged(current)
         }
         if (!expanded) return
         viewBinding.llSteps.removeAllViews()
@@ -369,7 +391,8 @@ class AgentAdapter(
 
     class BookListAdapter(
         private val context: Context,
-        private val callBack: CallBack
+        private val callBack: CallBack,
+        private val onMessageLongClick: ((View) -> Boolean)? = null
     ) : RecyclerView.Adapter<ItemViewHolder>() {
 
         private val items = arrayListOf<SearchBook>()
@@ -391,6 +414,7 @@ class AgentAdapter(
         override fun onBindViewHolder(holder: ItemViewHolder, position: Int) {
             val item = items[position]
             val binding = ItemSearchBinding.bind(holder.itemView)
+            binding.root.setOnLongClickListener { onMessageLongClick?.invoke(it) ?: false }
             binding.tvName.text = item.name
             binding.tvAuthor.text = context.getString(R.string.author_show, item.author)
             binding.tvLasted.text =
@@ -426,6 +450,7 @@ class AgentAdapter(
                 adjustViewBounds = true
                 contentDescription = generated.prompt
                 setOnClickListener { callBack.openGeneratedImage(generated.path) }
+                setOnLongClickListener { binding.root.performLongClick() }
             }
             imageRequestManager.load(File(generated.path))
                 .error(R.drawable.image_loading_error)
@@ -436,7 +461,8 @@ class AgentAdapter(
 
     class SourceListAdapter(
         private val context: Context,
-        private val callBack: CallBack
+        private val callBack: CallBack,
+        private val onMessageLongClick: ((View) -> Boolean)? = null
     ) : RecyclerView.Adapter<ItemViewHolder>() {
 
         private val items = arrayListOf<SourceRepositoryItem>()
@@ -462,6 +488,7 @@ class AgentAdapter(
         override fun onBindViewHolder(holder: ItemViewHolder, position: Int) {
             val item = items[position]
             val binding = ItemAgentSourceRepositoryBinding.bind(holder.itemView)
+            binding.root.setOnLongClickListener { onMessageLongClick?.invoke(it) ?: false }
             binding.tvName.text = item.name
             binding.tvSourceUrl.text = item.sourceUrl.ifBlank {
                 context.getString(R.string.agent_source_repository_no_url)
@@ -488,6 +515,7 @@ class AgentAdapter(
         fun onLoadMore()
         fun importBookSource(source: SourceRepositoryItem)
         fun openGeneratedImage(path: String)
+        fun onMessageLongClick(message: AgentMessage, anchor: View) = Unit
     }
 
     /**

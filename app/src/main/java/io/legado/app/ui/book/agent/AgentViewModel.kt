@@ -65,7 +65,9 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import java.util.UUID
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicLong
 import kotlin.coroutines.coroutineContext
 import kotlin.math.min
 import kotlin.math.max
@@ -167,6 +169,8 @@ class AgentViewModel @JvmOverloads constructor(
 
     private val history = arrayListOf<AgentChatTurn>()
     private val persistenceMutex = Mutex()
+    private val saveSequence = AtomicLong()
+    private val latestSaves = ConcurrentHashMap<String, Long>()
     private var conversationHistoryEnabled = false
     private var conversationHistoryStarted = false
     private var conversationCreatedAt = 0L
@@ -426,6 +430,10 @@ class AgentViewModel @JvmOverloads constructor(
                     }
                 )
             }
+        val linked = AgentConversationEditor.linkLegacy(_messages.value, history)
+        _messages.value = linked.messages
+        history.clear()
+        history.addAll(linked.turns)
         if (conversation.supplierId > 0) {
             supplierSelection.select(conversation.supplierId)
             selectedSupplierId = conversation.supplierId
@@ -446,10 +454,17 @@ class AgentViewModel @JvmOverloads constructor(
 
     private fun scheduleConversationSave() {
         if (!conversationHistoryEnabled) return
-        val conversation = currentConversationSnapshot() ?: return
+        val conversation = currentConversationSnapshot()
+        val id = conversation?.id ?: _currentConversationId.value ?: return
+        val sequence = saveSequence.incrementAndGet()
+        latestSaves[id] = sequence
         viewModelScope.launch(Dispatchers.IO) {
             persistenceMutex.withLock {
-                appDb.aiConversationDao.insert(conversation)
+                if (latestSaves[id] != sequence) return@withLock
+                if (conversation == null) {
+                    appDb.aiConversationDao.delete(id)
+                    AgentImageStorage.deleteConversation(context, id)
+                } else appDb.aiConversationDao.insert(conversation)
             }
         }
     }
@@ -457,9 +472,11 @@ class AgentViewModel @JvmOverloads constructor(
     private suspend fun persistConversationNow() {
         if (!conversationHistoryEnabled) return
         val conversation = currentConversationSnapshot() ?: return
+        val sequence = saveSequence.incrementAndGet()
+        latestSaves[conversation.id] = sequence
         withContext(Dispatchers.IO) {
             persistenceMutex.withLock {
-                appDb.aiConversationDao.insert(conversation)
+                if (latestSaves[conversation.id] == sequence) appDb.aiConversationDao.insert(conversation)
             }
         }
     }
@@ -609,9 +626,10 @@ class AgentViewModel @JvmOverloads constructor(
     }
 
     private fun addUserMessage(text: String, attachments: List<AgentAttachment> = emptyList()) {
-        history.add(AgentChatTurn(ROLE_USER, text, attachments = attachments))
+        val id = UUID.randomUUID().toString()
+        history.add(AgentChatTurn(ROLE_USER, text, attachments = attachments, messageId = id))
         _messages.value = _messages.value.map { it.copy(canLoadMore = false) } +
-            AgentMessage(true, text, attachments = attachments)
+            AgentMessage(true, text, attachments = attachments, id = id)
         scheduleConversationSave()
     }
 
@@ -620,9 +638,42 @@ class AgentViewModel @JvmOverloads constructor(
         books: List<SearchBook> = emptyList(),
         canLoadMore: Boolean = false
     ) {
-        history.add(AgentChatTurn(ROLE_ASSISTANT, text))
-        _messages.value = _messages.value + AgentMessage(false, text, books, canLoadMore = canLoadMore)
+        val id = UUID.randomUUID().toString()
+        history.add(AgentChatTurn(ROLE_ASSISTANT, text, messageId = id))
+        _messages.value = _messages.value + AgentMessage(false, text, books, canLoadMore = canLoadMore, id = id)
         scheduleConversationSave()
+    }
+
+    internal fun canModifyMessages(): Boolean = !_waiting.value && requestTracker.job?.isActive != true
+
+    fun editMessage(id: String, text: String): Boolean {
+        if (!canModifyMessages()) {
+            context.toastOnUi(R.string.agent_message_busy)
+            return false
+        }
+        val result = AgentConversationEditor.edit(_messages.value, history, id, text) ?: return false
+        applyMessageChange(result)
+        return true
+    }
+
+    fun deleteMessage(id: String): Boolean {
+        if (!canModifyMessages()) {
+            context.toastOnUi(R.string.agent_message_busy)
+            return false
+        }
+        val result = AgentConversationEditor.delete(_messages.value, history, id) ?: return false
+        applyMessageChange(result)
+        return true
+    }
+
+    private fun applyMessageChange(result: AgentConversationEditor.Conversation) {
+        history.clear()
+        history.addAll(result.turns)
+        canLoadMoreSearch = false
+        _messages.value = result.messages.map { if (it.canLoadMore) it.copy(canLoadMore = false) else it }
+        // 空会话也必须删除已有快照，防止重开聊天后被删消息重新出现。
+        scheduleConversationSave()
+        if (_messages.value.isEmpty()) resetConversationState()
     }
 
     private fun startStep(title: String, detail: String? = null): String {
@@ -729,7 +780,7 @@ class AgentViewModel @JvmOverloads constructor(
     }
 
     private fun beginLiveReply() {
-        liveReply = AgentMessage(false, "", streaming = true)
+        liveReply = AgentMessage(false, "", streaming = true, id = UUID.randomUUID().toString())
         emitLive()
     }
 
@@ -746,7 +797,7 @@ class AgentViewModel @JvmOverloads constructor(
         reasoningContent: String? = null
     ) {
         val reply = liveReply ?: return
-        history.add(AgentChatTurn(ROLE_ASSISTANT, text, reasoningContent = reasoningContent))
+        history.add(AgentChatTurn(ROLE_ASSISTANT, text, reasoningContent = reasoningContent, messageId = reply.id))
         _messages.value = _messages.value.filterNot { it.streaming } +
             reply.copy(
                 text = text,
@@ -773,7 +824,7 @@ class AgentViewModel @JvmOverloads constructor(
         steps: List<AgentStep> = activeSteps.toList()
     ) {
         _messages.value = _messages.value.filterNot { it.placeholder } +
-            AgentMessage(false, text, books, steps, canLoadMore = canLoadMore)
+            AgentMessage(false, text, books, steps, canLoadMore = canLoadMore, id = UUID.randomUUID().toString())
         activeSteps.clear()
         stepStartTimes.clear()
         scheduleConversationSave()
@@ -878,11 +929,11 @@ class AgentViewModel @JvmOverloads constructor(
                     //书源创建尚未完成时，若模型中途停下解释而不继续调用工具，则注入继续提示强制其继续
                     if (inSourceCreationFlow && !hasSavedSource && round < maxRounds() - 1) {
                         if (content.isNotBlank()) {
-                            history.add(AgentChatTurn(ROLE_ASSISTANT, content, reasoningContent = reasoningContent))
+                            history.add(AgentChatTurn(ROLE_ASSISTANT, content, reasoningContent = reasoningContent, messageId = liveReply?.id))
                         }
                         liveReply = liveReply?.copy(text = "")
                         _streamingText.value = null
-                        history.add(AgentChatTurn(ROLE_USER, getString(R.string.agent_source_continue), internalPrompt = true))
+                        history.add(AgentChatTurn(ROLE_USER, getString(R.string.agent_source_continue), internalPrompt = true, messageId = liveReply?.id))
                         round++
                         continue
                     }
@@ -907,7 +958,8 @@ class AgentViewModel @JvmOverloads constructor(
                         ROLE_ASSISTANT,
                         content,
                         toolCalls = message.get("tool_calls"),
-                        reasoningContent = reasoningContent
+                        reasoningContent = reasoningContent,
+                        messageId = liveReply?.id
                     )
                 )
                 for (call: JsonElement in toolCalls.asJsonArray) {
@@ -927,7 +979,8 @@ class AgentViewModel @JvmOverloads constructor(
                             ROLE_TOOL,
                             result.text,
                             toolCallId,
-                            readingContext = result.readingContext
+                            readingContext = result.readingContext,
+                            messageId = liveReply?.id
                         )
                     )
                 }

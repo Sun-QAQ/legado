@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="agent_message_edit">修改消息</string>
+    <string name="agent_message_content">消息内容</string>
+    <string name="agent_message_empty">消息内容不能为空</string>
+    <string name="agent_message_missing">该消息已不存在</string>
+    <string name="agent_message_busy">请先停止当前回复，再修改或删除消息</string>
+</resources>

@@ -15,5 +15,6 @@ data class AgentMessage(
     val streaming: Boolean = false,
     val repositorySources: List<SourceRepositoryItem> = emptyList(),
     val generatedImages: List<AgentGeneratedImage> = emptyList(),
-    val attachments: List<AgentAttachment> = emptyList()
+    val attachments: List<AgentAttachment> = emptyList(),
+    val id: String? = null
 )

@@ -12,7 +12,8 @@ data class AgentChatTurn(
     val reasoningContent: String? = null,
     val attachments: List<AgentAttachment>? = null,
     val readingContext: ChapterContext? = null,
-    val internalPrompt: Boolean? = null
+    val internalPrompt: Boolean? = null,
+    val messageId: String? = null
 )
 
 internal object AgentConversationCodec {

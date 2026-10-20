@@ -8,6 +8,12 @@ import org.junit.Test
 
 class AgentMessageDiffTest {
     @Test
+    fun `删除中间消息不会把后续重复文字当成同一条消息重绑`() {
+        val messages = listOf(AgentMessage(true, "相同", id = "1"), AgentMessage(true, "相同", id = "2"), AgentMessage(text = "回复", id = "3"))
+        assertEquals(listOf("remove:1:1"), events(messages, listOf(messages[0], messages[2])))
+        assertEquals(listOf("change:1:1:null"), events(messages, listOf(messages[0], messages[1].copy(text = "修改"), messages[2])))
+    }
+    @Test
     fun `追加回复不会重新绑定已有历史消息`() {
         val history = listOf(AgentMessage(true, "问题"), AgentMessage(text = "历史回复"))
         val events = events(history, history + AgentMessage(streaming = true))
