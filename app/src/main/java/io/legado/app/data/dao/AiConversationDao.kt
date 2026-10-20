@@ -59,7 +59,8 @@ interface AiConversationDao {
         val output = ByteArrayOutputStream()
         var offset = 1 // SQLite substr 从 1 开始。
         while (true) {
-            val chunk = checkNotNull(chunkAt(offset)) { "会话正文读取失败" }
+            // 同一事务内已确认行存在；部分旧版驱动把空 BLOB 返回为 null。
+            val chunk = chunkAt(offset) ?: break
             output.write(chunk)
             if (chunk.size < TEXT_CHUNK_BYTES) break
             offset += chunk.size
