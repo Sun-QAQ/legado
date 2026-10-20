@@ -2,9 +2,17 @@ package io.legado.app.ui.book.agent
 
 import com.google.gson.JsonParser
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Test
 
 class AgentConversationCodecTest {
+    @Test
+    fun `自定义名称清理空白并拒绝空名称和超长名称`() {
+        assertEquals("共读 三体", AgentConversationCodec.customTitle("  共读\n 三体  "))
+        assertNull(AgentConversationCodec.customTitle(" \n\t "))
+        assertEquals("名".repeat(80), AgentConversationCodec.customTitle("名".repeat(80)))
+        assertNull(AgentConversationCodec.customTitle("名".repeat(81)))
+    }
 
     @Test
     fun `会话标题压缩空白并限制长度`() {

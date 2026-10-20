@@ -44,15 +44,24 @@ class AgentConversationAdapter(
 
     override fun registerListener(holder: ItemViewHolder, binding: ItemAiConversationBinding) {
         binding.root.setOnClickListener {
-            getItem(holder.layoutPosition)?.let(callBack::open)
+            getItem(holder.bindingAdapterPosition)?.let(callBack::open)
+        }
+        binding.root.setOnLongClickListener {
+            val conversation = getItem(holder.bindingAdapterPosition) ?: return@setOnLongClickListener false
+            callBack.rename(conversation)
+            true
+        }
+        binding.ivRename.setOnClickListener {
+            getItem(holder.bindingAdapterPosition)?.let(callBack::rename)
         }
         binding.ivDelete.setOnClickListener {
-            getItem(holder.layoutPosition)?.let(callBack::delete)
+            getItem(holder.bindingAdapterPosition)?.let(callBack::delete)
         }
     }
 
     interface CallBack {
         fun open(conversation: AiConversation)
         fun delete(conversation: AiConversation)
+        fun rename(conversation: AiConversation)
     }
 }

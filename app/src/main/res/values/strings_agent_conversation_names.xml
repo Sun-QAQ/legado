@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="agent_rename_chat">Rename conversation</string>
+    <string name="agent_chat_name">Conversation name</string>
+    <string name="agent_chat_name_invalid">Enter a nonempty name of up to 80 characters</string>
+    <string name="agent_chat_rename_failed">Could not rename this conversation. It may have been deleted.</string>
+</resources>

@@ -340,6 +340,27 @@ class AgentViewModel @JvmOverloads constructor(
         }
     }
 
+    fun renameConversation(id: String, title: String, onResult: (Boolean) -> Unit = {}): Job {
+        return viewModelScope.launch {
+            val name = AgentConversationCodec.customTitle(title)
+            if (name == null) {
+                onResult(false)
+                return@launch
+            }
+            val renamed = try {
+                withContext(Dispatchers.IO) {
+                    persistenceMutex.withLock { appDb.aiConversationDao.rename(id, name) > 0 }
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                AppLog.put("修改AI对话名称失败", e)
+                false
+            }
+            onResult(renamed)
+        }
+    }
+
     fun deleteAllConversations() {
         viewModelScope.launch {
             stopActiveRequest()
@@ -464,7 +485,7 @@ class AgentViewModel @JvmOverloads constructor(
                 if (conversation == null) {
                     appDb.aiConversationDao.delete(id)
                     AgentImageStorage.deleteConversation(context, id)
-                } else appDb.aiConversationDao.insert(conversation)
+                } else appDb.aiConversationDao.saveSnapshot(conversation)
             }
         }
     }
@@ -476,7 +497,7 @@ class AgentViewModel @JvmOverloads constructor(
         latestSaves[conversation.id] = sequence
         withContext(Dispatchers.IO) {
             persistenceMutex.withLock {
-                if (latestSaves[conversation.id] == sequence) appDb.aiConversationDao.insert(conversation)
+                if (latestSaves[conversation.id] == sequence) appDb.aiConversationDao.saveSnapshot(conversation)
             }
         }
     }

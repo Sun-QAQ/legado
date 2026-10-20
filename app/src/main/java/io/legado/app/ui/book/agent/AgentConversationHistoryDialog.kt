@@ -1,8 +1,12 @@
 package io.legado.app.ui.book.agent
 
+import android.content.DialogInterface
 import android.os.Bundle
+import android.text.InputFilter
+import android.text.InputType
 import android.view.Gravity
 import android.view.View
+import androidx.appcompat.app.AlertDialog
 import androidx.core.view.isVisible
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
@@ -14,6 +18,7 @@ import io.legado.app.base.BaseDialogFragment
 import io.legado.app.constant.AppLog
 import io.legado.app.data.appDb
 import io.legado.app.data.entities.AiConversation
+import io.legado.app.databinding.DialogEditTextBinding
 import io.legado.app.databinding.DialogRecyclerViewBinding
 import io.legado.app.lib.dialogs.alert
 import io.legado.app.lib.theme.backgroundColor
@@ -33,6 +38,7 @@ class AgentConversationHistoryDialog : BaseDialogFragment(R.layout.dialog_recycl
     private val binding by viewBinding(DialogRecyclerViewBinding::bind)
     private val viewModel by viewModels<AgentViewModel>({ requireParentFragment() })
     private val adapter by lazy { AgentConversationAdapter(requireContext(), this) }
+    private var renameDialog: AlertDialog? = null
 
     override fun onStart() {
         super.onStart()
@@ -91,6 +97,47 @@ class AgentConversationHistoryDialog : BaseDialogFragment(R.layout.dialog_recycl
             noButton()
             yesButton { viewModel.deleteConversation(conversation.id) }
         }
+    }
+
+    override fun rename(conversation: AiConversation) {
+        renameDialog?.dismiss()
+        val input = DialogEditTextBinding.inflate(layoutInflater).apply {
+            editView.hint = getString(R.string.agent_chat_name)
+            editView.inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_CAP_SENTENCES
+            editView.setSingleLine(true)
+            editView.filters = arrayOf(InputFilter.LengthFilter(AgentConversationCodec.MAX_CUSTOM_TITLE_LENGTH))
+            editView.setText(conversation.title)
+            editView.setSelection(editView.text.length)
+        }
+        val dialog = alert(R.string.agent_rename_chat) {
+            customView { input.root }
+            cancelButton()
+            positiveButton(R.string.action_save)
+        }
+        renameDialog = dialog
+        dialog.setOnDismissListener { if (renameDialog === dialog) renameDialog = null }
+        dialog.getButton(DialogInterface.BUTTON_POSITIVE).setOnClickListener {
+            val name = AgentConversationCodec.customTitle(input.editView.text.toString())
+            if (name == null) {
+                input.editView.error = getString(R.string.agent_chat_name_invalid)
+                return@setOnClickListener
+            }
+            dialog.getButton(DialogInterface.BUTTON_POSITIVE).isEnabled = false
+            viewModel.renameConversation(conversation.id, name) { success ->
+                if (!dialog.isShowing) return@renameConversation
+                if (success) dialog.dismiss() else {
+                    dialog.getButton(DialogInterface.BUTTON_POSITIVE).isEnabled = true
+                    input.editView.error = getString(R.string.agent_chat_rename_failed)
+                }
+            }
+        }
+    }
+
+    override fun onDestroyView() {
+        renameDialog?.dismiss()
+        renameDialog = null
+        binding.recyclerView.adapter = null
+        super.onDestroyView()
     }
 
     private fun confirmDeleteAll() {

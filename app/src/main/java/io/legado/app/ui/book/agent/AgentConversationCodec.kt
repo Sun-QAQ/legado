@@ -17,6 +17,7 @@ data class AgentChatTurn(
 )
 
 internal object AgentConversationCodec {
+    const val MAX_CUSTOM_TITLE_LENGTH = 80
 
     private val messageListType = object : TypeToken<List<AgentMessage>>() {}.type
     private val turnListType = object : TypeToken<List<AgentChatTurn>>() {}.type
@@ -39,6 +40,9 @@ internal object AgentConversationCodec {
         val normalized = text.trim().replace(Regex("\\s+"), " ")
         return normalized.ifBlank { fallback }.take(MAX_TITLE_LENGTH)
     }
+
+    fun customTitle(text: String): String? = text.trim().replace(Regex("\\s+"), " ")
+        .takeIf { it.isNotBlank() && it.length <= MAX_CUSTOM_TITLE_LENGTH }
 
     private const val MAX_TITLE_LENGTH = 40
 }

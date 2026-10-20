@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="agent_rename_chat">修改对话名称</string>
+    <string name="agent_chat_name">对话名称</string>
+    <string name="agent_chat_name_invalid">名称不能为空，最多 80 个字符</string>
+    <string name="agent_chat_rename_failed">修改名称失败，该对话可能已被删除</string>
+</resources>
