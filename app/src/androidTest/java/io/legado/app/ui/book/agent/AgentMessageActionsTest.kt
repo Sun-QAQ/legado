@@ -5,6 +5,7 @@ import android.graphics.Bitmap
 import android.os.SystemClock
 import android.view.View
 import android.widget.EditText
+import android.widget.FrameLayout
 import androidx.appcompat.widget.Toolbar
 import androidx.core.view.drawToBitmap
 import androidx.fragment.app.Fragment
@@ -102,12 +103,15 @@ class AgentMessageActionsTest {
         lateinit var adapter: AgentAdapter
         lateinit var owner: Fragment
         lateinit var agent: AgentViewModel
+        lateinit var editor: AgentMessageEditDialog
         var selectedId: String? = null
         val messages = listOf(AgentMessage(true, "用户消息", id = "user"), AgentMessage(text = "原始回复", id = "reply"))
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
             scenario.onActivity { activity ->
-                owner = Fragment()
-                activity.supportFragmentManager.beginTransaction().add(owner, "message-editor-owner").commitNow()
+                val container = FrameLayout(activity).apply { id = View.generateViewId() }
+                activity.setContentView(container)
+                owner = Fragment(R.layout.dialog_edit_text)
+                activity.supportFragmentManager.beginTransaction().add(container.id, owner, "message-editor-owner").commitNow()
                 agent = ViewModelProvider(owner)[AgentViewModel::class.java]
                 @Suppress("UNCHECKED_CAST")
                 val state = AgentViewModel::class.java.getDeclaredField("_messages").apply { isAccessible = true }
@@ -127,7 +131,7 @@ class AgentMessageActionsTest {
                 })
                 list.adapter = adapter
                 adapter.setItems(messages)
-                activity.setContentView(list)
+                container.addView(list)
             }
             try {
                 awaitMain { list.findViewHolderForAdapterPosition(1) != null }
@@ -142,19 +146,20 @@ class AgentMessageActionsTest {
                     selectedId = null
                     assertTrue(list.findViewHolderForAdapterPosition(0)!!.itemView.performLongClick())
                     assertEquals("reply", selectedId)
-                    AgentMessageEditDialog("reply").show(owner.childFragmentManager, "edit-message")
+                    editor = AgentMessageEditDialog("reply")
+                    editor.show(owner.childFragmentManager, "edit-message")
                     owner.childFragmentManager.executePendingTransactions()
                 }
-                awaitMain { owner.childFragmentManager.findFragmentByTag("edit-message")?.view?.width?.let { it > 0 } == true }
+                // 通用弹窗基类先执行 remove，标签可能被重置；直接验证实际弹窗实例。
+                awaitMain { editor.view?.width?.let { it > 0 } == true && editor.dialog?.isShowing == true }
                 instrumentation.runOnMainSync {
-                    val dialog = owner.childFragmentManager.findFragmentByTag("edit-message") as AgentMessageEditDialog
-                    val text = dialog.requireView().findViewById<EditText>(R.id.et_message)
+                    val text = editor.requireView().findViewById<EditText>(R.id.et_message)
                     assertEquals("原始回复", text.text.toString())
                     text.setText("**修改后的回复**\n\n第二段内容")
                     File(instrumentation.targetContext.cacheDir, "agent_message_edit_preview.png").outputStream().use {
-                        dialog.requireView().drawToBitmap().compress(Bitmap.CompressFormat.PNG, 100, it)
+                        editor.requireView().drawToBitmap().compress(Bitmap.CompressFormat.PNG, 100, it)
                     }
-                    dialog.requireView().findViewById<Toolbar>(R.id.tool_bar).menu.performIdentifierAction(R.id.menu_save, 0)
+                    editor.requireView().findViewById<Toolbar>(R.id.tool_bar).menu.performIdentifierAction(R.id.menu_save, 0)
                     assertEquals("**修改后的回复**\n\n第二段内容", agent.messages.value.single().text)
                     adapter.setItems(agent.messages.value)
                 }
