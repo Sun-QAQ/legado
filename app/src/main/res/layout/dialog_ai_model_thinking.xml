@@ -1,74 +1,103 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:orientation="vertical">
+    android:fillViewport="true">
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
 
-    <androidx.appcompat.widget.Toolbar
-        android:id="@+id/tool_bar"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        app:title="@string/ai_model_thinking"
-        app:titleTextAppearance="@style/ToolbarTitle" />
+        <androidx.appcompat.widget.Toolbar
+            android:id="@+id/tool_bar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:title="@string/ai_model_thinking"
+            app:titleTextAppearance="@style/ToolbarTitle" />
 
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:paddingStart="16dp"
-        android:paddingEnd="16dp"
-        android:text="@string/ai_thinking_mode"
-        android:textColor="@color/secondaryText" />
-    <io.legado.app.lib.theme.view.ThemeEditText
-        android:id="@+id/tv_mode"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="16dp"
-        android:layout_marginEnd="16dp"
-        android:focusable="false"
-        android:cursorVisible="false"
-        android:inputType="none" />
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            android:text="@string/ai_thinking_mode"
+            android:textColor="@color/secondaryText" />
+        <io.legado.app.lib.theme.view.ThemeEditText
+            android:id="@+id/tv_mode"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:layout_marginEnd="16dp"
+            android:focusable="false"
+            android:cursorVisible="false"
+            android:inputType="none" />
 
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:paddingStart="16dp"
-        android:paddingEnd="16dp"
-        android:text="@string/ai_thinking_effort"
-        android:textColor="@color/secondaryText" />
-    <io.legado.app.lib.theme.view.ThemeEditText
-        android:id="@+id/tv_effort"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="16dp"
-        android:layout_marginEnd="16dp"
-        android:focusable="false"
-        android:cursorVisible="false"
-        android:inputType="none" />
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            android:text="@string/ai_thinking_effort"
+            android:textColor="@color/secondaryText" />
+        <io.legado.app.lib.theme.view.ThemeEditText
+            android:id="@+id/tv_effort"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:layout_marginEnd="16dp"
+            android:focusable="false"
+            android:cursorVisible="false"
+            android:inputType="none" />
 
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:paddingStart="16dp"
-        android:paddingEnd="16dp"
-        android:text="@string/ai_thinking_format"
-        android:textColor="@color/secondaryText" />
-    <io.legado.app.lib.theme.view.ThemeEditText
-        android:id="@+id/tv_format"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="16dp"
-        android:layout_marginEnd="16dp"
-        android:focusable="false"
-        android:cursorVisible="false"
-        android:inputType="none" />
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            android:text="@string/ai_thinking_format"
+            android:textColor="@color/secondaryText" />
+        <io.legado.app.lib.theme.view.ThemeEditText
+            android:id="@+id/tv_format"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:layout_marginEnd="16dp"
+            android:focusable="false"
+            android:cursorVisible="false"
+            android:inputType="none" />
 
-    <TextView
-        android:id="@+id/tv_hint"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:padding="16dp"
-        android:text="@string/ai_thinking_hint"
-        android:textSize="12sp"
-        android:textColor="@color/secondaryText" />
-</LinearLayout>
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            android:text="@string/ai_context_window"
+            android:textColor="@color/secondaryText" />
+        <io.legado.app.lib.theme.view.ThemeEditText
+            android:id="@+id/et_context_window"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:layout_marginEnd="16dp"
+            android:inputType="number"
+            android:maxLength="7"
+            android:singleLine="true" />
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            android:text="@string/ai_context_window_hint"
+            android:textSize="12sp"
+            android:textColor="@color/secondaryText" />
+        <TextView
+            android:id="@+id/tv_hint"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:padding="16dp"
+            android:text="@string/ai_thinking_hint"
+            android:textSize="12sp"
+            android:textColor="@color/secondaryText" />
+    </LinearLayout>
+</ScrollView>

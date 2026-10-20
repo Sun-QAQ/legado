@@ -12,8 +12,12 @@ data class AgentChatTurn(
     val reasoningContent: String? = null,
     val attachments: List<AgentAttachment>? = null,
     val readingContext: ChapterContext? = null,
-    val internalPrompt: Boolean? = null
+    val internalPrompt: Boolean? = null,
+    val historySummary: AgentHistorySummary? = null
 )
+
+/** 附在已压缩前缀的最后一条原始记录上，原始消息仍完整保存。 */
+data class AgentHistorySummary(val text: String, val sourceHash: String, val version: Int = 1)
 
 internal object AgentConversationCodec {
 

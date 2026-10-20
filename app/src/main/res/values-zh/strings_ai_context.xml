@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="ai_context_window">上下文容量（token）</string>
+    <string name="ai_context_window_hint">默认 32768，请填写模型实际支持的容量。接近容量上限时会自动整理较早的历史，并预留回复空间，原始聊天记录始终保留。</string>
+    <string name="ai_context_window_invalid">请输入 8192 至 2000000 之间的 token 容量</string>
+    <string name="agent_context_compacting">正在整理历史上下文</string>
+    <string name="agent_context_compacted">历史上下文已整理，原始记录已保留</string>
+</resources>
