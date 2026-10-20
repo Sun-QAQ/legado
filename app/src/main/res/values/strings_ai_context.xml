@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<resources>
-    <string name="ai_context_window">Context capacity (tokens)</string>
-    <string name="ai_context_window_hint">Default: 1M (1048576 tokens). Set the capacity supported by this model. Earlier history is automatically summarized before it fills up, with space reserved for replies. Original messages are kept.</string>
-    <string name="ai_context_window_invalid">Enter a capacity from 8192 to 2000000 tokens</string>
-    <string name="agent_context_compacting">Organizing conversation history</string>
-    <string name="agent_context_compacted">History organized; original messages kept</string>
-</resources>

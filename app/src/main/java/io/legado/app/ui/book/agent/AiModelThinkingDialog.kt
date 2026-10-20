@@ -50,15 +50,10 @@ class AiModelThinkingDialog() : BaseDialogFragment(R.layout.dialog_ai_model_thin
         binding.toolBar.menu.findItem(R.id.menu_save).isEnabled = false
         binding.toolBar.setOnMenuItemClickListener {
             if (it.itemId == R.id.menu_save && ready) {
-                val contextWindow = binding.etContextWindow.text.toString().toIntOrNull()
-                if (contextWindow == null || contextWindow !in 8192..2000000) {
-                    binding.etContextWindow.error = getString(R.string.ai_context_window_invalid)
-                    return@setOnMenuItemClickListener true
-                }
                 binding.toolBar.menu.findItem(R.id.menu_save).isEnabled = false
                 viewModel.saveModelThinking(
                     requireArguments().getLong("id"), model,
-                    AiModelThinking(modes[modeIndex], efforts[effortIndex], formats[formatIndex], contextWindow),
+                    AiModelThinking(modes[modeIndex], efforts[effortIndex], formats[formatIndex]),
                     success = {
                         toastOnUi(R.string.action_save)
                         dismissAllowingStateLoss()
@@ -94,7 +89,6 @@ class AiModelThinkingDialog() : BaseDialogFragment(R.layout.dialog_ai_model_thin
             modeIndex = modes.indexOf(config.mode).coerceAtLeast(0)
             effortIndex = efforts.indexOf(config.effort).coerceAtLeast(0)
             formatIndex = formats.indexOf(config.format).coerceAtLeast(0)
-            binding.etContextWindow.setText(savedInstanceState?.getString("contextWindow") ?: config.contextWindow().toString())
             savedInstanceState?.let {
                 modeIndex = it.getInt("modeIndex", modeIndex).coerceIn(modes.indices)
                 effortIndex = it.getInt("effortIndex", effortIndex).coerceIn(efforts.indices)
@@ -128,6 +122,5 @@ class AiModelThinkingDialog() : BaseDialogFragment(R.layout.dialog_ai_model_thin
         outState.putInt("modeIndex", modeIndex)
         outState.putInt("effortIndex", effortIndex)
         outState.putInt("formatIndex", formatIndex)
-        outState.putString("contextWindow", binding.etContextWindow.text.toString())
     }
 }
