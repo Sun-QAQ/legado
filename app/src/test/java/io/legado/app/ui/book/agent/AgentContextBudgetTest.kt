@@ -34,8 +34,9 @@ class AgentContextBudgetTest {
 
     @Test
     fun `模型容量默认兼容旧数据且不改变API思考参数`() {
-        assertEquals(32768, AiModelThinking().contextWindow())
-        assertEquals(32768, AiModelThinking(contextWindowTokens = 0).contextWindow())
+        assertEquals(1048576, AiModelThinking().contextWindow())
+        assertEquals(1048576, AiModelThinking(contextWindowTokens = 0).contextWindow())
+        assertEquals(32768, AiModelThinking(contextWindowTokens = 32768).contextWindow())
         assertEquals(131072, AiModelThinking(contextWindowTokens = 131072).contextWindow())
         val body = JsonObject()
         AiModelThinking(contextWindowTokens = 131072).applyTo(body, "https://example.com", "model")

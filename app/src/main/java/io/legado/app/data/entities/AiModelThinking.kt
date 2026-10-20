@@ -10,9 +10,9 @@ data class AiModelThinking(
     val effort: String = "",
     val format: String = "auto",
     // 仅供客户端上下文管理使用，不作为 API 参数发送；兼容旧 JSON 中缺失或为 0 的值。
-    val contextWindowTokens: Int = 32768
+    val contextWindowTokens: Int = 1048576
 ) {
-    fun contextWindow(): Int = contextWindowTokens.takeIf { it in 8192..2000000 } ?: 32768
+    fun contextWindow(): Int = contextWindowTokens.takeIf { it in 8192..2000000 } ?: 1048576
 
     fun applyTo(body: JsonObject, baseUrl: String, model: String) {
         if (mode == "default") return
