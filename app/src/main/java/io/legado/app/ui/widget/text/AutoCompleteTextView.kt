@@ -16,6 +16,7 @@ import io.legado.app.R
 import io.legado.app.lib.theme.accentColor
 import io.legado.app.utils.applyTint
 import io.legado.app.utils.gone
+import io.legado.app.utils.setAccentCursor
 import io.legado.app.utils.visible
 
 
@@ -28,9 +29,20 @@ class AutoCompleteTextView @JvmOverloads constructor(
     var delCallBack: ((value: String) -> Unit)? = null
 
     init {
-        applyTint(context.accentColor)
+        if (!isInEditMode) {
+            applyTint(context.accentColor)
+            setAccentCursor()
+        }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM) {
             isLocalePreferredLineHeightForMinimumUsed = false
+        }
+    }
+
+    override fun onAttachedToWindow() {
+        super.onAttachedToWindow()
+        if (!isInEditMode) {
+            applyTint(context.accentColor)
+            setAccentCursor()
         }
     }
 

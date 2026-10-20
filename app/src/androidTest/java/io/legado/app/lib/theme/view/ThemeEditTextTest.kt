@@ -5,12 +5,15 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.drawable.Drawable
 import android.os.Build
+import android.text.InputType
 import android.view.View
+import android.widget.EditText
 import androidx.test.core.app.ActivityScenario
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.SdkSuppress
 import androidx.test.platform.app.InstrumentationRegistry
 import io.legado.app.databinding.ActivityReplaceEditBinding
+import io.legado.app.databinding.DialogEditTextBinding
 import io.legado.app.lib.theme.ThemeStore
 import io.legado.app.ui.book.search.SearchActivity
 import io.legado.app.utils.setAccentCursor
@@ -24,6 +27,41 @@ import kotlin.math.abs
 @RunWith(AndroidJUnit4::class)
 @SdkSuppress(minSdkVersion = Build.VERSION_CODES.Q)
 class ThemeEditTextTest {
+    @Test
+    fun dialogAutoCompleteInputKeepsThemeCursorAndHandlesAfterReattachment() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val originalAccent = ThemeStore.accentColor(context)
+        try {
+            ActivityScenario.launch(SearchActivity::class.java).use { scenario ->
+                scenario.onActivity { activity ->
+                    val firstAccent = Color.rgb(0, 105, 92)
+                    ThemeStore.editTheme(activity).accentColor(firstAccent).apply()
+                    val binding = DialogEditTextBinding.inflate(activity.layoutInflater)
+                    // 与修改对话名称弹窗一致：创建后再配置输入类型、单行和初始选区。
+                    binding.editView.inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_CAP_SENTENCES
+                    binding.editView.setSingleLine(true)
+                    binding.editView.setText("修改对话名称")
+                    binding.editView.setSelection(binding.editView.length())
+                    activity.setContentView(binding.root)
+                    binding.editView.requestFocus()
+                    assertInputColor(binding.editView, firstAccent)
+                    binding.editView.setSelection(0, binding.editView.length())
+                    assertInputColor(binding.editView, firstAccent)
+
+                    activity.setContentView(View(activity))
+                    val nextAccent = Color.rgb(156, 39, 176)
+                    ThemeStore.editTheme(activity).accentColor(nextAccent).apply()
+                    activity.setContentView(binding.root)
+                    binding.editView.requestFocus()
+                    binding.editView.setSelection(binding.editView.length())
+                    assertInputColor(binding.editView, nextAccent)
+                }
+            }
+        } finally {
+            ThemeStore.editTheme(context).accentColor(originalAccent).apply()
+        }
+    }
+
     @Test
     fun replaceInputsKeepCursorAndAllHandlesTheSameColorAsFocusedBorder() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
@@ -81,7 +119,7 @@ class ThemeEditTextTest {
         }
     }
 
-    private fun assertInputColor(input: ThemeEditText, accent: Int) {
+    private fun assertInputColor(input: EditText, accent: Int) {
         assertDrawableColor(input.textCursorDrawable!!, accent)
         for (handle in listOf(input.textSelectHandle, input.textSelectHandleLeft, input.textSelectHandleRight)) {
             assertDrawableColor(handle!!, accent)
