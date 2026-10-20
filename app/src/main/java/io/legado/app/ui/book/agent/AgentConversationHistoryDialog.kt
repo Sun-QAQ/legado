@@ -17,7 +17,7 @@ import io.legado.app.R
 import io.legado.app.base.BaseDialogFragment
 import io.legado.app.constant.AppLog
 import io.legado.app.data.appDb
-import io.legado.app.data.entities.AiConversation
+import io.legado.app.data.entities.AiConversationSummary
 import io.legado.app.databinding.DialogEditTextBinding
 import io.legado.app.databinding.DialogRecyclerViewBinding
 import io.legado.app.lib.dialogs.alert
@@ -86,12 +86,12 @@ class AgentConversationHistoryDialog : BaseDialogFragment(R.layout.dialog_recycl
         }
     }
 
-    override fun open(conversation: AiConversation) {
+    override fun open(conversation: AiConversationSummary) {
         viewModel.openConversation(conversation.id)
         dismiss()
     }
 
-    override fun delete(conversation: AiConversation) {
+    override fun delete(conversation: AiConversationSummary) {
         alert(R.string.delete) {
             setMessage(getString(R.string.agent_delete_chat_confirm, conversation.title))
             noButton()
@@ -99,7 +99,7 @@ class AgentConversationHistoryDialog : BaseDialogFragment(R.layout.dialog_recycl
         }
     }
 
-    override fun rename(conversation: AiConversation) {
+    override fun rename(conversation: AiConversationSummary) {
         renameDialog?.dismiss()
         val input = DialogEditTextBinding.inflate(layoutInflater).apply {
             editView.hint = getString(R.string.agent_chat_name)

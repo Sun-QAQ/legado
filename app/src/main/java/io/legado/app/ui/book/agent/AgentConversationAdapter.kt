@@ -6,7 +6,7 @@ import android.view.ViewGroup
 import io.legado.app.base.adapter.ItemViewHolder
 import io.legado.app.base.adapter.RecyclerAdapter
 import io.legado.app.constant.AppConst
-import io.legado.app.data.entities.AiConversation
+import io.legado.app.data.entities.AiConversationSummary
 import io.legado.app.databinding.ItemAiConversationBinding
 import io.legado.app.lib.theme.accentColor
 import io.legado.app.lib.theme.primaryTextColor
@@ -14,7 +14,7 @@ import io.legado.app.lib.theme.primaryTextColor
 class AgentConversationAdapter(
     context: Context,
     private val callBack: CallBack
-) : RecyclerAdapter<AiConversation, ItemAiConversationBinding>(context) {
+) : RecyclerAdapter<AiConversationSummary, ItemAiConversationBinding>(context) {
 
     var currentConversationId: String? = null
         set(value) {
@@ -31,7 +31,7 @@ class AgentConversationAdapter(
     override fun convert(
         holder: ItemViewHolder,
         binding: ItemAiConversationBinding,
-        item: AiConversation,
+        item: AiConversationSummary,
         payloads: MutableList<Any>
     ) {
         val isCurrent = item.id == currentConversationId
@@ -60,8 +60,8 @@ class AgentConversationAdapter(
     }
 
     interface CallBack {
-        fun open(conversation: AiConversation)
-        fun delete(conversation: AiConversation)
-        fun rename(conversation: AiConversation)
+        fun open(conversation: AiConversationSummary)
+        fun delete(conversation: AiConversationSummary)
+        fun rename(conversation: AiConversationSummary)
     }
 }

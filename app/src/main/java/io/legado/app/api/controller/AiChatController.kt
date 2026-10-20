@@ -126,7 +126,7 @@ class AiChatController {
             "new" -> agent.newConversation().join()
             "open" -> {
                 val id = text("id")
-                check(withContext(Dispatchers.IO) { appDb.aiConversationDao.get(id) } != null) { "对话不存在" }
+                check(withContext(Dispatchers.IO) { appDb.aiConversationDao.exists(id) }) { "对话不存在" }
                 agent.openConversation(id)?.join()
             }
             "supplier" -> {
