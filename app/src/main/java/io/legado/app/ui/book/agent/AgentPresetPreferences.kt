@@ -22,13 +22,3 @@ internal object AgentPresetPreferences {
         return preset?.prompt.orEmpty()
     }
 }
-
-internal fun composeAgentSystemPrompt(
-    personaPrompt: String,
-    presetPrompt: String,
-    toolOverview: String
-): String = if (presetPrompt.isBlank()) {
-    personaPrompt + toolOverview
-} else {
-    listOf(presetPrompt, personaPrompt, toolOverview).joinToString("\n\n")
-}
