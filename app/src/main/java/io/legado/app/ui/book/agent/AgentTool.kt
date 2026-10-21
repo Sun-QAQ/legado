@@ -16,7 +16,9 @@ interface AgentToolContext {
 
     suspend fun addBookToShelf(bookUrl: String): String
 
-    suspend fun createBookSource(url: String): String
+    suspend fun createBookSource(url: String, task: String): String
+
+    suspend fun editBookSource(sourceUrl: String, task: String): String
 
     suspend fun fetchPage(url: String, method: String?, body: String?): String
 

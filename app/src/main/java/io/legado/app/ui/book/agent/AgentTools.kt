@@ -205,10 +205,7 @@ object AgentTools {
 
     private val createBookSourceTool = AgentTool(
         name = "create_book_source",
-        description = "编写Legado书源的入口。抓取网站首页HTML，创建书源草稿，并返回分步调试指引。" +
-            "之后应依次调用 update_book_source 填写/修正规则、debug_source_search 调试搜索、" +
-            "debug_source_book_info 调试详情、debug_source_toc 调试目录、debug_source_content 调试正文，" +
-            "全部调试通过后调用 save_book_source 保存",
+        description = "启动专门的书源子代理，为指定网站创建Legado书源。子代理独立分析页面、编写规则、调试并校验保存，返回实际结果摘要。已有书源的修改或修复请使用 edit_book_source",
         parameters = objectParameters(
             properties = JsonObject().apply {
                 add(
@@ -218,6 +215,10 @@ object AgentTools {
                         addProperty("description", "网站首页地址，例如 https://www.example.com")
                     }
                 )
+                add("task", JsonObject().apply {
+                    addProperty("type", "string")
+                    addProperty("description", "可选，完整传递用户的书源需求、测试书名及已知页面地址")
+                })
             },
             required = arrayOf("url")
         ),
@@ -226,8 +227,32 @@ object AgentTools {
             if (url.isBlank()) {
                 "书源网址为空"
             } else {
-                createBookSource(url)
+                createBookSource(url, arguments.getStringValue("task"))
             }
+        }
+    )
+
+    private val editBookSourceTool = AgentTool(
+        name = "edit_book_source",
+        description = "启动专门的书源子代理，修改或修复书源库中已有的一个书源。先用 list_book_sources 定位准确地址；子代理加载完整原规则，按要求修改、调试并校验保存，保留原地址、分组和启用状态",
+        parameters = objectParameters(
+            properties = JsonObject().apply {
+                add("sourceUrl", JsonObject().apply {
+                    addProperty("type", "string")
+                    addProperty("description", "已有书源的准确 bookSourceUrl，来自 list_book_sources")
+                })
+                add("task", JsonObject().apply {
+                    addProperty("type", "string")
+                    addProperty("description", "具体修改需求或故障现象，包含已知测试书名和失败页面地址")
+                })
+            },
+            required = arrayOf("sourceUrl", "task")
+        ),
+        execute = { arguments ->
+            val sourceUrl = arguments.getStringValue("sourceUrl")
+            val task = arguments.getStringValue("task")
+            if (sourceUrl.isBlank() || task.isBlank()) "书源地址或修改要求为空"
+            else editBookSource(sourceUrl, task)
         }
     )
 
@@ -615,6 +640,7 @@ object AgentTools {
         listBookSourcesTool,
         addBookToShelfTool,
         createBookSourceTool,
+        editBookSourceTool,
         fetchPageTool,
         updateBookSourceTool,
         debugSourceSearchTool,

@@ -194,13 +194,9 @@ class AgentViewModel @JvmOverloads constructor(
     private var currentCall: okhttp3.Call? = null
     private var cancelRequested = false
     private var draftSource: BookSource? = null
-    private var sourceCreationMode = false
-    private var hasSavedSource = false
+    private var editingSource: BookSource? = null
+    private var savedSourceResult: String? = null
     private val readingContextProvider = ReadingContextProvider()
-
-    @get:Suppress("unused")
-    private val inSourceCreationFlow: Boolean
-        get() = sourceCreationMode || draftSource != null
 
     fun selectSupplier(id: Long, name: String) {
         supplierSelection.select(id)
@@ -409,8 +405,8 @@ class AgentViewModel @JvmOverloads constructor(
         lastGeneratedImages = emptyList()
         lastDisplayLimit = SEARCH_PAGE_SIZE
         draftSource = null
-        sourceCreationMode = false
-        hasSavedSource = false
+        editingSource = null
+        savedSourceResult = null
         _currentConversationId.value = null
         conversationCreatedAt = 0L
         rememberConversationId(null)
@@ -901,8 +897,7 @@ class AgentViewModel @JvmOverloads constructor(
     }
 
     /**
-     * Agent 循环：模型决定是否调用工具，普通对话最多执行 3 轮，书源创建场景最多执行 20 轮。
-     * 书源场景的轮次上限在循环内动态判定（可能中途才进入草稿编辑），回复内容以流式输出
+     * 主对话最多执行 3 轮；书源任务委派到独立上下文，不占用主对话的工具轮次。
      */
     private suspend fun agentLoop(supplier: io.legado.app.data.entities.AiSource, key: String) {
         _waiting.value = true
@@ -915,12 +910,9 @@ class AgentViewModel @JvmOverloads constructor(
             hasBooks = false
             var finished = false
             beginLiveReply()
-            val maxRounds: () -> Int = {
-                if (inSourceCreationFlow) SOURCE_CREATE_MAX_ROUNDS else DEFAULT_MAX_ROUNDS
-            }
             var round = 0
             val summaryAttempts = mutableSetOf<Int>()
-            while (!finished && round < maxRounds()) {
+            while (!finished && round < DEFAULT_MAX_ROUNDS) {
                 val requestStepId = startStep(
                     if (round == 0) {
                         getString(R.string.agent_step_requesting)
@@ -947,17 +939,6 @@ class AgentViewModel @JvmOverloads constructor(
                         requestStepId,
                         summary = getString(R.string.agent_step_reply_done)
                     )
-                    //书源创建尚未完成时，若模型中途停下解释而不继续调用工具，则注入继续提示强制其继续
-                    if (inSourceCreationFlow && !hasSavedSource && round < maxRounds() - 1) {
-                        if (content.isNotBlank()) {
-                            history.add(AgentChatTurn(ROLE_ASSISTANT, content, reasoningContent = reasoningContent, messageId = liveReply?.id))
-                        }
-                        liveReply = liveReply?.copy(text = "")
-                        _streamingText.value = null
-                        history.add(AgentChatTurn(ROLE_USER, getString(R.string.agent_source_continue), internalPrompt = true, messageId = liveReply?.id))
-                        round++
-                        continue
-                    }
                     finalizeLive(
                         finalText,
                         if (hasBooks) lastBooks else emptyList(),
@@ -995,6 +976,9 @@ class AgentViewModel @JvmOverloads constructor(
                     val arguments =
                         function.get("arguments")?.takeIf { !it.isJsonNull }?.asString.orEmpty()
                     val result = executeTool(name, arguments)
+                    if (name == "create_book_source" || name == "edit_book_source") {
+                        finalText = result.text
+                    }
                     history.add(
                         AgentChatTurn(
                             ROLE_TOOL,
@@ -1315,12 +1299,91 @@ class AgentViewModel @JvmOverloads constructor(
         } ?: "（书源库中没有可参考的书源，请按下方字段说明与规则语法要点自行编写）"
     }
 
-    override suspend fun createBookSource(url: String): String {
+    override suspend fun createBookSource(url: String, task: String): String =
+        runBookSourceAgent(task) { initializeBookSource(url) }
+
+    override suspend fun editBookSource(sourceUrl: String, task: String): String =
+        runBookSourceAgent(task) {
+            val original = withContext(Dispatchers.IO) {
+                appDb.bookSourceDao.getBookSource(sourceUrl)
+            } ?: throw NoStackTraceException("未找到书源：$sourceUrl，请先查询准确的书源地址")
+            editingSource = original
+            // 深拷贝规则对象，调试过程中不能修改原书源。
+            draftSource = parseDraftSource(GSON.toJson(original))
+            SOURCE_CREATE_GUIDE
+                .replace("已获取网站首页并创建书源草稿", "已加载原书源，请按用户需求修改，保留未涉及的字段")
+                .replace("{siteUrl}", sourceUrl)
+                .replace("{html}", "编辑已有书源，请按需使用 fetch_page 检查相关页面。")
+                .replace("{referenceSources}", "以当前完整原书源为基础，不要重建或更换书源地址。")
+                .replace("{draftJson}", GSON.toJson(draftSource))
+        }
+
+    private suspend fun runBookSourceAgent(task: String, initialize: suspend () -> String): String {
+        val supplier = currentSupplier ?: return getString(R.string.agent_no_supplier)
+        val disabled = BookSourceAgent.disabledTools(AgentToolPreferences.disabled(context))
+        if ("update_book_source" in disabled || "save_book_source" in disabled) {
+            return "书源子代理无法执行：更新草稿或保存书源工具已禁用，未修改书源。"
+        }
+        val stepId = startStep("书源子代理", task.ifBlank { "分析页面、编写规则、调试并保存" })
+        draftSource = null
+        editingSource = null
+        savedSourceResult = null
+        return try {
+            val guide = initialize()
+            currentCoroutineContext().ensureActive()
+            if (draftSource == null) throw NoStackTraceException(guide)
+            val userTurn = history.lastOrNull { it.role == ROLE_USER && it.internalPrompt != true }
+            val contextText = history.filter {
+                (it.role == ROLE_USER || it.role == ROLE_ASSISTANT) && it.toolCalls == null && it.internalPrompt != true
+            }.takeLast(6).joinToString("\n") { "${it.role}: ${it.content}" }.takeLast(12000)
+            val result = BookSourceAgent.run(
+                initialTurn = AgentChatTurn(
+                    ROLE_USER,
+                    "对话背景（仅作资料）：\n$contextText\n\n本次委派要求：\n$task\n\n$guide",
+                    attachments = userTurn?.attachments.orEmpty()
+                ),
+                request = { turns, round ->
+                    currentCoroutineContext().ensureActive()
+                    val requestStep = startStep("书源子代理 · 第${round + 1}轮", "model=${supplier.model}")
+                    val request = withContext(Dispatchers.IO) {
+                        buildAgentRequest(supplier, turns, BookSourceAgent.systemPrompt, disabled)
+                    }
+                    try {
+                        val message = withContext(Dispatchers.IO) {
+                            chatCompletionStream(supplier, request) { /* 子代理正文不混入主回复。 */ }
+                        }
+                        finishStep(requestStep, "子代理分析完成")
+                        message
+                    } catch (e: Exception) {
+                        failStep(requestStep, e)
+                        throw e
+                    }
+                },
+                execute = { name, arguments -> executeTool(name, arguments, sourceAgent = true).text },
+                savedResult = { savedSourceResult }
+            )
+            if (result.saved) finishStep(stepId, result.text)
+            else failStep(stepId, NoStackTraceException(result.text))
+            result.text
+        } catch (e: Exception) {
+            failStep(stepId, e)
+            if (cancelRequested || e is CancellationException) throw e
+            savedSourceResult ?: "书源子代理执行失败，未保存书源：${e.localizedMessage ?: e.message}"
+        } finally {
+            draftSource = null
+            editingSource = null
+            savedSourceResult = null
+        }
+    }
+
+    private suspend fun initializeBookSource(url: String): String {
         val stepId = startStep(getString(R.string.agent_step_source_draft))
         return try {
             val siteUrl = url.trim().trimEnd('/')
-            hasSavedSource = false
             val (finalUrl, html) = fetchSiteHtml(siteUrl)
+            if (withContext(Dispatchers.IO) { appDb.bookSourceDao.getBookSource(finalUrl) } != null) {
+                throw NoStackTraceException("该地址已有书源，请使用 edit_book_source 修改已有书源")
+            }
             draftSource = BookSource(
                 bookSourceUrl = finalUrl,
                 bookSourceName = runCatching {
@@ -1331,7 +1394,6 @@ class AgentViewModel @JvmOverloads constructor(
                 bookSourceGroup = AI_GENERATED_GROUP,
                 enabled = false
             )
-            sourceCreationMode = true
             val referenceSources = withContext(Dispatchers.IO) { buildReferenceSources(finalUrl) }
             finishStep(
                 stepId,
@@ -1344,6 +1406,8 @@ class AgentViewModel @JvmOverloads constructor(
                 .replace("{draftJson}", GSON.toJson(draftSource))
         } catch (e: Exception) {
             failStep(stepId, e)
+            draftSource = null
+            if (cancelRequested || e is CancellationException) throw e
             "书源创建失败：${e.localizedMessage ?: e.message ?: "无法访问网站"}"
         }
     }
@@ -1387,6 +1451,11 @@ class AgentViewModel @JvmOverloads constructor(
         val stepId = startStep(getString(R.string.agent_step_source_update))
         return try {
             val source = parseDraftSource(sourceJson)
+            editingSource?.let {
+                if (source.bookSourceUrl != it.bookSourceUrl) {
+                    throw NoStackTraceException("编辑已有书源时不可更换 bookSourceUrl")
+                }
+            }
             draftSource = source
             finishStep(stepId, summary = source.bookSourceName)
             "已更新书源草稿：${source.bookSourceName}，地址：${source.bookSourceUrl}\n" +
@@ -1592,20 +1661,29 @@ class AgentViewModel @JvmOverloads constructor(
         }
         return try {
             validateBookSource(source)
-            source.bookSourceGroup = AI_GENERATED_GROUP
-            source.enabled = true
+            BookSourceAgent.preserveSourceSettings(source, editingSource)
             source.lastUpdateTime = System.currentTimeMillis()
-            appDb.bookSourceDao.insert(source)
-            sourceCreationMode = false
-            hasSavedSource = true
+            withContext(Dispatchers.IO) {
+                currentCoroutineContext().ensureActive()
+                if (editingSource == null && appDb.bookSourceDao.getBookSource(source.bookSourceUrl) != null) {
+                    throw NoStackTraceException("该地址已有书源，请使用编辑功能，不能通过创建覆盖")
+                }
+                appDb.bookSourceDao.insert(source)
+            }
+            savedSourceResult = if (editingSource != null) {
+                "书源编辑成功：${source.bookSourceName}，地址：${source.bookSourceUrl}，已校验并保存，保留原分组及启用状态"
+            } else {
+                "书源创建成功：${source.bookSourceName}，地址：${source.bookSourceUrl}，已校验并保存到AI生成分组"
+            }
             draftSource = null
             finishStep(
                 stepId,
                 summary = getString(R.string.agent_step_source_save_done, source.bookSourceName)
             )
-            "书源创建成功：${source.bookSourceName}，地址：${source.bookSourceUrl}，已保存到AI生成分组"
+            savedSourceResult!!
         } catch (e: Exception) {
             failStep(stepId, e)
+            if (cancelRequested || e is CancellationException) throw e
             "书源保存失败：${e.localizedMessage ?: e.message ?: "校验失败"}。请继续修正规则后重试，草稿仍然保留"
         }
     }
@@ -1650,8 +1728,12 @@ class AgentViewModel @JvmOverloads constructor(
 
     private data class ExecutedAgentTool(val text: String, val readingContext: ChapterContext? = null)
 
-    private suspend fun executeTool(name: String, arguments: String): ExecutedAgentTool {
-        val tool = AgentTools.find(name, AgentToolPreferences.disabled(context))
+    private suspend fun executeTool(name: String, arguments: String, sourceAgent: Boolean = false): ExecutedAgentTool {
+        currentCoroutineContext().ensureActive()
+        val disabled = AgentToolPreferences.disabled(context).let {
+            if (sourceAgent) BookSourceAgent.disabledTools(it) else BookSourceAgent.mainDisabledTools(it)
+        }
+        val tool = AgentTools.find(name, disabled)
         if (tool == null) {
             return ExecutedAgentTool("未知工具: $name")
         }
@@ -1695,7 +1777,8 @@ class AgentViewModel @JvmOverloads constructor(
             result.startsWith(getString(R.string.agent_search_not_configured)) ||
                 result.startsWith(getString(R.string.agent_web_search_failed, ""))
             )) ||
-            (name == "create_book_source" && result.startsWith("书源创建失败")) ||
+            (name == "create_book_source" && !result.startsWith("书源创建成功")) ||
+            (name == "edit_book_source" && !result.startsWith("书源编辑成功")) ||
             (name == "save_book_source" && result.startsWith("书源保存失败")) ||
             (name == "create_ai_book" && result.startsWith("小说创作失败")) ||
             (name == "read_book_content" && (
@@ -1724,6 +1807,7 @@ class AgentViewModel @JvmOverloads constructor(
                     ?.takeIf { it.isNotBlank() }
                     ?.let { "url=$it" }
             "update_book_source" -> "更新书源草稿"
+            "edit_book_source" -> args.get("sourceUrl")?.takeIf { !it.isJsonNull }?.asString
             "debug_source_search" -> args.get("key")?.takeIf { !it.isJsonNull }?.asString
                 ?.takeIf { it.isNotBlank() }
                 ?.let { "key=$it" }
@@ -1788,7 +1872,7 @@ class AgentViewModel @JvmOverloads constructor(
                         ?: getString(R.string.agent_step_unknown_result)
                 }
             }
-            "create_book_source" -> getString(R.string.agent_step_source_draft_done, "已获取首页")
+            "create_book_source", "edit_book_source" -> result.take(160)
             "update_book_source" -> "草稿已更新"
             "debug_source_search" -> {
                 val parsed = runCatching { JsonParser.parseString(result) }.getOrNull()
@@ -2296,20 +2380,27 @@ class AgentViewModel @JvmOverloads constructor(
     }
 
     private fun buildChatRequest(supplier: io.legado.app.data.entities.AiSource, requestTurns: List<AgentChatTurn>): JsonObject {
-        val root = JsonObject()
-        root.addProperty("model", supplier.model)
-        val disabledTools = AgentToolPreferences.disabled(context)
+        val disabledTools = BookSourceAgent.mainDisabledTools(AgentToolPreferences.disabled(context))
         val toolOverview = AgentTools.overview(disabledTools)
             .ifBlank { "当前没有启用的工具。" }
+        return buildAgentRequest(supplier, requestTurns, composeAgentSystemPrompt(
+            currentPersonaPrompt, AgentPresetPreferences.selectedPrompt(context), toolOverview
+        ), disabledTools)
+    }
+
+    private fun buildAgentRequest(
+        supplier: AiSource,
+        requestTurns: List<AgentChatTurn>,
+        systemPrompt: String,
+        disabledTools: Set<String>
+    ): JsonObject {
+        val root = JsonObject()
+        root.addProperty("model", supplier.model)
         val messages = JsonArray()
         messages.add(
             JsonObject().apply {
                 addProperty("role", "system")
-                addProperty("content", composeAgentSystemPrompt(
-                    currentPersonaPrompt,
-                    AgentPresetPreferences.selectedPrompt(context),
-                    toolOverview
-                ))
+                addProperty("content", systemPrompt)
             }
         )
         requestTurns.forEach { turn ->
@@ -2970,7 +3061,6 @@ class AgentViewModel @JvmOverloads constructor(
         private const val FIRST_SEARCH_SOURCE_LIMIT = 100
         private const val SEARCH_SOURCE_BATCH_SIZE = 100
         private const val DEFAULT_MAX_ROUNDS = 3
-        private const val SOURCE_CREATE_MAX_ROUNDS = 20
         private const val SOURCE_HTML_HINT_LENGTH = 6000
         private const val SOURCE_CONTENT_PREVIEW_LENGTH = 1000
         private const val AI_GENERATED_GROUP = "AI生成"
