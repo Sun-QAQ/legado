@@ -4,7 +4,6 @@ import android.app.Application
 import android.content.DialogInterface
 import android.os.Bundle
 import android.view.View
-import android.view.ViewGroup
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.lifecycleScope
@@ -23,6 +22,7 @@ import io.legado.app.lib.dialogs.alert
 import io.legado.app.lib.theme.backgroundColor
 import io.legado.app.model.ReadBook
 import io.legado.app.model.webBook.WebBook
+import io.legado.app.utils.applyDialogRoundedBackground
 import io.legado.app.utils.applyTint
 import io.legado.app.utils.sendToClip
 import io.legado.app.utils.setLayout
@@ -41,10 +41,12 @@ class ContentEditDialog : BaseDialogFragment(R.layout.dialog_content_edit) {
 
     override fun onStart() {
         super.onStart()
-        setLayout(1f, ViewGroup.LayoutParams.MATCH_PARENT)
+        dialog?.window?.setBackgroundDrawableResource(R.color.transparent)
+        setLayout(0.9f, 0.9f)
     }
 
     override fun onFragmentCreated(view: View, savedInstanceState: Bundle?) {
+        view.applyDialogRoundedBackground()
         binding.toolBar.setBackgroundColor(backgroundColor)
         binding.toolBar.title = ReadBook.curTextChapter?.title
         initMenu()
