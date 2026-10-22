@@ -42,16 +42,20 @@ Keep credentials, signing configuration, SDK paths, and build caches out of comm
 
 1. 检查改动并完成相关验证；只提交本次任务涉及的文件，使用简洁中文提交说明。
 2. 使用 JDK 17、Android SDK 36，从仓库根目录运行：
+
    ```powershell
    $env:GRADLE_USER_HOME = (Get-Location).Path
    .\gradlew.bat :app:assembleAppDebug --offline --console=plain
    ```
+
    本机 JDK、SDK 路径沿用本地配置，不写入版本控制；离线构建要求依赖已缓存。
 3. 通过 MuMuManager 的 `info -v all` 查询已启动实例及其 ADB 地址，连接对应设备。
 4. 从 `app/build/outputs/apk/app/debug/output-metadata.json` 获取本次 APK 文件名，执行：
+
    ```powershell
    adb -s <设备地址> install -r <APK路径>
    ```
+
    覆盖安装并保留应用数据，核验安装成功及 `io.legado.app.debug` 的版本信息。
 5. 汇报提交编号、构建和安装结果；失败时明确报告原因，不跳过失败步骤或声称成功。
 
