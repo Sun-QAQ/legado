@@ -9,6 +9,9 @@ build/
 /release
 /tmp
 /docs/
+# External source artifacts are local-only; never force-add them.
+/docs/book-sources/
+/book-sources/
 node_modules/
 /app/app
 /app/google
