@@ -1,27 +1,51 @@
-*.iml
-.gradle
-local.properties
-.DS_Store
-/build
-build/
-/captures
-.externalNativeBuild
-/release
-/tmp
-/docs/
-# External source artifacts are local-only; never force-add them.
-/docs/book-sources/
-/book-sources/
-node_modules/
-/app/app
-/app/google
-/app/gradle.properties
-package-lock.json
-.idea/
-# Kotlin 2.0
+# Android and Gradle build output
+.gradle/
 .kotlin/
-# Gradle user home build artifacts (GRADLE_USER_HOME points to project root)
+build/
+.externalNativeBuild/
+.cxx/
+/captures/
+/release/
+/app/app/
+/app/google/
+*.apk
+*.aab
+*.apks
+*.idsig
+
+# Machine-specific configuration and signing files
+local.properties
+/app/gradle.properties
+*.jks
+*.keystore
+# Shared test signing key used by the existing CI workflow
+!/.github/workflows/legado.jks
+.env
+.env.*
+!.env.example
+!.env.sample
+!.env.template
+
+# Editors and operating systems
+*.iml
+.idea/
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Local documents and external artifacts; never force-add them
+/docs/
+/book-sources/
+
+# Node dependencies (keep pnpm-lock.yaml tracked)
+node_modules/
+package-lock.json
+
+# Temporary files
+/tmp/
 /.tmp/
+
+# Gradle user home build artifacts (GRADLE_USER_HOME points to project root)
 /android/
 /caches/
 /daemon/
@@ -30,7 +54,9 @@ package-lock.json
 /wrapper/
 /workers/
 /kotlin-profile/
-# Local build logs
-/*build.log
-/cleanup-stop.log
-AGENTS.md
+
+# Logs and JVM crash diagnostics
+*.log
+*.hprof
+hs_err_pid*
+replay_pid*
