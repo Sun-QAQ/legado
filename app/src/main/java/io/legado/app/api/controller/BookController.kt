@@ -19,6 +19,7 @@ import io.legado.app.help.book.isNotShelf
 import io.legado.app.help.config.AppConfig
 import io.legado.app.help.glide.ImageLoader
 import io.legado.app.lib.theme.ThemeStore
+import io.legado.app.model.AudioPlay
 import io.legado.app.model.BookCover
 import io.legado.app.model.ImageProvider
 import io.legado.app.model.ReadBook
@@ -57,14 +58,18 @@ object BookController {
 
     fun saveBookGroups(postData: String?): ReturnData = try {
         var selection: BookshelfGroups.Selection? = null
+        lateinit var update: BookshelfGroups.Update
         appDb.runInTransaction {
             val groups = appDb.bookGroupDao.all
-            val update = BookshelfGroups.parseUpdate(postData, groups)
+            update = BookshelfGroups.parseUpdate(postData, groups)
             val book = appDb.bookDao.getBook(update.bookUrl)?.takeUnless { it.isNotShelf }
             requireNotNull(book) { "书籍已不在书架，请重新加载" }
             appDb.bookDao.updateBookGroup(update.bookUrl, update.group)
             selection = BookshelfGroups.selection(groups, book.copy(group = update.group))
         }
+        // 仅同步分组，保留阅读对象中尚未保存的进度和设置。
+        ReadBook.book?.takeIf { it.bookUrl == update.bookUrl }?.group = update.group
+        AudioPlay.book?.takeIf { it.bookUrl == update.bookUrl }?.group = update.group
         ReturnData().setData(requireNotNull(selection))
     } catch (e: Exception) {
         ReturnData().setErrorMsg(e.localizedMessage ?: "保存分组失败")
