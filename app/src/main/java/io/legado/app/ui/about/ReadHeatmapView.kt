@@ -30,8 +30,8 @@ class ReadHeatmapView @JvmOverloads constructor(
 ) : View(context, attrs) {
 
     private val density = resources.displayMetrics.density
-    private val step = 16 * density
-    private val cellSize = 12 * density
+    private val step = 24 * density
+    private val cellSize = 20 * density
     private val labelWidth = 32 * density
     private val chartTop = 24 * density
     private val paint = Paint(Paint.ANTI_ALIAS_FLAG)
@@ -152,7 +152,8 @@ class ReadHeatmapView @JvmOverloads constructor(
 
     private fun cellBounds(day: ReadHeatmap.Day): Rect {
         val index = heatmap.cellIndex(day)
-        val left = (labelWidth + index / 7 * step).toInt()
+        val columnStep = (width - labelWidth) / heatmap.columnCount
+        val left = (labelWidth + index / 7 * columnStep + (columnStep - cellSize) / 2).toInt()
         val top = (chartTop + index % 7 * step).toInt()
         return Rect(left, top, (left + cellSize).toInt(), (top + cellSize).toInt())
     }

@@ -11,10 +11,10 @@ class ReadHeatmapTest {
     private val today = LocalDate.of(2026, 10, 23)
 
     @Test
-    fun `empty calendar covers one year and fills missing days with zero`() {
+    fun `empty calendar covers the past month and fills missing days with zero`() {
         val heatmap = ReadHeatmap(today, emptyList())
-        assertEquals(365, heatmap.days.size)
-        assertEquals(LocalDate.of(2025, 10, 24), heatmap.start)
+        assertEquals(30, heatmap.days.size)
+        assertEquals(LocalDate.of(2026, 9, 24), heatmap.start)
         assertEquals(today, heatmap.days.last().date)
         assertTrue(heatmap.days.all { it.readTime == 0L && it.level == 0 })
         assertEquals(0, heatmap.activeDays)
@@ -27,13 +27,14 @@ class ReadHeatmapTest {
             ReadStat("b", today.toEpochDay(), 120_000),
             ReadStat("c", today.toEpochDay(), -60_000),
             ReadStat("a", today.minusDays(2).toEpochDay(), 60_000),
-            ReadStat("old", today.minusYears(1).toEpochDay(), 999_000),
+            ReadStat("old", today.minusMonths(1).toEpochDay(), 999_000),
+            ReadStat("first", today.minusMonths(1).plusDays(1).toEpochDay(), 60_000),
             ReadStat("future", today.plusDays(1).toEpochDay(), 999_000),
         ))
         assertEquals(180_000L, heatmap.days.last().readTime)
         assertEquals(0L, heatmap.days[heatmap.days.lastIndex - 1].readTime)
-        assertEquals(240_000L, heatmap.totalTime)
-        assertEquals(2, heatmap.activeDays)
+        assertEquals(300_000L, heatmap.totalTime)
+        assertEquals(3, heatmap.activeDays)
     }
 
     @Test
@@ -47,7 +48,7 @@ class ReadHeatmapTest {
     @Test
     fun `calendar keeps leap day and uses calendar dates across daylight saving`() {
         val heatmap = ReadHeatmap(LocalDate.of(2024, 3, 10), emptyList())
-        assertEquals(366, heatmap.days.size)
+        assertEquals(29, heatmap.days.size)
         assertTrue(heatmap.days.any { it.date == LocalDate.of(2024, 2, 29) })
         heatmap.days.zipWithNext { first, second ->
             assertEquals(first.date.plusDays(1), second.date)
@@ -67,11 +68,20 @@ class ReadHeatmapTest {
     }
 
     @Test
-    fun `leap year ending on sunday may need fifty four columns`() {
-        val heatmap = ReadHeatmap(LocalDate.of(2024, 12, 29), emptyList())
-        assertEquals(366, heatmap.days.size)
-        assertEquals(53, heatmap.columnCount)
-        val mondayEnd = ReadHeatmap(LocalDate.of(2024, 12, 30), emptyList())
-        assertEquals(54, mondayEnd.columnCount)
+    fun `month range handles short months month ends and year boundaries`() {
+        val cases = listOf(
+            LocalDate.of(2025, 3, 10) to 28,
+            LocalDate.of(2024, 3, 10) to 29,
+            LocalDate.of(2026, 10, 23) to 30,
+            LocalDate.of(2026, 9, 23) to 31,
+            LocalDate.of(2026, 3, 31) to 31,
+            LocalDate.of(2026, 1, 10) to 31,
+        )
+        cases.forEach { (end, expectedDays) ->
+            val heatmap = ReadHeatmap(end, emptyList())
+            assertEquals(expectedDays, heatmap.days.size)
+            assertEquals(end, heatmap.days.last().date)
+            assertTrue(heatmap.columnCount in 4..6)
+        }
     }
 }

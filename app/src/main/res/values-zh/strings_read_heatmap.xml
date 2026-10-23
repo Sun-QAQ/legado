@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="read_heatmap_title">阅读日历</string>
-    <string name="read_heatmap_summary">近一年阅读 %1$d 天 · %2$s</string>
+    <string name="read_heatmap_summary">近一个月阅读 %1$d 天 · %2$s</string>
     <string name="read_heatmap_day">%1$s · 阅读 %2$d小时%3$d分钟</string>
     <string name="read_heatmap_day_empty">%1$s · 暂无阅读记录</string>
     <string name="read_heatmap_day_short">%1$s · 阅读不足1分钟</string>
     <string name="read_heatmap_less">少</string>
     <string name="read_heatmap_more">多</string>
-    <string name="read_heatmap_hint">左右滑动，点击查看当天时长。由浅至深：不足30 / 30–59 / 60–119 / 120分钟以上。仅展示已记录的每日时长。</string>
+    <string name="read_heatmap_hint">点击查看当天时长。由浅至深：不足30 / 30–59 / 60–119 / 120分钟以上。仅展示已记录的每日时长。</string>
 </resources>

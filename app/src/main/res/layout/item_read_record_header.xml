@@ -36,21 +36,14 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
             android:textSize="12sp"
-            tools:text="近一年阅读 107 天 · 128小时36分钟" />
+            tools:text="近一个月阅读 20 天 · 28小时36分钟" />
 
-        <HorizontalScrollView
-            android:id="@+id/heatmap_scroll"
+        <io.legado.app.ui.about.ReadHeatmapView
+            android:id="@+id/read_heatmap"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
-            android:layoutDirection="ltr"
-            android:scrollbars="horizontal">
-
-            <io.legado.app.ui.about.ReadHeatmapView
-                android:id="@+id/read_heatmap"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content" />
-        </HorizontalScrollView>
+            android:layoutDirection="ltr" />
 
         <TextView
             android:id="@+id/tv_heatmap_day"

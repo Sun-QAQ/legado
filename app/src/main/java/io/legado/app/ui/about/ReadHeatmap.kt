@@ -4,7 +4,7 @@ import io.legado.app.data.entities.ReadStat
 import java.time.LocalDate
 import java.util.concurrent.TimeUnit
 
-/** A trailing calendar year, with weeks laid out Monday to Sunday. */
+/** A trailing calendar month, with weeks laid out Monday to Sunday. */
 internal class ReadHeatmap(today: LocalDate, stats: List<ReadStat>) {
 
     data class Day(val date: LocalDate, val readTime: Long) {
@@ -18,7 +18,7 @@ internal class ReadHeatmap(today: LocalDate, stats: List<ReadStat>) {
             }
     }
 
-    val start: LocalDate = today.minusYears(1).plusDays(1)
+    val start: LocalDate = startDate(today)
     val gridStart: LocalDate = start.minusDays(start.dayOfWeek.value - 1L)
     private val timesByDate = stats.groupBy { it.date }
         .mapValues { (_, entries) -> entries.sumOf { it.readTime.coerceAtLeast(0) } }
@@ -31,4 +31,8 @@ internal class ReadHeatmap(today: LocalDate, stats: List<ReadStat>) {
     val activeDays: Int = days.count { it.readTime > 0 }
 
     fun cellIndex(day: Day): Int = (day.date.toEpochDay() - gridStart.toEpochDay()).toInt()
+
+    companion object {
+        fun startDate(today: LocalDate): LocalDate = today.minusMonths(1).plusDays(1)
+    }
 }

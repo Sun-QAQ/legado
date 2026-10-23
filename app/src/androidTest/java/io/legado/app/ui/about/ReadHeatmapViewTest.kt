@@ -6,7 +6,6 @@ import android.graphics.Rect
 import android.os.SystemClock
 import android.view.MotionEvent
 import android.view.View
-import android.widget.HorizontalScrollView
 import android.widget.TextView
 import androidx.core.view.accessibility.AccessibilityNodeInfoCompat
 import androidx.core.graphics.ColorUtils
@@ -41,7 +40,7 @@ class ReadHeatmapViewTest {
                     awaitSummary(scenario)
                     val today = LocalDate.now()
                     // Fixtures are only supplied to the view, never written into reading history.
-                    val data = ReadHeatmap(today, (0L..364L step 3).map { offset ->
+                    val data = ReadHeatmap(today, (0L..30L step 3).map { offset ->
                         ReadStat("sample", today.minusDays(offset).toEpochDay(),
                             listOf(10L, 45L, 90L, 150L)[(offset / 3 % 4).toInt()] * 60_000)
                     })
@@ -55,9 +54,8 @@ class ReadHeatmapViewTest {
                     instrumentation.waitForIdleSync()
                     scenario.onActivity { activity ->
                         val chart = activity.findViewById<ReadHeatmapView>(R.id.read_heatmap)
-                        val scroll = activity.findViewById<HorizontalScrollView>(R.id.heatmap_scroll)
-                        scroll.fullScroll(View.FOCUS_RIGHT)
-                        assertTrue("Year is horizontally scrollable", chart.width > scroll.width)
+                        assertEquals("Month fits the card", (chart.parent as View).width -
+                            (chart.parent as View).paddingLeft - (chart.parent as View).paddingRight, chart.width)
                         val bitmap = Bitmap.createBitmap(chart.width, chart.height, Bitmap.Config.ARGB_8888)
                         chart.draw(Canvas(bitmap))
                         val levelColors = mutableMapOf<Int, Int>()
@@ -66,6 +64,7 @@ class ReadHeatmapViewTest {
                             val bounds = Rect()
                             @Suppress("DEPRECATION")
                             node.getBoundsInParent(bounds)
+                            assertTrue("Every day is visible", bounds.left >= 0 && bounds.right <= chart.width)
                             levelColors[day.level] = bitmap.getPixel(bounds.centerX(), bounds.centerY())
                             assertEquals(chart.describeDay(day), node.contentDescription.toString())
                         }
@@ -98,8 +97,6 @@ class ReadHeatmapViewTest {
                         File(activity.externalCacheDir, "read-heatmap-${if (night) "dark" else "light"}.png")
                             .outputStream().use { preview.compress(Bitmap.CompressFormat.PNG, 100, it) }
                         preview.recycle()
-                        scroll.scrollTo(0, 0)
-                        assertEquals(0, scroll.scrollX)
                     }
                 }
             }

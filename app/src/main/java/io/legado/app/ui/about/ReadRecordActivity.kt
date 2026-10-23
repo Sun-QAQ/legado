@@ -8,7 +8,6 @@ import android.view.Menu
 import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
-import android.widget.HorizontalScrollView
 import android.widget.TextView
 import androidx.appcompat.widget.SearchView
 import androidx.lifecycle.lifecycleScope
@@ -269,7 +268,7 @@ class ReadRecordActivity : BaseActivity<ActivityReadRecordBinding>() {
                 val heatmap = ReadHeatmap(
                     today,
                     appDb.readStatDao.getStats(
-                        today.minusYears(1).plusDays(1).toEpochDay(), today.toEpochDay(),
+                        ReadHeatmap.startDate(today).toEpochDay(), today.toEpochDay(),
                     ),
                 )
                 val startDate = today.minusDays(6)
@@ -293,9 +292,6 @@ class ReadRecordActivity : BaseActivity<ActivityReadRecordBinding>() {
                 formatHoursAndMinutes(heatmap.totalTime),
             )
             headerBinding.tvHeatmapDay.text = headerBinding.readHeatmap.describeDay(heatmap.days.last())
-            headerBinding.heatmapScroll.post {
-                headerBinding.heatmapScroll.fullScroll(HorizontalScrollView.FOCUS_RIGHT)
-            }
         }
     }
 
