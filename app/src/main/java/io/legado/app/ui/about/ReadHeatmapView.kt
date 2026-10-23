@@ -100,7 +100,7 @@ class ReadHeatmapView @JvmOverloads constructor(
         paint.color = palette.secondaryText
         val locale = Locale.getDefault()
         for (row in listOf(0, 2, 4)) {
-            val weekday = java.time.DayOfWeek.of(row + 1).getDisplayName(TextStyle.NARROW, locale)
+            val weekday = java.time.DayOfWeek.of(row + 1).getDisplayName(TextStyle.SHORT, locale)
             canvas.drawText(weekday, 0f, chartTop + row * step + cellSize, paint)
         }
         // Skip month labels that would overlap at the first partial month.
