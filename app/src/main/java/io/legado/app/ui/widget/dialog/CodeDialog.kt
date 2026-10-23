@@ -8,9 +8,8 @@ import io.legado.app.base.BaseDialogFragment
 import io.legado.app.databinding.DialogCodeViewBinding
 import io.legado.app.help.IntentData
 import io.legado.app.lib.theme.backgroundColor
-import io.legado.app.ui.widget.code.addJsPattern
-import io.legado.app.ui.widget.code.addJsonPattern
-import io.legado.app.ui.widget.code.addLegadoPattern
+import io.legado.app.ui.widget.code.SourceSyntaxHighlighter
+import io.legado.app.ui.widget.code.useSourceSyntax
 import io.legado.app.utils.applyTint
 import io.legado.app.utils.disableEdit
 import io.legado.app.utils.setLayout
@@ -41,9 +40,7 @@ class CodeDialog() : BaseDialogFragment(R.layout.dialog_code_view) {
         } else {
             initMenu()
         }
-        binding.codeView.addLegadoPattern()
-        binding.codeView.addJsonPattern()
-        binding.codeView.addJsPattern()
+        binding.codeView.useSourceSyntax(SourceSyntaxHighlighter.Language.JSON)
         arguments?.getString("code")?.let {
             binding.codeView.text = IntentData.get(it)
         }

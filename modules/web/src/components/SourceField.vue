@@ -1,11 +1,11 @@
 <template>
   <el-form-item :label="field.title" :required="field.required"
-    ><el-input
+    ><source-code-editor
       v-if="field.type === 'String'"
       v-model="stringValue"
-      type="textarea"
-      :placeholder="field.hint"
-      autosize /><el-switch
+      :language="sourceLanguageForField(field.id)"
+      :aria-label="field.title"
+      :placeholder="field.hint" /><el-switch
       v-else-if="field.type === 'Boolean'"
       v-model="booleanValue" /><el-input-number
       v-else-if="field.type === 'Number'"
@@ -22,6 +22,8 @@
 </template>
 <script setup lang="ts">
 import type { SourceConfigRecord } from '@/config/sourceConfig'
+import SourceCodeEditor from './SourceCodeEditor.vue'
+import { sourceLanguageForField } from '@/utils/sourceSyntax'
 const props = defineProps<{ field: SourceConfigRecord }>()
 const store = useSourceStore()
 const target = (create = false): Record<string, unknown> => {

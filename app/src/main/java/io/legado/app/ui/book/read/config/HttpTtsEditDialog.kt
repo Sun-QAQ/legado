@@ -14,9 +14,8 @@ import io.legado.app.lib.dialogs.alert
 import io.legado.app.lib.theme.backgroundColor
 import io.legado.app.ui.about.AppLogDialog
 import io.legado.app.ui.login.SourceLoginActivity
-import io.legado.app.ui.widget.code.addJsPattern
-import io.legado.app.ui.widget.code.addJsonPattern
-import io.legado.app.ui.widget.code.addLegadoPattern
+import io.legado.app.ui.widget.code.SourceSyntaxHighlighter
+import io.legado.app.ui.widget.code.useSourceSyntax
 import io.legado.app.utils.GSON
 import io.legado.app.utils.applyDialogRoundedBackground
 import io.legado.app.utils.applyTint
@@ -48,23 +47,11 @@ class HttpTtsEditDialog() : BaseDialogFragment(R.layout.dialog_http_tts_edit, tr
     override fun onFragmentCreated(view: View, savedInstanceState: Bundle?) {
         binding.vwBg.applyDialogRoundedBackground()
         binding.toolBar.setBackgroundColor(backgroundColor)
-        binding.tvUrl.run {
-            addLegadoPattern()
-            addJsonPattern()
-            addJsPattern()
-        }
-        binding.tvLoginUrl.run {
-            addLegadoPattern()
-            addJsonPattern()
-            addJsPattern()
-        }
-        binding.tvLoginUi.addJsonPattern()
-        binding.tvLoginCheckJs.addJsPattern()
-        binding.tvHeaders.run {
-            addLegadoPattern()
-            addJsonPattern()
-            addJsPattern()
-        }
+        binding.tvUrl.useSourceSyntax()
+        binding.tvLoginUrl.useSourceSyntax()
+        binding.tvLoginUi.useSourceSyntax(SourceSyntaxHighlighter.Language.JSON)
+        binding.tvLoginCheckJs.useSourceSyntax(SourceSyntaxHighlighter.Language.JAVASCRIPT)
+        binding.tvHeaders.useSourceSyntax(SourceSyntaxHighlighter.Language.JSON)
         viewModel.initData(arguments) {
             initView(httpTTS = it)
         }

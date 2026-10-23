@@ -9,10 +9,10 @@
   <label for="source-json" class="muted"
     >直接编辑源 JSON，合法内容会同步到表单。</label
   >
-  <el-input
+  <source-code-editor
     id="source-json"
     v-model="sourceString"
-    type="textarea"
+    language="json"
     :rows="20"
     spellcheck="false"
     aria-label="源 JSON"
@@ -21,6 +21,7 @@
 </template>
 <script setup lang="ts">
 import type { Source } from '@/source'
+import SourceCodeEditor from './SourceCodeEditor.vue'
 const store = useSourceStore()
 const sourceString = ref('')
 let applying = false
@@ -65,11 +66,5 @@ label {
 }
 .el-alert {
   margin-bottom: 14px;
-}
-:deep(.el-textarea__inner) {
-  font:
-    13px/1.8 Consolas,
-    monospace;
-  min-height: 420px;
 }
 </style>

@@ -14,8 +14,14 @@ import android.text.style.ForegroundColorSpan
 import android.text.style.ReplacementSpan
 import android.util.AttributeSet
 import androidx.annotation.ColorInt
+import io.legado.app.help.config.ThemeConfig
 import io.legado.app.ui.widget.text.ScrollMultiAutoCompleteTextView
 import io.legado.app.utils.setAccentCursor
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.util.*
 import java.util.regex.Matcher
 import java.util.regex.Pattern
@@ -27,7 +33,7 @@ class CodeView @JvmOverloads constructor(context: Context, attrs: AttributeSet? 
 
     private var tabWidth = 0
     private var tabWidthInCharacters = 0
-    private var mUpdateDelayTime = 500
+    private var mUpdateDelayTime = 150
     private var modified = true
     private var highlightWhileTextChanging = true
     private var hasErrors = false
@@ -38,10 +44,40 @@ class CodeView @JvmOverloads constructor(context: Context, attrs: AttributeSet? 
     private val mErrorHashSet: SortedMap<Int, Int> = TreeMap()
     private val mSyntaxPatternMap: MutableMap<Pattern, Int> = HashMap()
     private var mIndentCharacterList = mutableListOf('{', '+', '-', '*', '/', '=')
+    private var syntaxLanguage: SourceSyntaxHighlighter.Language? = null
+    private var highlightJob: Job? = null
+    private var highlightGeneration = 0
 
     private val mUpdateRunnable = Runnable {
-        val source = text
-        highlightWithoutChange(source)
+        val source = text.toString()
+        val language = syntaxLanguage
+        val generation = highlightGeneration
+        highlightJob = CoroutineScope(Dispatchers.Main.immediate).launch {
+            val tokens = withContext(Dispatchers.Default) {
+                val job = coroutineContext[Job]
+                language?.let { SourceSyntaxHighlighter.tokenize(source, it) { job?.isActive == false } }
+            }
+            if (generation != highlightGeneration || !isAttachedToWindow) return@launch
+            val editable = editableText
+            modified = false
+            try {
+                clearSpans(editable)
+                highlightErrorLines(editable)
+                if (tokens != null) {
+                    val dark = ThemeConfig.isDarkTheme()
+                    for (token in tokens) {
+                        editable.setSpan(
+                            SyntaxForegroundSpan(syntaxColor(token.kind, dark)),
+                            token.start, token.end, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
+                        )
+                    }
+                } else {
+                    highlightSyntax(editable)
+                }
+            } finally {
+                modified = true
+            }
+        }
     }
 
     private val mEditorTextWatcher: TextWatcher = object : TextWatcher {
@@ -64,23 +100,15 @@ class CodeView @JvmOverloads constructor(context: Context, attrs: AttributeSet? 
             count: Int
         ) {
             if (!modified) return
-            if (highlightWhileTextChanging) {
-                if (mSyntaxPatternMap.isNotEmpty()) {
-                    convertTabs(editableText, start, count)
-                    mUpdateHandler.postDelayed(mUpdateRunnable, mUpdateDelayTime.toLong())
-                }
-            }
+            cancelHighlighterRender()
             if (mRemoveErrorsWhenTextChanged) removeAllErrorLines()
         }
 
         override fun afterTextChanged(editable: Editable) {
-            if (!highlightWhileTextChanging) {
-                if (!modified) return
-                cancelHighlighterRender()
-                if (mSyntaxPatternMap.isNotEmpty()) {
-                    convertTabs(editableText, start, count)
-                    mUpdateHandler.postDelayed(mUpdateRunnable, mUpdateDelayTime.toLong())
-                }
+            if (!modified) return
+            if (syntaxLanguage != null || mSyntaxPatternMap.isNotEmpty()) {
+                convertTabs(editable, start, count)
+                scheduleHighlight()
             }
         }
     }
@@ -125,6 +153,28 @@ class CodeView @JvmOverloads constructor(context: Context, attrs: AttributeSet? 
         val horizontalDistanceInDp = layout.getPrimaryHorizontal(position) / displayDensity
         dropDownHorizontalOffset = horizontalDistanceInDp.toInt()
         super.showDropDown()
+    }
+
+    override fun onAttachedToWindow() {
+        super.onAttachedToWindow()
+        scheduleHighlight()
+    }
+
+    override fun onDetachedFromWindow() {
+        cancelHighlighterRender()
+        super.onDetachedFromWindow()
+    }
+
+    fun setSyntaxLanguage(language: SourceSyntaxHighlighter.Language) {
+        syntaxLanguage = language
+        scheduleHighlight()
+    }
+
+    private fun scheduleHighlight() {
+        cancelHighlighterRender()
+        if (isAttachedToWindow) {
+            mUpdateHandler.postDelayed(mUpdateRunnable, mUpdateDelayTime.toLong())
+        }
     }
 
     private fun autoIndent(
@@ -207,7 +257,7 @@ class CodeView @JvmOverloads constructor(context: Context, attrs: AttributeSet? 
         @ColorInt color: Int
     ) {
         editable.setSpan(
-            ForegroundColorSpan(color),
+            SyntaxForegroundSpan(color),
             matcher.start(), matcher.end(),
             Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
         )
@@ -219,40 +269,17 @@ class CodeView @JvmOverloads constructor(context: Context, attrs: AttributeSet? 
         @ColorInt color: Int
     ) {
         editable.setSpan(
-            BackgroundColorSpan(color),
+            SyntaxBackgroundSpan(color),
             matcher.start(), matcher.end(),
             Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
         )
     }
 
-    private fun highlight(editable: Editable): Editable {
-        // if (editable.isEmpty() || editable.length > 1024) return editable
-        if (editable.length !in 1..1024) {
-            return editable
-        }
-        try {
-            clearSpans(editable)
-            highlightErrorLines(editable)
-            highlightSyntax(editable)
-        } catch (e: IllegalStateException) {
-            e.printStackTrace()
-        }
-        return editable
-    }
-
-    private fun highlightWithoutChange(editable: Editable) {
-        modified = false
-        highlight(editable)
-        modified = true
-    }
-
     fun setTextHighlighted(text: CharSequence?) {
-        if (text.isNullOrEmpty()) return
         cancelHighlighterRender()
         removeAllErrorLines()
-        modified = false
-        setText(highlight(SpannableStringBuilder(text)))
-        modified = true
+        setText(text ?: "")
+        scheduleHighlight()
     }
 
     fun setTabWidth(characters: Int) {
@@ -264,7 +291,7 @@ class CodeView @JvmOverloads constructor(context: Context, attrs: AttributeSet? 
     private fun clearSpans(editable: Editable) {
         val length = editable.length
         val foregroundSpans = editable.getSpans(
-            0, length, ForegroundColorSpan::class.java
+            0, length, SyntaxForegroundSpan::class.java
         )
         run {
             var i = foregroundSpans.size
@@ -273,7 +300,7 @@ class CodeView @JvmOverloads constructor(context: Context, attrs: AttributeSet? 
             }
         }
         val backgroundSpans = editable.getSpans(
-            0, length, BackgroundColorSpan::class.java
+            0, length, SyntaxBackgroundSpan::class.java
         )
         var i = backgroundSpans.size
         while (i-- > 0) {
@@ -282,6 +309,9 @@ class CodeView @JvmOverloads constructor(context: Context, attrs: AttributeSet? 
     }
 
     fun cancelHighlighterRender() {
+        highlightGeneration++
+        highlightJob?.cancel()
+        highlightJob = null
         mUpdateHandler.removeCallbacks(mUpdateRunnable)
     }
 
@@ -367,11 +397,11 @@ class CodeView @JvmOverloads constructor(context: Context, attrs: AttributeSet? 
     }
 
     fun reHighlightSyntax() {
-        highlightSyntax(editableText)
+        scheduleHighlight()
     }
 
     fun reHighlightErrors() {
-        highlightErrorLines(editableText)
+        scheduleHighlight()
     }
 
     fun isHasError(): Boolean {
@@ -418,5 +448,18 @@ class CodeView @JvmOverloads constructor(context: Context, attrs: AttributeSet? 
     companion object {
         private val PATTERN_LINE = Pattern.compile("(^.+$)+", Pattern.MULTILINE)
         private val PATTERN_TRAILING_WHITE_SPACE = Pattern.compile("[\\t ]+$", Pattern.MULTILINE)
+
+        private fun syntaxColor(kind: SourceSyntaxHighlighter.Kind, dark: Boolean): Int = when (kind) {
+            SourceSyntaxHighlighter.Kind.KEYWORD -> if (dark) 0xffc4a7ff else 0xff7040a0
+            SourceSyntaxHighlighter.Kind.STRING -> if (dark) 0xffa5d6a7 else 0xff276339
+            SourceSyntaxHighlighter.Kind.COMMENT -> if (dark) 0xffa3adb8 else 0xff66717d
+            SourceSyntaxHighlighter.Kind.NUMBER -> if (dark) 0xffffc58f else 0xff995214
+            SourceSyntaxHighlighter.Kind.RULE -> if (dark) 0xffffbc80 else 0xffa34410
+            SourceSyntaxHighlighter.Kind.PROPERTY -> if (dark) 0xff91caff else 0xff145d9a
+            SourceSyntaxHighlighter.Kind.OPERATOR -> if (dark) 0xffbac6d6 else 0xff526073
+        }.toInt()
     }
+
+    private class SyntaxForegroundSpan(color: Int) : ForegroundColorSpan(color)
+    private class SyntaxBackgroundSpan(color: Int) : BackgroundColorSpan(color)
 }

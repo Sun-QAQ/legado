@@ -11,9 +11,8 @@ import io.legado.app.R
 import io.legado.app.databinding.ItemSourceEditBinding
 import io.legado.app.databinding.ItemSourceEditCheckBoxBinding
 import io.legado.app.help.config.AppConfig
-import io.legado.app.ui.widget.code.addJsPattern
-import io.legado.app.ui.widget.code.addJsonPattern
-import io.legado.app.ui.widget.code.addLegadoPattern
+import io.legado.app.ui.widget.code.SourceSyntaxHighlighter
+import io.legado.app.ui.widget.code.useSourceSyntax
 import io.legado.app.ui.widget.text.EditEntity
 import io.legado.app.utils.isTrue
 
@@ -44,9 +43,7 @@ class RssSourceEditAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
             else -> {
                 val binding = ItemSourceEditBinding
                     .inflate(LayoutInflater.from(parent.context), parent, false)
-                binding.editText.addLegadoPattern()
-                binding.editText.addJsonPattern()
-                binding.editText.addJsPattern()
+                binding.editText.useSourceSyntax()
                 EditTextViewHolder(binding)
             }
         }
@@ -89,6 +86,7 @@ class RssSourceEditAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
                     editText.removeTextChangedListener(it)
                 }
             }
+            editText.useSourceSyntax(SourceSyntaxHighlighter.languageForField(editEntity.key))
             editText.setText(editEntity.value)
             textInputLayout.hint = editEntity.hint
             val textWatcher = object : TextWatcher {

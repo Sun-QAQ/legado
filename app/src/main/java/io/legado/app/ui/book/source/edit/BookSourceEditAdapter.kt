@@ -10,9 +10,8 @@ import androidx.recyclerview.widget.RecyclerView
 import io.legado.app.R
 import io.legado.app.databinding.ItemSourceEditBinding
 import io.legado.app.help.config.AppConfig
-import io.legado.app.ui.widget.code.addJsPattern
-import io.legado.app.ui.widget.code.addJsonPattern
-import io.legado.app.ui.widget.code.addLegadoPattern
+import io.legado.app.ui.widget.code.SourceSyntaxHighlighter
+import io.legado.app.ui.widget.code.useSourceSyntax
 import io.legado.app.ui.widget.text.EditEntity
 
 class BookSourceEditAdapter : RecyclerView.Adapter<BookSourceEditAdapter.MyViewHolder>() {
@@ -29,9 +28,7 @@ class BookSourceEditAdapter : RecyclerView.Adapter<BookSourceEditAdapter.MyViewH
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): MyViewHolder {
         val binding = ItemSourceEditBinding
             .inflate(LayoutInflater.from(parent.context), parent, false)
-        binding.editText.addLegadoPattern()
-        binding.editText.addJsonPattern()
-        binding.editText.addJsPattern()
+        binding.editText.useSourceSyntax()
         return MyViewHolder(binding)
     }
 
@@ -70,6 +67,7 @@ class BookSourceEditAdapter : RecyclerView.Adapter<BookSourceEditAdapter.MyViewH
                     editText.removeTextChangedListener(it)
                 }
             }
+            editText.useSourceSyntax(SourceSyntaxHighlighter.languageForField(editEntity.key))
             editText.setText(editEntity.value)
             textInputLayout.hint = editEntity.hint
             val textWatcher = object : TextWatcher {
