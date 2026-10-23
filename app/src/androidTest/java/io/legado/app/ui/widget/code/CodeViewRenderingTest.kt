@@ -45,6 +45,9 @@ class CodeViewRenderingTest {
                 assertEquals(11, editor.selectionEnd)
                 assertEquals(6, editor.editableText.getSpanStart(foreignSpan))
             }
+            // Span application precedes the next draw; capture the rendered frame, not the old one.
+            instrumentation.waitForIdleSync()
+            SystemClock.sleep(200)
             val screenshot = instrumentation.uiAutomation.takeScreenshot()
             File(instrumentation.targetContext.externalCacheDir, "source-code-highlight.png").outputStream().use {
                 screenshot.compress(Bitmap.CompressFormat.PNG, 100, it)
