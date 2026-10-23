@@ -2,6 +2,7 @@ package io.legado.app.ui.about
 
 import android.content.Context
 import android.graphics.Canvas
+import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Rect
 import android.os.Bundle
@@ -35,9 +36,15 @@ class ReadHeatmapView @JvmOverloads constructor(
     private val chartTop = 24 * density
     private val paint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val palette = ThemePalette(context)
+    // Very pale accent colors still need a darker endpoint on a light surface.
+    private val endpoint = if (ColorUtils.calculateLuminance(palette.surface) > 0.5) {
+        ColorUtils.blendARGB(palette.accent, Color.BLACK, 0.45f)
+    } else {
+        ColorUtils.blendARGB(palette.accent, Color.WHITE, 0.2f)
+    }
     private val colors = IntArray(5) { level ->
-        if (level == 0) palette.divider else
-            ColorUtils.blendARGB(palette.surface, palette.accent, level / 4f)
+        if (level == 0) ColorUtils.blendARGB(palette.surface, palette.text, 0.06f) else
+            ColorUtils.blendARGB(palette.surface, endpoint, level / 4f)
     }
     private var heatmap = ReadHeatmap(LocalDate.now(), emptyList())
     private var selectedDate: LocalDate = heatmap.days.last().date

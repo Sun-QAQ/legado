@@ -9,6 +9,7 @@ import android.view.View
 import android.widget.HorizontalScrollView
 import android.widget.TextView
 import androidx.core.view.accessibility.AccessibilityNodeInfoCompat
+import androidx.core.graphics.ColorUtils
 import androidx.test.core.app.ActivityScenario
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
@@ -42,13 +43,14 @@ class ReadHeatmapViewTest {
                     // Fixtures are only supplied to the view, never written into reading history.
                     val data = ReadHeatmap(today, (0L..364L step 3).map { offset ->
                         ReadStat("sample", today.minusDays(offset).toEpochDay(),
-                            (offset % 5 + 1) * 30 * 60_000)
+                            listOf(10L, 45L, 90L, 150L)[(offset / 3 % 4).toInt()] * 60_000)
                     })
                     scenario.onActivity { activity ->
                         val chart = activity.findViewById<ReadHeatmapView>(R.id.read_heatmap)
                         chart.setData(data)
                         activity.findViewById<TextView>(R.id.tv_heatmap_summary).text =
-                            activity.getString(R.string.read_heatmap_summary, data.activeDays, "153h")
+                            activity.getString(R.string.read_heatmap_summary, data.activeDays,
+                                activity.formatDuring(data.totalTime))
                     }
                     instrumentation.waitForIdleSync()
                     scenario.onActivity { activity ->
@@ -68,6 +70,11 @@ class ReadHeatmapViewTest {
                             assertEquals(chart.describeDay(day), node.contentDescription.toString())
                         }
                         assertEquals("Every level has a different fill", 5, levelColors.values.toSet().size)
+                        val luminance = (0..4).map { ColorUtils.calculateLuminance(levelColors.getValue(it)) }
+                        luminance.zipWithNext { less, more ->
+                            assertTrue("Reading intensity increases in theme $night",
+                                if (night) more > less else more < less)
+                        }
                         bitmap.recycle()
                         val selectedIndex = data.days.lastIndex - 3
                         assertTrue(chart.accessibilityNodeProvider.performAction(selectedIndex,

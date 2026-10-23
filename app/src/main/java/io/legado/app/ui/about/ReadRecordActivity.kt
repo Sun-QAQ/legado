@@ -238,7 +238,7 @@ class ReadRecordActivity : BaseActivity<ActivityReadRecordBinding>() {
         headerBinding.heatmapCard.background = roundedBackground(palette.surface, 20)
         headerBinding.tvHeatmapTitle.setTextColor(palette.text)
         headerBinding.tvHeatmapSummary.setTextColor(palette.secondaryText)
-        headerBinding.tvHeatmapDay.setTextColor(accent)
+        headerBinding.tvHeatmapDay.setTextColor(palette.text)
         headerBinding.tvHeatmapHint.setTextColor(palette.secondaryText)
         headerBinding.weekChartCard.background = roundedBackground(palette.surface, 20)
         headerBinding.tvWeekChartTitle.setTextColor(palette.text)
