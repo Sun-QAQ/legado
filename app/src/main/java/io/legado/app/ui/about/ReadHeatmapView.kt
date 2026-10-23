@@ -107,9 +107,9 @@ class ReadHeatmapView @JvmOverloads constructor(
             val weekday = java.time.DayOfWeek.of(row + 1).getDisplayName(TextStyle.SHORT, locale)
             canvas.drawText(weekday, 0f, chartTop + row * step + cellSize, paint)
         }
-        // Skip month labels that would overlap at the first partial month.
+        // Label month boundaries; the leading partial month may be too short for a label.
         var lastLabelRight = -1f
-        heatmap.days.filter { it.date == heatmap.start || it.date.dayOfMonth == 1 }
+        heatmap.days.filter { it.date.dayOfMonth == 1 }
             .forEach { day ->
                 val label = day.date.month.getDisplayName(TextStyle.SHORT, locale)
                 val x = cellBounds(day).left.toFloat()
