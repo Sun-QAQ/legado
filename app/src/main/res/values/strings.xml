@@ -973,6 +973,7 @@
     <string name="about_summary">Wechat official account [开源阅读软件]</string>
     <string name="read_record">Read record</string>
     <string name="del_read_record">Delete Read record</string>
+    <string name="sure_del_read_record">Are you sure you want to delete the reading record for %1$s?</string>
     <string name="read_record_summary">Read record summary</string>
     <string name="local_tts">Local TTS</string>
     <string name="thread_count">Thread count</string>

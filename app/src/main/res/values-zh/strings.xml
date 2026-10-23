@@ -959,6 +959,7 @@
     <string name="about_summary">公众号【开源阅读软件】</string>
     <string name="read_record">阅读记录</string>
     <string name="del_read_record">删除阅读记录</string>
+    <string name="sure_del_read_record">是否确认删除%1$s的阅读记录？</string>
     <string name="read_record_summary">阅读时间记录</string>
     <string name="local_tts">本地 TTS</string>
     <string name="thread_count">线程数</string>

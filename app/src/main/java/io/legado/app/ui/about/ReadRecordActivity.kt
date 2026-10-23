@@ -443,7 +443,7 @@ class ReadRecordActivity : BaseActivity<ActivityReadRecordBinding>() {
 
         private fun sureDelAlert(item: ReadRecordShow) {
             alert(R.string.delete) {
-                setMessage(getString(R.string.sure_del_any, item.bookName))
+                setMessage(getString(R.string.sure_del_read_record, item.bookName))
                 yesButton {
                     appDb.readRecordDao.deleteByName(item.bookName)
                     initAllTime()
