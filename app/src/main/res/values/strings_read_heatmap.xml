@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="read_heatmap_title">Reading calendar</string>
+    <string name="read_heatmap_summary">Past year: %1$d reading days · %2$s</string>
+    <string name="read_heatmap_day">%1$s · Read %2$d h %3$d min</string>
+    <string name="read_heatmap_day_empty">%1$s · No reading recorded</string>
+    <string name="read_heatmap_day_short">%1$s · Read less than 1 minute</string>
+    <string name="read_heatmap_less">Less</string>
+    <string name="read_heatmap_more">More</string>
+    <string name="read_heatmap_hint">Swipe to browse, tap a day for details. Darker: 1–29 / 30–59 / 60–119 / 120+ min. Only recorded daily time is shown.</string>
+</resources>

@@ -8,6 +8,7 @@ import android.view.Menu
 import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
+import android.widget.HorizontalScrollView
 import android.widget.TextView
 import androidx.appcompat.widget.SearchView
 import androidx.lifecycle.lifecycleScope
@@ -190,6 +191,9 @@ class ReadRecordActivity : BaseActivity<ActivityReadRecordBinding>() {
             }
         }
         updateFilterStyle()
+        headerBinding.readHeatmap.onDaySelected = { day ->
+            headerBinding.tvHeatmapDay.text = headerBinding.readHeatmap.describeDay(day)
+        }
     }
 
     private fun initSearchView(searchMenu: MenuItem) {
@@ -231,6 +235,11 @@ class ReadRecordActivity : BaseActivity<ActivityReadRecordBinding>() {
         headerBinding.tvReadingTime.setTextColor(summaryText)
         headerBinding.tvWeekReadingTime.setTextColor(ColorUtils.withAlpha(summaryText, 0.78f))
         headerBinding.tvClearAll.setTextColor(ColorUtils.withAlpha(summaryText, 0.84f))
+        headerBinding.heatmapCard.background = roundedBackground(palette.surface, 20)
+        headerBinding.tvHeatmapTitle.setTextColor(palette.text)
+        headerBinding.tvHeatmapSummary.setTextColor(palette.secondaryText)
+        headerBinding.tvHeatmapDay.setTextColor(accent)
+        headerBinding.tvHeatmapHint.setTextColor(palette.secondaryText)
         headerBinding.weekChartCard.background = roundedBackground(palette.surface, 20)
         headerBinding.tvWeekChartTitle.setTextColor(palette.text)
         headerBinding.tvWeekChartRange.setTextColor(palette.secondaryText)
@@ -257,16 +266,17 @@ class ReadRecordActivity : BaseActivity<ActivityReadRecordBinding>() {
         lifecycleScope.launch {
             val readSummary = withContext(IO) {
                 val today = LocalDate.now()
+                val heatmap = ReadHeatmap(
+                    today,
+                    appDb.readStatDao.getStats(
+                        today.minusYears(1).plusDays(1).toEpochDay(), today.toEpochDay(),
+                    ),
+                )
                 val startDate = today.minusDays(6)
-                val timesByDate = appDb.readStatDao
-                    .getStats(startDate.toEpochDay(), today.toEpochDay())
-                    .groupBy { it.date }
-                    .mapValues { (_, stats) -> stats.sumOf { it.readTime } }
-                val weekReadTimes = (0L..6L).map { offset ->
-                    val date = startDate.plusDays(offset)
-                    DailyReadTime(date, timesByDate[date.toEpochDay()] ?: 0L)
+                val weekReadTimes = heatmap.days.filter { it.date >= startDate }.map {
+                    DailyReadTime(it.date, it.readTime)
                 }
-                appDb.readRecordDao.allTime to weekReadTimes
+                Triple(appDb.readRecordDao.allTime, weekReadTimes, heatmap)
             }
             val weekTotal = readSummary.second.sumOf { it.readTime }
             headerBinding.tvReadingTime.text = formatHoursAndMinutes(readSummary.first)
@@ -275,6 +285,17 @@ class ReadRecordActivity : BaseActivity<ActivityReadRecordBinding>() {
                 formatHoursAndMinutes(weekTotal),
             )
             updateWeekChart(readSummary.second)
+            val heatmap = readSummary.third
+            headerBinding.readHeatmap.setData(heatmap)
+            headerBinding.tvHeatmapSummary.text = getString(
+                R.string.read_heatmap_summary,
+                heatmap.activeDays,
+                formatHoursAndMinutes(heatmap.totalTime),
+            )
+            headerBinding.tvHeatmapDay.text = headerBinding.readHeatmap.describeDay(heatmap.days.last())
+            headerBinding.heatmapScroll.post {
+                headerBinding.heatmapScroll.fullScroll(HorizontalScrollView.FOCUS_RIGHT)
+            }
         }
     }
 
