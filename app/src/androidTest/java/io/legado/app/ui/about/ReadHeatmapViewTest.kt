@@ -22,6 +22,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import java.io.File
 import java.time.LocalDate
+import kotlin.math.abs
 
 @RunWith(AndroidJUnit4::class)
 class ReadHeatmapViewTest {
@@ -40,7 +41,7 @@ class ReadHeatmapViewTest {
                     awaitSummary(scenario)
                     val today = LocalDate.now()
                     // Fixtures are only supplied to the view, never written into reading history.
-                    val data = ReadHeatmap(today, (0L..30L step 3).map { offset ->
+                    val data = ReadHeatmap(today, (0L..91L step 3).map { offset ->
                         ReadStat("sample", today.minusDays(offset).toEpochDay(),
                             listOf(10L, 45L, 90L, 150L)[(offset / 3 % 4).toInt()] * 60_000)
                     })
@@ -54,7 +55,7 @@ class ReadHeatmapViewTest {
                     instrumentation.waitForIdleSync()
                     scenario.onActivity { activity ->
                         val chart = activity.findViewById<ReadHeatmapView>(R.id.read_heatmap)
-                        assertEquals("Month fits the card", (chart.parent as View).width -
+                        assertEquals("Three months fit the card", (chart.parent as View).width -
                             (chart.parent as View).paddingLeft - (chart.parent as View).paddingRight, chart.width)
                         val bitmap = Bitmap.createBitmap(chart.width, chart.height, Bitmap.Config.ARGB_8888)
                         chart.draw(Canvas(bitmap))
@@ -65,10 +66,23 @@ class ReadHeatmapViewTest {
                             @Suppress("DEPRECATION")
                             node.getBoundsInParent(bounds)
                             assertTrue("Every day is visible", bounds.left >= 0 && bounds.right <= chart.width)
+                            assertTrue("Calendar cells stay square", abs(bounds.width() - bounds.height()) <= 1)
                             levelColors[day.level] = bitmap.getPixel(bounds.centerX(), bounds.centerY())
                             assertEquals(chart.describeDay(day), node.contentDescription.toString())
                         }
                         assertEquals("Every level has a different fill", 5, levelColors.values.toSet().size)
+                        val mondayIndex = data.days.indexOfFirst { it.date.dayOfWeek.value == 1 }
+                        val positions = listOf(mondayIndex, mondayIndex + 1, mondayIndex + 7).map { index ->
+                            Rect().also { bounds ->
+                                @Suppress("DEPRECATION")
+                                checkNotNull(chart.accessibilityNodeProvider.createAccessibilityNodeInfo(index))
+                                    .getBoundsInParent(bounds)
+                            }
+                        }
+                        assertTrue("Week and weekday spacing match", abs(
+                            (positions[2].left - positions[0].left) -
+                                (positions[1].top - positions[0].top)
+                        ) <= 1)
                         val luminance = (0..4).map { ColorUtils.calculateLuminance(levelColors.getValue(it)) }
                         luminance.zipWithNext { less, more ->
                             assertTrue("Reading intensity increases in theme $night",

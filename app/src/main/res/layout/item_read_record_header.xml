@@ -36,7 +36,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
             android:textSize="12sp"
-            tools:text="近一个月阅读 20 天 · 28小时36分钟" />
+            tools:text="近三个月阅读 56 天 · 128小时36分钟" />
 
         <io.legado.app.ui.about.ReadHeatmapView
             android:id="@+id/read_heatmap"

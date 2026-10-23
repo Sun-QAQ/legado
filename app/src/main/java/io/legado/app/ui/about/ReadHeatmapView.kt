@@ -30,8 +30,8 @@ class ReadHeatmapView @JvmOverloads constructor(
 ) : View(context, attrs) {
 
     private val density = resources.displayMetrics.density
-    private val step = 24 * density
-    private val cellSize = 20 * density
+    private val step get() = gridStep(width)
+    private val cellSize get() = (step - 4 * density).coerceAtLeast(density)
     private val labelWidth = 32 * density
     private val chartTop = 24 * density
     private val paint = Paint(Paint.ANTI_ALIAS_FLAG)
@@ -87,12 +87,16 @@ class ReadHeatmapView @JvmOverloads constructor(
     }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
-        val desiredWidth = (labelWidth + heatmap.columnCount * step).toInt()
+        val desiredWidth = (labelWidth + heatmap.columnCount * 20 * density).toInt()
+        val measuredWidth = resolveSize(desiredWidth, widthMeasureSpec)
         setMeasuredDimension(
-            resolveSize(desiredWidth, widthMeasureSpec),
-            resolveSize((chartTop + 7 * step + 32 * density).toInt(), heightMeasureSpec),
+            measuredWidth,
+            resolveSize((chartTop + 7 * gridStep(measuredWidth) + 32 * density).toInt(), heightMeasureSpec),
         )
     }
+
+    private fun gridStep(viewWidth: Int): Float =
+        minOf(22 * density, (viewWidth - labelWidth).coerceAtLeast(0f) / heatmap.columnCount)
 
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
@@ -134,26 +138,28 @@ class ReadHeatmapView @JvmOverloads constructor(
                 paint.style = Paint.Style.FILL
             }
         }
-        val legendY = chartTop + 7 * step + 12 * density
+        val legendY = chartTop + 7 * step + 10 * density
+        val legendStep = 16 * density
+        val legendSize = 12 * density
         val more = context.getString(R.string.read_heatmap_more)
         val less = context.getString(R.string.read_heatmap_less)
-        val legendX = max(labelWidth, width - paint.measureText(more) - 6 * step)
+        val legendX = max(labelWidth, width - paint.measureText(more) - 6 * legendStep)
         paint.color = palette.secondaryText
-        canvas.drawText(less, legendX - paint.measureText(less) - 8 * density, legendY + cellSize, paint)
+        canvas.drawText(less, legendX - paint.measureText(less) - 8 * density, legendY + legendSize, paint)
         colors.forEachIndexed { level, color ->
             paint.color = color
-            val x = legendX + level * step
-            canvas.drawRoundRect(x, legendY, x + cellSize, legendY + cellSize,
+            val x = legendX + level * legendStep
+            canvas.drawRoundRect(x, legendY, x + legendSize, legendY + legendSize,
                 2 * density, 2 * density, paint)
         }
         paint.color = palette.secondaryText
-        canvas.drawText(more, legendX + 5 * step, legendY + cellSize, paint)
+        canvas.drawText(more, legendX + 5 * legendStep, legendY + legendSize, paint)
     }
 
     private fun cellBounds(day: ReadHeatmap.Day): Rect {
         val index = heatmap.cellIndex(day)
-        val columnStep = (width - labelWidth) / heatmap.columnCount
-        val left = (labelWidth + index / 7 * columnStep + (columnStep - cellSize) / 2).toInt()
+        val gridLeft = labelWidth + (width - labelWidth - heatmap.columnCount * step) / 2
+        val left = (gridLeft + index / 7 * step + (step - cellSize) / 2).toInt()
         val top = (chartTop + index % 7 * step).toInt()
         return Rect(left, top, (left + cellSize).toInt(), (top + cellSize).toInt())
     }
