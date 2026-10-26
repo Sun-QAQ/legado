@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/video_controller"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <LinearLayout
+        android:id="@+id/video_controls"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom"
+        android:background="@drawable/bg_video_bottom_scrim"
+        android:orientation="vertical"
+        android:paddingHorizontal="16dp"
+        android:paddingTop="8dp"
+        android:paddingBottom="8dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="24dp"
+            android:gravity="center_vertical"
+            android:layoutDirection="ltr">
+
+            <TextView
+                android:id="@id/exo_position"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="00:00"
+                android:textColor="@color/video_control_primary"
+                android:textSize="13sp"
+                android:fontFamily="sans-serif-medium" />
+
+            <TextView
+                android:id="@id/exo_duration"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="00:00"
+                android:textColor="@color/video_control_secondary"
+                android:textSize="13sp" />
+        </LinearLayout>
+
+        <androidx.media3.ui.DefaultTimeBar
+            android:id="@id/exo_progress"
+            android:layout_width="match_parent"
+            android:layout_height="32dp"
+            app:bar_height="3dp"
+            app:buffered_color="#FF9CA5B4"
+            app:played_color="@color/video_control_primary"
+            app:scrubber_color="@color/video_control_primary"
+            app:unplayed_color="#FF505660" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="72dp"
+            android:gravity="center"
+            android:layoutDirection="ltr">
+
+            <androidx.appcompat.widget.AppCompatImageButton
+                android:id="@+id/iv_skip_previous"
+                style="@style/VideoControlButton"
+                android:contentDescription="@string/skip_previous"
+                app:srcCompat="@drawable/ic_skip_previous" />
+
+            <androidx.appcompat.widget.AppCompatImageButton
+                android:id="@id/exo_rew"
+                style="@style/VideoControlButton"
+                android:layout_marginHorizontal="4dp"
+                android:contentDescription="@string/exo_controls_rewind_description"
+                app:srcCompat="@drawable/ic_fast_rewind" />
+
+            <androidx.appcompat.widget.AppCompatImageButton
+                android:id="@id/exo_play_pause"
+                style="@style/VideoControlButton"
+                android:layout_width="64dp"
+                android:layout_height="64dp"
+                android:background="@drawable/bg_video_play_button"
+                android:contentDescription="@string/exo_controls_play_description"
+                android:padding="16dp"
+                app:srcCompat="@drawable/ic_play_24dp" />
+
+            <androidx.appcompat.widget.AppCompatImageButton
+                android:id="@id/exo_ffwd"
+                style="@style/VideoControlButton"
+                android:layout_marginHorizontal="4dp"
+                android:contentDescription="@string/exo_controls_fastforward_description"
+                app:srcCompat="@drawable/ic_fast_forward" />
+
+            <androidx.appcompat.widget.AppCompatImageButton
+                android:id="@+id/iv_skip_next"
+                style="@style/VideoControlButton"
+                android:contentDescription="@string/skip_next"
+                app:srcCompat="@drawable/ic_skip_next" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:gravity="center_vertical">
+
+            <TextView
+                android:id="@id/exo_playback_speed"
+                style="@style/VideoControlText"
+                android:contentDescription="@string/exo_controls_playback_speed"
+                android:text="1.0X" />
+
+            <androidx.appcompat.widget.AppCompatImageButton
+                android:id="@+id/iv_play_mode"
+                style="@style/VideoControlButton"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:contentDescription="@string/play_mode"
+                app:srcCompat="@drawable/ic_play_mode_list_end_stop" />
+
+            <TextView
+                android:id="@+id/tv_timer"
+                style="@style/VideoControlText"
+                android:contentDescription="@string/set_timer"
+                android:text="@string/set_timer" />
+
+            <TextView
+                android:id="@+id/iv_chapter"
+                style="@style/VideoControlText"
+                android:text="@string/video_select_episode" />
+        </LinearLayout>
+    </LinearLayout>
+</FrameLayout>

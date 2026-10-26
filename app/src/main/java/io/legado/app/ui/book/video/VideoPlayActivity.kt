@@ -5,6 +5,7 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
+import android.graphics.Color
 import android.os.Bundle
 import android.os.IBinder
 import android.view.Gravity
@@ -13,8 +14,13 @@ import android.view.MenuItem
 import android.view.View
 import androidx.activity.viewModels
 import androidx.core.content.ContextCompat
-import androidx.media3.ui.PlayerView
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.updatePadding
 import androidx.lifecycle.lifecycleScope
+import androidx.media3.common.PlaybackParameters
+import androidx.media3.common.Player
+import androidx.media3.ui.PlayerView
 import io.legado.app.R
 import io.legado.app.base.VMBaseActivity
 import io.legado.app.constant.BookType
@@ -26,6 +32,7 @@ import io.legado.app.data.entities.Book
 import io.legado.app.data.entities.BookChapter
 import io.legado.app.data.entities.BookSource
 import io.legado.app.databinding.ActivityVideoPlayBinding
+import io.legado.app.databinding.ViewVideoControlsBinding
 import io.legado.app.help.book.isVideo
 import io.legado.app.help.book.removeType
 import io.legado.app.help.config.AppConfig
@@ -65,9 +72,19 @@ class VideoPlayActivity :
 
     override val binding by viewBinding(ActivityVideoPlayBinding::inflate)
     override val viewModel by viewModels<VideoPlayViewModel>()
-    private val timerSliderPopup by lazy { TimerSliderPopup(this) }
+    private val controls by lazy {
+        ViewVideoControlsBinding.bind(binding.playerView.findViewById(R.id.video_controller))
+    }
+    private val timerSliderPopup by lazy {
+        TimerSliderPopup(this, { VideoPlayService.timeMinute }, VideoPlay::setTimer)
+    }
     private var playMode = VideoPlay.PlayMode.LIST_END_STOP
     private var pausedByLifecycle = false
+    private val playerListener = object : Player.Listener {
+        override fun onPlaybackParametersChanged(playbackParameters: PlaybackParameters) {
+            updateSpeed(playbackParameters.speed)
+        }
+    }
 
     private var videoPlayService: VideoPlayService? = null
     private val connection = object : ServiceConnection {
@@ -75,9 +92,14 @@ class VideoPlayActivity :
             videoPlayService = (service as VideoPlayService.LocalBinder).getService()
             // 视频画面与控制条交由 PlayerView, 播放器实例由 service 持有
             binding.playerView.player = videoPlayService?.exoPlayer
+            binding.playerView.player?.let {
+                it.addListener(playerListener)
+                updateSpeed(it.playbackParameters.speed)
+            }
         }
 
         override fun onServiceDisconnected(name: ComponentName) {
+            binding.playerView.player?.removeListener(playerListener)
             binding.playerView.player = null
             videoPlayService = null
         }
@@ -91,7 +113,14 @@ class VideoPlayActivity :
         }
 
     override fun onActivityCreated(savedInstanceState: Bundle?) {
-        binding.titleBar.setBackgroundResource(R.color.transparent)
+        binding.titleBar.apply {
+            setBackgroundResource(R.drawable.bg_video_top_scrim)
+            setTitleTextColor(Color.WHITE)
+            setSubTitleTextColor(
+                ContextCompat.getColor(this@VideoPlayActivity, R.color.video_control_secondary)
+            )
+            setColorFilter(Color.WHITE)
+        }
         VideoPlay.register(this)
         bindVideoService()
         viewModel.titleData.observe(this) {
@@ -114,6 +143,11 @@ class VideoPlayActivity :
     override fun onCompatCreateOptionsMenu(menu: Menu): Boolean {
         menuInflater.inflate(R.menu.video_play, menu)
         return super.onCompatCreateOptionsMenu(menu)
+    }
+
+    override fun onPrepareOptionsMenu(menu: Menu): Boolean {
+        binding.titleBar.setColorFilter(Color.WHITE)
+        return super.onPrepareOptionsMenu(menu)
     }
 
     override fun onMenuOpened(featureId: Int, menu: Menu): Boolean {
@@ -149,16 +183,27 @@ class VideoPlayActivity :
     }
 
     private fun initView() {
-        // 标题栏与剧集控制条跟随 PlayerView 控制器显隐(点击视频区域显示, 超时自动隐藏)
+        ViewCompat.setOnApplyWindowInsetsListener(controls.root) { _, insets ->
+            val safe = insets.getInsets(
+                WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout()
+            )
+            controls.videoControls.updatePadding(
+                left = 16.dpToPx() + safe.left,
+                right = 16.dpToPx() + safe.right,
+                bottom = 8.dpToPx() + safe.bottom
+            )
+            binding.titleBar.toolbar.updatePadding(left = safe.left, right = safe.right)
+            insets
+        }
+        ViewCompat.requestApplyInsets(controls.root)
+        // 底部控制区由 PlayerView 统一显隐，标题栏同步跟随。
         binding.playerView.setControllerVisibilityListener(
             PlayerView.ControllerVisibilityListener { visibility ->
                 val show = visibility == View.VISIBLE
-                listOf(binding.titleBar, binding.llEpisodeMenu).forEach {
-                    if (show) it.visible() else it.invisible()
-                }
+                if (show) binding.titleBar.visible() else binding.titleBar.invisible()
             }
         )
-        binding.ivPlayMode.setOnClickListener {
+        controls.ivPlayMode.setOnClickListener {
             VideoPlay.changePlayMode()
         }
 
@@ -167,31 +212,35 @@ class VideoPlayActivity :
             updatePlayModeIcon()
         }
 
-        binding.ivSkipNext.setOnClickListener {
+        controls.ivSkipNext.setOnClickListener {
             VideoPlay.next()
         }
         // 长按调节倍速
-        binding.ivSkipNext.onLongClick {
+        controls.ivSkipNext.onLongClick {
             VideoPlay.adjustSpeed(0.1f)
         }
-        binding.ivSkipPrevious.setOnClickListener {
+        controls.ivSkipPrevious.setOnClickListener {
             VideoPlay.prev()
         }
-        binding.ivSkipPrevious.onLongClick {
+        controls.ivSkipPrevious.onLongClick {
             VideoPlay.adjustSpeed(-0.1f)
         }
-        binding.ivChapter.setOnClickListener {
+        controls.ivChapter.setOnClickListener {
             if (VideoPlay.book != null) {
                 EpisodeListDialog().show(supportFragmentManager, "episodeList")
             }
         }
-        binding.ivTimer.setOnClickListener {
-            timerSliderPopup.showAsDropDown(it, 0, (-100).dpToPx(), Gravity.TOP)
+        controls.tvTimer.setOnClickListener {
+            timerSliderPopup.showAtLocation(binding.root, Gravity.BOTTOM, 0, 0)
         }
     }
 
     private fun updatePlayModeIcon() {
-        binding.ivPlayMode.setImageResource(playMode.iconRes)
+        controls.ivPlayMode.setImageResource(playMode.iconRes)
+    }
+
+    private fun updateSpeed(speed: Float) {
+        controls.exoPlaybackSpeed.text = String.format(Locale.ROOT, "%.1fX", speed)
     }
 
     private fun upCover(path: String?) {
@@ -263,17 +312,19 @@ class VideoPlayActivity :
         }
         observeEventSticky<String>(EventBus.AUDIO_SUB_TITLE) {
             binding.titleBar.subtitle = it
-            binding.ivSkipPrevious.isEnabled = VideoPlay.durChapterIndex > 0
-            binding.ivSkipNext.isEnabled =
+            controls.ivSkipPrevious.isEnabled = VideoPlay.durChapterIndex > 0
+            controls.ivSkipNext.isEnabled =
                 VideoPlay.durChapterIndex < VideoPlay.simulatedChapterSize - 1
         }
         observeEventSticky<Float>(EventBus.AUDIO_SPEED) {
-            binding.tvSpeed.text = String.format(Locale.ROOT, "%.1fX", it)
-            binding.tvSpeed.visible()
+            updateSpeed(it)
         }
         observeEventSticky<Int>(EventBus.AUDIO_DS) {
-            binding.tvTimer.text = "${it}m"
-            binding.tvTimer.visible(it > 0)
+            controls.tvTimer.text = if (it > 0) {
+                getString(R.string.timer_m, it)
+            } else {
+                getString(R.string.set_timer)
+            }
         }
     }
 
@@ -303,7 +354,9 @@ class VideoPlayActivity :
 
     override fun onDestroy() {
         super.onDestroy()
+        binding.playerView.player?.removeListener(playerListener)
         binding.playerView.player = null
+        timerSliderPopup.dismiss()
         try {
             @Suppress("DEPRECATION")
             unbindService(connection)

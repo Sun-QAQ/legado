@@ -12,7 +12,11 @@ import io.legado.app.model.AudioPlay
 import io.legado.app.service.AudioPlayService
 import io.legado.app.ui.widget.seekbar.SeekBarChangeListener
 
-class TimerSliderPopup(private val context: Context) :
+class TimerSliderPopup(
+    private val context: Context,
+    private val getTimer: () -> Int = { AudioPlayService.timeMinute },
+    private val setTimer: (Int) -> Unit = AudioPlay::setTimer
+) :
     PopupWindow(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT) {
 
     private val binding = PopupSeekBarBinding.inflate(LayoutInflater.from(context))
@@ -31,7 +35,7 @@ class TimerSliderPopup(private val context: Context) :
             override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) {
                 setProcessTextValue(progress)
                 if (fromUser) {
-                    AudioPlay.setTimer(progress)
+                    setTimer(progress)
                 }
             }
 
@@ -40,12 +44,12 @@ class TimerSliderPopup(private val context: Context) :
 
     override fun showAsDropDown(anchor: View?, xoff: Int, yoff: Int, gravity: Int) {
         super.showAsDropDown(anchor, xoff, yoff, gravity)
-        binding.seekBar.progress = AudioPlayService.timeMinute
+        binding.seekBar.progress = getTimer()
     }
 
     override fun showAtLocation(parent: View?, gravity: Int, x: Int, y: Int) {
         super.showAtLocation(parent, gravity, x, y)
-        binding.seekBar.progress = AudioPlayService.timeMinute
+        binding.seekBar.progress = getTimer()
     }
 
     private fun setProcessTextValue(process: Int) {
