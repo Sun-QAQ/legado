@@ -295,6 +295,8 @@ android:icon="@mipmap/ic_launcher"
             android:name=".ui.book.import.remote.RemoteBookActivity"
             android:launchMode="singleTop" />
         <!-- 发现界面 -->
+        <activity android:name=".ui.book.explore.RandomRecommendActivity" />
+        <activity android:name=".ui.book.explore.RandomRecommendConfigActivity" />
         <activity
             android:name=".ui.book.explore.ExploreShowActivity"
             android:launchMode="singleTop" />

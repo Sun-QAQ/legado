@@ -3,6 +3,7 @@ package io.legado.app.ui.main.explore
 import android.os.Build
 import android.os.Bundle
 import android.view.View
+import androidx.appcompat.widget.PopupMenu
 import androidx.appcompat.widget.SearchView as AppCompatSearchView
 import androidx.core.view.isVisible
 import androidx.core.view.ViewCompat
@@ -30,6 +31,7 @@ import io.legado.app.lib.dialogs.alert
 import io.legado.app.lib.theme.accentColor
 import io.legado.app.lib.theme.primaryTextColor
 import io.legado.app.ui.book.explore.ExploreShowActivity
+import io.legado.app.ui.book.explore.RandomRecommendActivity
 import io.legado.app.ui.book.search.SearchActivity
 import io.legado.app.ui.book.search.SearchScope
 import io.legado.app.ui.book.source.edit.BookSourceEditActivity
@@ -95,6 +97,21 @@ class ExploreFragment() : VMBaseFragment<ExploreViewModel>(R.layout.fragment_exp
     override fun onFragmentCreated(view: View, savedInstanceState: Bundle?) {
         binding.vwStatusBar.applyStatusBarPadding()
         initSearchView()
+        binding.ivExploreMenu.setOnClickListener { anchor ->
+            PopupMenu(requireContext(), anchor).apply {
+                menuInflater.inflate(R.menu.explore, menu)
+                setOnMenuItemClickListener { item ->
+                    when (item.itemId) {
+                        R.id.menu_random_recommend -> {
+                            startActivity<RandomRecommendActivity>()
+                            true
+                        }
+                        else -> false
+                    }
+                }
+                show()
+            }
+        }
         initCollapseAll()
         initRecyclerView()
         initGroupData()

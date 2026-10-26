@@ -1446,4 +1446,22 @@
     <string name="url_option_retry">Retry count (retry)</string>
     <string name="url_option_web_js">WebView script (webJs)</string>
     <string name="url_option_js">URL script (js)</string>
+    <string name="random_recommend">Random recommendations</string>
+    <string name="random_recommend_more">More options</string>
+    <string name="random_recommend_config">Random recommendation settings</string>
+    <string name="random_recommend_refresh">Try another batch</string>
+    <string name="random_recommend_clear">Clear configuration</string>
+    <string name="random_recommend_clear_confirm">Clear all selected sources and discovery categories?</string>
+    <string name="random_recommend_unconfigured">Please configure random recommendations first</string>
+    <string name="random_recommend_loading">Loading random recommendations…</string>
+    <string name="random_recommend_config_hint">Tap a source to select multiple discovery categories. Confirm to save each selection, then return to load recommendations.</string>
+    <string name="random_recommend_no_sources">No discovery sources available. Please import a source and enable discovery first.</string>
+    <string name="random_recommend_no_categories">No selectable discovery categories. Check this source and try again.</string>
+    <string name="random_recommend_categories_error">Could not load discovery categories. Please check the source or network and retry.</string>
+    <string name="random_recommend_not_selected">Not selected · Tap to choose discovery categories</string>
+    <string name="random_recommend_selected">%1$d selected: %2$s</string>
+    <string name="random_recommend_count">%1$d books recommended · Use the menu to try another batch</string>
+    <string name="random_recommend_partial">%1$d books recommended; %2$d categories failed. Check the sources or try again.</string>
+    <string name="random_recommend_empty">No books found. Check the selected sources and categories, or try another batch.</string>
+    <string name="random_recommend_error">Could not load recommendations. Please try again.</string>
 </resources>
