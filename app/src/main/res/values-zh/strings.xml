@@ -1432,7 +1432,6 @@
     <string name="random_recommend_categories_error">发现分类加载失败，请检查书源或网络后重试。</string>
     <string name="random_recommend_not_selected">未选择 · 点击选择发现分类</string>
     <string name="random_recommend_selected">已选 %1$d 个：%2$s</string>
-    <string name="random_recommend_count">已随机推荐 %1$d 本 · 可在菜单中换一批</string>
     <string name="random_recommend_partial">已随机推荐 %1$d 本，%2$d 个分类加载失败，请检查书源或重试。</string>
     <string name="random_recommend_empty">暂未获取到书籍，请检查已选书源与发现分类，或换一批重试。</string>
     <string name="random_recommend_error">随机推荐加载失败，请重试。</string>

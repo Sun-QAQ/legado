@@ -31,6 +31,7 @@ class RandomRecommendActivity :
         viewModel.state.observe(this) { state ->
             binding.progressBar.isVisible = state.loading
             binding.tvStatus.text = state.message
+            binding.tvStatus.isVisible = state.message.isNotBlank()
             adapter.setItems(state.books)
         }
         viewModel.shelfKeys.observe(this) {

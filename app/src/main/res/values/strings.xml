@@ -1460,7 +1460,6 @@
     <string name="random_recommend_categories_error">Could not load discovery categories. Please check the source or network and retry.</string>
     <string name="random_recommend_not_selected">Not selected · Tap to choose discovery categories</string>
     <string name="random_recommend_selected">%1$d selected: %2$s</string>
-    <string name="random_recommend_count">%1$d books recommended · Use the menu to try another batch</string>
     <string name="random_recommend_partial">%1$d books recommended; %2$d categories failed. Check the sources or try again.</string>
     <string name="random_recommend_empty">No books found. Check the selected sources and categories, or try another batch.</string>
     <string name="random_recommend_error">Could not load recommendations. Please try again.</string>

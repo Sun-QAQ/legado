@@ -75,7 +75,7 @@ class RandomRecommendViewModel(application: Application) : BaseViewModel(applica
                     result.failedCategories > 0 -> context.getString(
                         R.string.random_recommend_partial, result.books.size, result.failedCategories
                     )
-                    else -> context.getString(R.string.random_recommend_count, result.books.size)
+                    else -> ""
                 }
                 state.value = State(result.books, message = message)
             } catch (e: CancellationException) {
