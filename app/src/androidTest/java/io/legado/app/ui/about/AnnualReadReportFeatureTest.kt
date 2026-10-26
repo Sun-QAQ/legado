@@ -116,9 +116,14 @@ class AnnualReadReportFeatureTest {
                         val bookDuration = textViews(content).last {
                             it.text.toString() == activity.getString(R.string.annual_report_duration, 2L, 30L)
                         }
+                        val palette = ThemePalette(activity)
+                        val surface = androidx.core.graphics.ColorUtils.compositeColors(
+                            palette.surface,
+                            androidx.core.graphics.ColorUtils.setAlphaComponent(palette.background, 255),
+                        )
                         assertTrue("Book reading time remains readable in theme $night",
                             androidx.core.graphics.ColorUtils.calculateContrast(
-                                bookDuration.currentTextColor, ThemePalette(activity).surface) >= 4.5)
+                                bookDuration.currentTextColor, surface) >= 4.5)
                         assertTrue(content.height > 0)
                         val image = Bitmap.createBitmap(content.width, content.height, Bitmap.Config.ARGB_8888)
                         val canvas = Canvas(image)
