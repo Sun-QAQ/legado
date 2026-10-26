@@ -4,6 +4,11 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <item
+        android:id="@+id/menu_read_timeline"
+        android:title="@string/read_timeline_title"
+        app:showAsAction="never" />
+
+    <item
         android:id="@+id/menu_annual_report"
         android:icon="@drawable/ic_annual_report"
         android:title="@string/annual_report_title"

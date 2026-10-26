@@ -22,6 +22,7 @@ import io.legado.app.databinding.ItemReadRecordBinding
 import io.legado.app.databinding.ItemReadRecordHeaderBinding
 import io.legado.app.help.config.AppConfig
 import io.legado.app.help.config.LocalConfig
+import io.legado.app.help.globalExecutor
 import io.legado.app.lib.dialogs.alert
 import io.legado.app.lib.theme.ThemePalette
 import io.legado.app.lib.theme.accentColor
@@ -110,6 +111,10 @@ class ReadRecordActivity : BaseActivity<ActivityReadRecordBinding>() {
 
     override fun onActivityCreated(savedInstanceState: Bundle?) {
         initView()
+    }
+
+    override fun onResume() {
+        super.onResume()
         initAllTime()
         initData()
     }
@@ -138,6 +143,10 @@ class ReadRecordActivity : BaseActivity<ActivityReadRecordBinding>() {
 
     override fun onCompatOptionsItemSelected(item: MenuItem): Boolean {
         when (item.itemId) {
+            R.id.menu_read_timeline -> {
+                startActivity<ReadTimelineActivity>()
+                return true
+            }
             R.id.menu_annual_report -> {
                 startActivity<AnnualReadReportActivity>()
                 return true
@@ -170,17 +179,28 @@ class ReadRecordActivity : BaseActivity<ActivityReadRecordBinding>() {
 
     private fun initView() {
         applyTheme()
+        headerBinding.readTimeline.setOnClickListener { startActivity<ReadTimelineActivity>() }
         adapter.addHeaderView { headerBinding }
         binding.recyclerView.apply {
             adapter = this@ReadRecordActivity.adapter
             applyNavigationBarPadding()
         }
         headerBinding.tvClearAll.setOnClickListener {
-            alert(R.string.delete, R.string.sure_del) {
+            alert(R.string.delete, R.string.read_timeline_clear_all) {
                 yesButton {
-                    appDb.readRecordDao.clear()
-                    initAllTime()
-                    initData()
+                    lifecycleScope.launch {
+                        withContext(IO) {
+                            globalExecutor.submit {
+                                appDb.runInTransaction {
+                                    appDb.readRecordDao.clear()
+                                    appDb.readStatDao.clear()
+                                    appDb.readSessionDao.clear()
+                                }
+                            }.get()
+                        }
+                        initAllTime()
+                        initData()
+                    }
                 }
                 noButton()
             }
@@ -461,9 +481,19 @@ class ReadRecordActivity : BaseActivity<ActivityReadRecordBinding>() {
             alert(R.string.delete) {
                 setMessage(getString(R.string.sure_del_read_record, item.bookName))
                 yesButton {
-                    appDb.readRecordDao.deleteByName(item.bookName)
-                    initAllTime()
-                    initData()
+                    lifecycleScope.launch {
+                        withContext(IO) {
+                            globalExecutor.submit {
+                                appDb.runInTransaction {
+                                    appDb.readRecordDao.deleteByName(item.bookName)
+                                    appDb.readStatDao.deleteByName(item.bookName)
+                                    appDb.readSessionDao.deleteByName(item.bookName)
+                                }
+                            }.get()
+                        }
+                        initAllTime()
+                        initData()
+                    }
                 }
                 noButton()
             }

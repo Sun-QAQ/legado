@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="read_timeline_title">阅读时间线</string>
+    <string name="read_timeline_previous">前一天</string>
+    <string name="read_timeline_next">后一天</string>
+    <string name="read_timeline_today">今天</string>
+    <string name="read_timeline_choose_date">选择日期，当前为 %1$s</string>
+    <string name="read_timeline_summary">%1$d 个时段 · %2$d 本书\n%3$s</string>
+    <string name="read_timeline_duration">%1$d 小时 %2$d 分 %3$d 秒</string>
+    <string name="read_timeline_range">%1$s — %2$s</string>
+    <string name="read_timeline_notice">仅记录阅读页处于前台的时间，不含后台朗读。开启阅读记录后，从本版本开始记录；旧累计数据无法还原为时段。每 30 秒及离开阅读页时保存。</string>
+    <string name="read_timeline_empty">当天还没有阅读时段\n可以切换日期，或开始一段阅读</string>
+    <string name="read_timeline_error">暂时无法读取或更新阅读时段，请重试。</string>
+    <string name="read_timeline_delete_confirm">删除此时段，并从每日统计及总阅读时长中扣除对应时长？</string>
+    <string name="read_timeline_delete_description">删除 %1$s 阅读 %2$s 的时段</string>
+    <string name="read_timeline_clear_all">删除全部阅读记录、每日统计和阅读时段？已保存的年度报告会保留。</string>
+</resources>

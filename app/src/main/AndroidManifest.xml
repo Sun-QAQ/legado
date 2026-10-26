@@ -327,6 +327,10 @@ android:icon="@mipmap/ic_launcher"
             android:theme="@style/AppTheme.Transparent" />
         <!-- 阅读记录 -->
         <activity
+            android:name=".ui.about.ReadTimelineActivity"
+            android:exported="false"
+            android:hardwareAccelerated="true" />
+        <activity
             android:name=".ui.about.AnnualReadReportActivity"
             android:exported="false"
             android:hardwareAccelerated="true" />

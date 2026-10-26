@@ -28,6 +28,7 @@ import io.legado.app.help.coroutine.Coroutine
 import io.legado.app.model.ImageProvider
 import io.legado.app.model.ReadAloud
 import io.legado.app.model.ReadBook
+import io.legado.app.model.ReadSessionRecorder
 import io.legado.app.model.localBook.LocalBook
 import io.legado.app.model.webBook.WebBook
 import io.legado.app.service.BaseReadAloudService
@@ -61,6 +62,8 @@ import java.io.FileOutputStream
 class ReadBookViewModel(application: Application) : BaseViewModel(application) {
     val permissionDenialLiveData = MutableLiveData<Int>()
     var isInitFinish = false
+    var isReadingSessionReady = false
+        private set
     var searchContentQuery = ""
     var searchResultList: List<SearchResult>? = null
     var searchResultIndex: Int = 0
@@ -83,6 +86,8 @@ class ReadBookViewModel(application: Application) : BaseViewModel(application) {
      * 初始化
      */
     fun initData(intent: Intent, success: (() -> Unit)? = null) {
+        isReadingSessionReady = false
+        ReadSessionRecorder.setBook(null)
         execute {
             ReadBook.inBookshelf = intent.getBooleanExtra("inBookshelf", true)
             ReadBook.chapterChanged = intent.getBooleanExtra("chapterChanged", false)
@@ -146,6 +151,8 @@ class ReadBookViewModel(application: Application) : BaseViewModel(application) {
             autoChangeSource(book.name, book.author)
             return
         }
+        isReadingSessionReady = true
+        ReadSessionRecorder.setBook(book)
     }
 
     private fun checkLocalBookFileExist(book: Book): Boolean {

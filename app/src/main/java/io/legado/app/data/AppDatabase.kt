@@ -5,6 +5,8 @@ import android.database.sqlite.SQLiteDatabase
 import android.os.Build
 import android.util.Log
 import androidx.room.AutoMigration
+import io.legado.app.data.dao.ReadSessionDao
+import io.legado.app.data.entities.ReadSession
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
@@ -81,14 +83,15 @@ val appDb by lazy {
 }
 
 @Database(
-    version = 85,
+    version = 86,
     exportSchema = true,
     entities = [Book::class, BookGroup::class, BookSource::class, BookChapter::class,
         ReplaceRule::class, SearchBook::class, SearchKeyword::class, Cookie::class,
         RssSource::class, Bookmark::class, RssArticle::class, RssReadRecord::class,
         RssStar::class, TxtTocRule::class, ReadRecord::class, ReadStat::class, HttpTTS::class, Cache::class,
         RuleSub::class, DictRule::class, KeyboardAssist::class, Server::class, AiSource::class,
-        AiPersona::class, AiPreset::class, AiConversation::class, AiImageSource::class, AiSearchSource::class],
+        AiPersona::class, AiPreset::class, AiConversation::class, AiImageSource::class, AiSearchSource::class,
+        ReadSession::class],
     views = [BookSourcePart::class],
     autoMigrations = [
         AutoMigration(from = 43, to = 44),
@@ -133,6 +136,7 @@ val appDb by lazy {
         AutoMigration(from = 82, to = 83, spec = DatabaseMigrations.Migration_82_83::class),
         AutoMigration(from = 83, to = 84, spec = DatabaseMigrations.Migration_83_84::class),
         AutoMigration(from = 84, to = 85),
+        AutoMigration(from = 85, to = 86),
     ]
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -153,6 +157,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract val txtTocRuleDao: TxtTocRuleDao
     abstract val readRecordDao: ReadRecordDao
     abstract val readStatDao: ReadStatDao
+    abstract val readSessionDao: ReadSessionDao
     abstract val httpTTSDao: HttpTTSDao
     abstract val cacheDao: CacheDao
     abstract val ruleSubDao: RuleSubDao

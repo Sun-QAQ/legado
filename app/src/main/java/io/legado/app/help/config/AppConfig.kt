@@ -6,6 +6,7 @@ import io.legado.app.BuildConfig
 import io.legado.app.constant.AppConst
 import io.legado.app.constant.PreferKey
 import io.legado.app.data.appDb
+import io.legado.app.model.ReadSessionRecorder
 import io.legado.app.utils.canvasrecorder.CanvasRecorderFactory
 import io.legado.app.utils.getPrefBoolean
 import io.legado.app.utils.getPrefInt
@@ -395,6 +396,7 @@ object AppConfig : SharedPreferences.OnSharedPreferenceChangeListener {
     var enableReadRecord: Boolean
         get() = appCtx.getPrefBoolean(PreferKey.enableReadRecord, true)
         set(value) {
+            ReadSessionRecorder.checkpoint(value)
             appCtx.putPrefBoolean(PreferKey.enableReadRecord, value)
         }
 

@@ -46,6 +46,17 @@ interface ReadRecordDao {
     @Query("select readTime from readRecord where deviceId = :androidId and bookName = :bookName")
     fun getReadTime(androidId: String, bookName: String): Long?
 
+    @Query("""
+        insert into readRecord (deviceId, bookName, readTime, lastRead)
+        values (:deviceId, :name, :time, :lastRead)
+        on conflict(deviceId, bookName) do update set
+        readTime = readTime + :time, lastRead = max(lastRead, :lastRead)
+    """)
+    fun addTime(deviceId: String, name: String, time: Long, lastRead: Long)
+
+    @Query("update readRecord set readTime = max(0, readTime - :time) where deviceId = :deviceId and bookName = :name")
+    fun subtractTime(deviceId: String, name: String, time: Long)
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     fun insert(vararg readRecord: ReadRecord)
 

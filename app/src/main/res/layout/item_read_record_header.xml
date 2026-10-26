@@ -12,6 +12,15 @@
         <TextView android:id="@+id/tv_clear_all" android:layout_width="wrap_content" android:layout_height="wrap_content" android:background="?attr/selectableItemBackgroundBorderless" android:padding="8dp" android:text="@string/read_record_clear_all" android:textSize="12sp" app:layout_constraintBottom_toBottomOf="parent" app:layout_constraintRight_toRightOf="parent" app:layout_constraintTop_toTopOf="parent" />
     </androidx.constraintlayout.widget.ConstraintLayout>
 
+    <Button
+        android:id="@+id/read_timeline"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="16dp"
+        android:layout_marginTop="12dp"
+        android:minHeight="52dp"
+        android:text="@string/read_timeline_title" />
+
     <LinearLayout
         android:id="@+id/heatmap_card"
         android:layout_width="match_parent"

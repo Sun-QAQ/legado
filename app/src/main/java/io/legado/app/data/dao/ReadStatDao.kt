@@ -29,4 +29,13 @@ interface ReadStatDao {
         """
     )
     fun addTime(bookName: String, date: Long, time: Long)
+
+    @Query("update readStats set readTime = max(0, readTime - :time) where bookName = :name and date = :date")
+    fun subtractTime(name: String, date: Long, time: Long)
+
+    @Query("delete from readStats where bookName = :name")
+    fun deleteByName(name: String)
+
+    @Query("delete from readStats")
+    fun clear()
 }

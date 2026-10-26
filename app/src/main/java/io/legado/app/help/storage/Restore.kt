@@ -25,6 +25,8 @@ import io.legado.app.data.entities.KeyboardAssist
 import io.legado.app.data.entities.ReadRecord
 import io.legado.app.data.entities.ReplaceRule
 import io.legado.app.data.entities.ReadStat
+import io.legado.app.data.entities.ReadSession
+import io.legado.app.model.ReadSessionStorage
 import io.legado.app.data.entities.RssSource
 import io.legado.app.data.entities.RssStar
 import io.legado.app.data.entities.RuleSub
@@ -189,6 +191,9 @@ object Restore {
         }
         fileToListT<ReadStat>(path, "readStats.json")?.let {
             appDb.readStatDao.insert(*it.toTypedArray())
+        }
+        fileToListT<ReadSession>(path, "readSessions.json")?.let {
+            ReadSessionStorage.restore(appDb, it)
         }
 restoreEncryptedList<Server>(path, "servers.json", aes, "服务器配置") {
     appDb.serverDao.insert(*it.toTypedArray())

@@ -24,6 +24,8 @@ import androidx.core.content.ContextCompat
 import androidx.core.view.get
 import androidx.core.view.size
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.repeatOnLifecycle
 import com.jaredrummler.android.colorpicker.ColorPickerDialogListener
 import io.legado.app.BuildConfig
 import io.legado.app.R
@@ -138,6 +140,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.withContext
 
 /**
@@ -321,6 +324,14 @@ class ReadBookActivity : BaseReadBookActivity(),
             false
         }
         justInitData = true
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.RESUMED) {
+                while (isActive) {
+                    delay(30_000)
+                    ReadBook.upReadTime()
+                }
+            }
+        }
     }
 
     override fun onPostResume() {
@@ -365,7 +376,9 @@ class ReadBookActivity : BaseReadBookActivity(),
         super.onResume()
         readerResumed = true
         startEyePageTurner()
-        ReadBook.readStartTime = System.currentTimeMillis()
+        ReadBook.onReaderResumed(
+            ReadBook.book.takeIf { viewModel.isReadingSessionReady && !bookChanged && !justInitData },
+        )
         if (bookChanged) {
             bookChanged = false
             ReadBook.callBack = this
@@ -393,6 +406,7 @@ class ReadBookActivity : BaseReadBookActivity(),
     }
 
     override fun onPause() {
+        ReadBook.onReaderPaused()
         readerResumed = false
         eyePageTurner?.stop()
         super.onPause()

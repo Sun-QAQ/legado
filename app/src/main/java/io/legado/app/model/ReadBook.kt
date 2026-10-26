@@ -1,5 +1,7 @@
 package io.legado.app.model
 
+import android.os.SystemClock
+import io.legado.app.constant.AppConst.androidId
 import io.legado.app.constant.AppLog
 import io.legado.app.constant.EventBus
 import io.legado.app.constant.PageAnim.scrollPageAnim
@@ -8,7 +10,6 @@ import io.legado.app.data.entities.Book
 import io.legado.app.data.entities.BookChapter
 import io.legado.app.data.entities.BookProgress
 import io.legado.app.data.entities.BookSource
-import io.legado.app.data.entities.ReadRecord
 import io.legado.app.help.AppWebDav
 import io.legado.app.help.book.BookHelp
 import io.legado.app.help.book.ContentProcessor
@@ -54,7 +55,8 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import splitties.init.appCtx
 import java.util.concurrent.ConcurrentHashMap
-import java.time.LocalDate
+import java.time.Instant
+import java.time.ZoneId
 import kotlin.math.max
 import kotlin.math.min
 
@@ -76,12 +78,13 @@ object ReadBook : CoroutineScope by MainScope() {
     var bookSource: BookSource? = null
     var msg: String? = null
     private val loadingChapters = arrayListOf<Int>()
-    private val readRecord = ReadRecord()
     private val chapterLoadingJobs = ConcurrentHashMap<Int, Coroutine<*>>()
     private val prevChapterLoadingLock = Mutex()
     private val curChapterLoadingLock = Mutex()
     private val nextChapterLoadingLock = Mutex()
-    var readStartTime: Long = System.currentTimeMillis()
+    private val readTimeLock = Any()
+    private var readStartTime: Long = System.currentTimeMillis()
+    private var readStartElapsed: Long = SystemClock.elapsedRealtime()
 
     /* 跳转进度前进度记录 */
     var lastBookProgress: BookProgress? = null
@@ -102,8 +105,6 @@ object ReadBook : CoroutineScope by MainScope() {
         ReadBook.book = book
         // 先应用书源的图片样式及翻页设置，避免界面回调使用未初始化的默认翻页方式。
         upWebBook(book)
-        readRecord.bookName = book.name
-        readRecord.readTime = appDb.readRecordDao.getReadTime(book.name) ?: 0
         chapterSize = appDb.bookChapterDao.getChapterCount(book.bookUrl)
         simulatedChapterSize = if (book.readSimulating()) {
             book.simulatedTotalChapterNum()
@@ -286,21 +287,55 @@ object ReadBook : CoroutineScope by MainScope() {
     }
 
     fun upReadTime() {
-        executor.execute {
-            if (!AppConfig.enableReadRecord) {
-                return@execute
-            }
-            val delta = System.currentTimeMillis() - readStartTime
-            readRecord.readTime = readRecord.readTime + delta
-            readStartTime = System.currentTimeMillis()
-            readRecord.lastRead = System.currentTimeMillis()
-            appDb.readRecordDao.insert(readRecord)
-            appDb.readStatDao.addTime(
-                readRecord.bookName,
-                LocalDate.now().toEpochDay(),
-                delta
-            )
+        if (ReadSessionRecorder.readerActive) {
+            ReadSessionRecorder.checkpoint()
+            resetReadClock()
+            return
         }
+        val current = book ?: return
+        val now = System.currentTimeMillis()
+        val delta = synchronized(readTimeLock) {
+            val elapsed = SystemClock.elapsedRealtime()
+            val time = elapsed - readStartElapsed
+            val stable = kotlin.math.abs(now - readStartTime - time) <= 2_000
+            readStartTime = now
+            readStartElapsed = elapsed
+            if (stable) time else 0L
+        }
+        // Foreground time is recorded transactionally with its intervals. Preserve
+        // background listening totals without inventing foreground timeline entries.
+        if (delta <= 0 || !AppConfig.enableReadRecord ||
+            !BaseReadAloudService.isRun || BaseReadAloudService.pause) return
+        val name = current.name
+        val zone = ZoneId.systemDefault()
+        executor.execute {
+            appDb.runInTransaction {
+                appDb.readRecordDao.addTime(androidId, name, delta, now)
+                var cursor = now - delta
+                while (cursor < now) {
+                    val date = Instant.ofEpochMilli(cursor).atZone(zone).toLocalDate()
+                    val end = minOf(now, date.plusDays(1).atStartOfDay(zone).toInstant().toEpochMilli())
+                    appDb.readStatDao.addTime(name, date.toEpochDay(), end - cursor)
+                    cursor = end
+                }
+            }
+        }
+    }
+
+    fun onReaderResumed(book: Book?) {
+        if (!ReadSessionRecorder.readerActive) upReadTime()
+        resetReadClock()
+        ReadSessionRecorder.resume(book)
+    }
+
+    fun onReaderPaused() {
+        ReadSessionRecorder.pause()
+        resetReadClock()
+    }
+
+    private fun resetReadClock() = synchronized(readTimeLock) {
+        readStartTime = System.currentTimeMillis()
+        readStartElapsed = SystemClock.elapsedRealtime()
     }
 
     fun upMsg(msg: String?) {
