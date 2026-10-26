@@ -7,6 +7,7 @@ import android.view.ViewGroup
 import android.widget.TextView
 import androidx.test.core.app.ActivityScenario
 import androidx.test.espresso.Espresso.onView
+import androidx.test.espresso.Espresso.openActionBarOverflowOrOptionsMenu
 import androidx.test.espresso.Espresso.pressBack
 import androidx.test.espresso.action.ViewActions.click
 import androidx.test.espresso.assertion.ViewAssertions.matches
@@ -35,7 +36,8 @@ class ReadTimelineViewTest {
     @Test
     fun readingRecordsEntryNavigatesDatesAndReturns() {
         ActivityScenario.launch(ReadRecordActivity::class.java).use {
-            onView(withId(R.id.read_timeline)).perform(click())
+            openActionBarOverflowOrOptionsMenu(instrumentation.targetContext)
+            onView(withText(R.string.read_timeline_title)).perform(click())
             onView(withId(R.id.select_date)).check(matches(withText(LocalDate.now().toString())))
             onView(withId(R.id.previous_day)).perform(click())
             onView(withId(R.id.select_date)).check(matches(withText(LocalDate.now().minusDays(1).toString())))
@@ -44,7 +46,7 @@ class ReadTimelineViewTest {
             onView(withId(R.id.select_date)).perform(click())
             onView(withText(android.R.string.cancel)).perform(click())
             pressBack()
-            onView(withId(R.id.read_timeline)).check(matches(isDisplayed()))
+            onView(withId(R.id.recycler_view)).check(matches(isDisplayed()))
         }
     }
 

@@ -1,7 +1,6 @@
 package io.legado.app.ui.about
 
 import android.content.Context
-import android.content.res.ColorStateList
 import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
@@ -180,7 +179,6 @@ class ReadRecordActivity : BaseActivity<ActivityReadRecordBinding>() {
 
     private fun initView() {
         applyTheme()
-        headerBinding.readTimeline.setOnClickListener { startActivity<ReadTimelineActivity>() }
         adapter.addHeaderView { headerBinding }
         binding.recyclerView.apply {
             adapter = this@ReadRecordActivity.adapter
@@ -266,8 +264,6 @@ class ReadRecordActivity : BaseActivity<ActivityReadRecordBinding>() {
         headerBinding.tvWeekChartTotal.setTextColor(accent)
         headerBinding.tvRecordSectionTitle.setTextColor(palette.text)
         headerBinding.tvRecordCount.setTextColor(palette.secondaryText)
-        headerBinding.readTimeline.backgroundTintList = ColorStateList.valueOf(accent)
-        headerBinding.readTimeline.setTextColor(summaryText)
     }
 
     private fun updateFilterStyle() {
