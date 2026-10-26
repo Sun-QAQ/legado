@@ -1436,4 +1436,6 @@
     <string name="random_recommend_partial">已随机推荐 %1$d 本，%2$d 个分类加载失败，请检查书源或重试。</string>
     <string name="random_recommend_empty">暂未获取到书籍，请检查已选书源与发现分类，或换一批重试。</string>
     <string name="random_recommend_error">随机推荐加载失败，请重试。</string>
+    <string name="random_recommend_only_selected">仅显示已选分类书源</string>
+    <string name="random_recommend_no_selected_sources">暂无已选择分类的书源，请在菜单中关闭筛选后选择分类。</string>
 </resources>

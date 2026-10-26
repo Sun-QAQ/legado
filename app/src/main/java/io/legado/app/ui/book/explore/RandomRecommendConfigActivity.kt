@@ -28,31 +28,44 @@ import kotlinx.coroutines.withTimeoutOrNull
 class RandomRecommendConfigActivity : BaseActivity<ActivityRandomRecommendConfigBinding>() {
     override val binding by viewBinding(ActivityRandomRecommendConfigBinding::inflate)
     private var selections = emptyList<RandomRecommendCategory>()
+    private var sources = emptyList<BookSourcePart>()
+    private var onlySelected = false
     private var loading = false
     private val adapter by lazy { SourceAdapter() }
 
     override fun onActivityCreated(savedInstanceState: Bundle?) {
         selections = RandomRecommendConfig.read(this)
+        onlySelected = savedInstanceState?.getBoolean("onlySelected") ?: false
         binding.recyclerView.adapter = adapter
         binding.recyclerView.addItemDecoration(VerticalDivider(this))
         binding.recyclerView.applyNavigationBarPadding()
         lifecycleScope.launch {
-            appDb.bookSourceDao.flowExplore().collect { sources ->
-                adapter.setItems(sources)
-                binding.tvHint.setText(
-                    if (sources.isEmpty()) R.string.random_recommend_no_sources
-                    else R.string.random_recommend_config_hint
-                )
+            appDb.bookSourceDao.flowExplore().collect {
+                sources = it
+                updateSources()
             }
         }
     }
 
     override fun onCompatCreateOptionsMenu(menu: Menu): Boolean {
         menuInflater.inflate(R.menu.random_recommend_config, menu)
+        menu.findItem(R.id.menu_random_selected).isChecked = onlySelected
         return true
     }
 
+    override fun onSaveInstanceState(outState: Bundle) {
+        outState.putBoolean("onlySelected", onlySelected)
+        super.onSaveInstanceState(outState)
+    }
+
     override fun onCompatOptionsItemSelected(item: MenuItem): Boolean {
+        if (item.itemId == R.id.menu_random_selected) {
+            onlySelected = !onlySelected
+            item.isChecked = onlySelected
+            updateSources()
+            binding.recyclerView.scrollToPosition(0)
+            return true
+        }
         if (item.itemId == R.id.menu_random_clear) {
             alert(R.string.random_recommend_clear, R.string.random_recommend_clear_confirm) {
                 yesButton { save(emptyList()) }
@@ -66,7 +79,22 @@ class RandomRecommendConfigActivity : BaseActivity<ActivityRandomRecommendConfig
     private fun save(categories: List<RandomRecommendCategory>) {
         selections = categories
         RandomRecommendConfig.save(this, categories)
-        adapter.notifyItemRangeChanged(0, adapter.itemCount)
+        updateSources()
+    }
+
+    private fun updateSources() {
+        val selectedUrls = selections.mapTo(hashSetOf()) { it.sourceUrl }
+        val visibleSources = if (onlySelected) {
+            sources.filter { it.bookSourceUrl in selectedUrls }
+        } else {
+            sources
+        }
+        adapter.setItems(visibleSources)
+        binding.tvHint.setText(when {
+            sources.isEmpty() -> R.string.random_recommend_no_sources
+            onlySelected && visibleSources.isEmpty() -> R.string.random_recommend_no_selected_sources
+            else -> R.string.random_recommend_config_hint
+        })
     }
 
     private fun selectCategories(source: BookSourcePart) {

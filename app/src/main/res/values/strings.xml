@@ -1464,4 +1464,6 @@
     <string name="random_recommend_partial">%1$d books recommended; %2$d categories failed. Check the sources or try again.</string>
     <string name="random_recommend_empty">No books found. Check the selected sources and categories, or try another batch.</string>
     <string name="random_recommend_error">Could not load recommendations. Please try again.</string>
+    <string name="random_recommend_only_selected">Only show sources with selected categories</string>
+    <string name="random_recommend_no_selected_sources">No sources have selected categories. Turn off the filter in the menu to choose categories.</string>
 </resources>
