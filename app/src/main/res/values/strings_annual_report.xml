@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="annual_report_title">Annual reading report</string>
+    <string name="annual_report_prompt">Celebrate your reading in %1$d. Generate your annual report and revisit the books that kept you company.\n\nYou can also find it at the top right of Reading records.</string>
+    <string name="annual_report_generate">Generate my report</string>
+    <string name="annual_report_later">Maybe later</string>
+    <string name="annual_report_choose_year">Year</string>
+    <string name="annual_report_year">%1$d</string>
+    <string name="annual_report_refresh">Update report</string>
+    <string name="annual_report_refresh_confirm">Replace this report using the daily reading records currently available? Deleted or changed statistics will affect the new report.</string>
+    <string name="annual_report_not_ready">Reports become available each December. Saved reports and previous years with daily reading records can also be revisited here.</string>
+    <string name="annual_report_error">Unable to generate or read the report. Please try again.</string>
+    <string name="annual_report_retry">Tap to retry</string>
+    <string name="annual_report_eyebrow">%1$d · MY YEAR IN BOOKS</string>
+    <string name="annual_report_hero">Time well read</string>
+    <string name="annual_report_through">Period: January 1 through %1$s</string>
+    <string name="annual_report_summary_title">A year with books</string>
+    <string name="annual_report_summary">%1$d books read\n%2$d days of reading\nLongest streak: %3$d days</string>
+    <string name="annual_report_first_day">First reading day: %1$s</string>
+    <string name="annual_report_busiest_day">Most immersed: %1$s, reading for %2$s</string>
+    <string name="annual_report_months">Your monthly reading rhythm</string>
+    <string name="annual_report_month">%1$d</string>
+    <string name="annual_report_month_value">Month %1$s, %2$s</string>
+    <string name="annual_report_books">Books that stayed with you</string>
+    <string name="annual_report_books_hint">Top 10 by reading time this year</string>
+    <string name="annual_report_book_name">%1$d　%2$s</string>
+    <string name="annual_report_duration">%1$d hr %2$d min</string>
+    <string name="annual_report_under_minute">Less than a minute</string>
+    <string name="annual_report_empty_title">Your story awaits</string>
+    <string name="annual_report_empty">No daily reading records are available for this year. Enable reading records to start collecting your reading moments.</string>
+    <string name="annual_report_data_note">Based on daily reading time stored on this device. Earlier unrecorded time cannot be recovered. Books with the same title are combined; read does not mean finished. Reports are saved locally and can be updated from the top right menu.</string>
+</resources>

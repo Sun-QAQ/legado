@@ -323,6 +323,11 @@ class ReadBookActivity : BaseReadBookActivity(),
         justInitData = true
     }
 
+    override fun onPostResume() {
+        super.onPostResume()
+        io.legado.app.ui.about.AnnualReadReportPrompt.showIfNeeded(this)
+    }
+
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setEyePageTurnEnabled(false)

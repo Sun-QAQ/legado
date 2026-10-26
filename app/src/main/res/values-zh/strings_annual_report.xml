@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="annual_report_title">年度阅读报告</string>
+    <string name="annual_report_prompt">%1$d 年的阅读时光，值得珍藏。生成您的年度阅读报告，回顾与书相伴的日子吧。\n\n关闭后，可在「阅读记录」右上角查看。</string>
+    <string name="annual_report_generate">生成我的报告</string>
+    <string name="annual_report_later">以后再说</string>
+    <string name="annual_report_choose_year">年份</string>
+    <string name="annual_report_year">%1$d 年</string>
+    <string name="annual_report_refresh">更新报告</string>
+    <string name="annual_report_refresh_confirm">根据当前保留的每日阅读记录重新生成并替换这份报告？如已删除或更改统计数据，报告也会随之变化。</string>
+    <string name="annual_report_not_ready">每年 12 月起可生成当年的阅读报告。往年的报告和有每日阅读记录的年份，也会在这里等您回顾。</string>
+    <string name="annual_report_error">暂时无法生成或读取报告，请重试。</string>
+    <string name="annual_report_retry">点击重试</string>
+    <string name="annual_report_eyebrow">%1$d · 我的阅读年度</string>
+    <string name="annual_report_hero">把时光，读成故事</string>
+    <string name="annual_report_through">统计区间：1 月 1 日至 %1$s</string>
+    <string name="annual_report_summary_title">这一年，与书相伴</string>
+    <string name="annual_report_summary">读过 %1$d 本书\n留下 %2$d 天阅读足迹\n最长连续阅读 %3$d 天</string>
+    <string name="annual_report_first_day">第一天阅读：%1$s</string>
+    <string name="annual_report_busiest_day">最投入的一天：%1$s，阅读 %2$s</string>
+    <string name="annual_report_months">十二个月的阅读节奏</string>
+    <string name="annual_report_month">%1$d 月</string>
+    <string name="annual_report_month_value">%1$s，%2$s</string>
+    <string name="annual_report_books">陪伴最久的书</string>
+    <string name="annual_report_books_hint">按本年度阅读时长排序，展示前 10 本</string>
+    <string name="annual_report_book_name">%1$d　%2$s</string>
+    <string name="annual_report_duration">%1$d 小时 %2$d 分钟</string>
+    <string name="annual_report_under_minute">不足 1 分钟</string>
+    <string name="annual_report_empty_title">故事，等您翻开</string>
+    <string name="annual_report_empty">这一年还没有可用的每日阅读记录。开启阅读记录后，您的阅读时光会在这里留下足迹。</string>
+    <string name="annual_report_data_note">仅根据本机保留的每日阅读时长生成，记录启用前的数据无法补全；同名书籍合并统计，读过不代表读完。报告保存在本机，可通过右上角菜单更新。</string>
+</resources>

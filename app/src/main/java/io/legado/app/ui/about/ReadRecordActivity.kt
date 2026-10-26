@@ -138,6 +138,11 @@ class ReadRecordActivity : BaseActivity<ActivityReadRecordBinding>() {
 
     override fun onCompatOptionsItemSelected(item: MenuItem): Boolean {
         when (item.itemId) {
+            R.id.menu_annual_report -> {
+                startActivity<AnnualReadReportActivity>()
+                return true
+            }
+
             R.id.menu_sort_name -> {
                 sortMode = 0
                 item.isChecked = true

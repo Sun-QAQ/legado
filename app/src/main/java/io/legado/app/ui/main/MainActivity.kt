@@ -36,6 +36,7 @@ import io.legado.app.lib.dialogs.alert
 import io.legado.app.lib.theme.bottomBackground
 import io.legado.app.lib.theme.elevation
 import io.legado.app.service.BaseReadAloudService
+import io.legado.app.ui.about.AnnualReadReportPrompt
 import io.legado.app.ui.about.CrashLogsDialog
 import io.legado.app.ui.book.agent.AgentFragment
 import io.legado.app.ui.main.bookshelf.BaseBookshelfFragment
@@ -90,6 +91,7 @@ class MainActivity : VMBaseActivity<ActivityMainBinding, MainViewModel>(),
         TabFragmentPageAdapter(supportFragmentManager)
     }
     private var onUpBooksBadgeView: BadgeView? = null
+    private var startupReady = false
 
     override fun onActivityCreated(savedInstanceState: Bundle?) {
         upBottomMenu()
@@ -123,6 +125,11 @@ class MainActivity : VMBaseActivity<ActivityMainBinding, MainViewModel>(),
         applyBottomNavigationTheme()
     }
 
+    override fun onPostResume() {
+        super.onPostResume()
+        if (startupReady) AnnualReadReportPrompt.showIfNeeded(this)
+    }
+
     override fun onPostCreate(savedInstanceState: Bundle?) {
         super.onPostCreate(savedInstanceState)
         lifecycleScope.launch {
@@ -132,6 +139,8 @@ class MainActivity : VMBaseActivity<ActivityMainBinding, MainViewModel>(),
             upVersion()
             //设置本地密码
             setLocalPassword()
+            startupReady = true
+            AnnualReadReportPrompt.showIfNeeded(this@MainActivity)
             notifyAppCrash()
             //备份同步
             backupSync()

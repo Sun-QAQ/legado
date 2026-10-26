@@ -12,6 +12,9 @@ interface ReadStatDao {
     @get:Query("select * from readStats")
     val all: List<ReadStat>
 
+    @get:Query("select distinct date from readStats where readTime > 0")
+    val recordedDates: List<Long>
+
     @Query("select * from readStats where date >= :startDate and date <= :endDate order by date asc")
     fun getStats(startDate: Long, endDate: Long): List<ReadStat>
 
