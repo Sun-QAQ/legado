@@ -106,10 +106,8 @@ class RandomRecommendConfigActivity : BaseActivity<ActivityRandomRecommendConfig
                 val kinds = withContext(IO) {
                     withTimeoutOrNull(30_000) { source.exploreKinds() }
                 } ?: error(getString(R.string.random_recommend_categories_error))
-                val selectable = kinds.filter {
-                    !it.url.isNullOrBlank() && !it.title.startsWith("ERROR:")
-                }.distinctBy { it.url }
-                if (selectable.isEmpty()) {
+                val categories = kinds.filterNot { it.title.startsWith("ERROR:") }
+                if (categories.isEmpty()) {
                     alert(source.bookSourceName, getString(R.string.random_recommend_no_categories)) {
                         okButton()
                     }
@@ -117,18 +115,25 @@ class RandomRecommendConfigActivity : BaseActivity<ActivityRandomRecommendConfig
                 }
                 val selectedUrls = selections.filter { it.sourceUrl == source.bookSourceUrl }
                     .map { it.url }.toSet()
-                val checked = BooleanArray(selectable.size) { selectable[it].url in selectedUrls }
-                alert(source.bookSourceName) {
-                    multiChoiceItems(selectable.map { it.title }.toTypedArray(), checked) { _, i, value ->
+                val checked = BooleanArray(categories.size) {
+                    !categories[it].url.isNullOrBlank() && categories[it].url in selectedUrls
+                }
+                val dialog = alert(source.bookSourceName) {
+                    multiChoiceItems(categories.map { it.title }.toTypedArray(), checked) { _, i, value ->
                         checked[i] = value
                     }
                     okButton {
-                        val chosen = selectable.filterIndexed { i, _ -> checked[i] }.map {
+                        val chosen = categories.filterIndexed { i, kind ->
+                            checked[i] && !kind.url.isNullOrBlank()
+                        }.distinctBy { it.url }.map {
                             RandomRecommendCategory(source.bookSourceUrl, it.title, it.url!!)
                         }
                         save(selections.filterNot { it.sourceUrl == source.bookSourceUrl } + chosen)
                     }
                     cancelButton()
+                }
+                dialog.listView.apply {
+                    adapter = RandomRecommendCategoryAdapter(adapter, categories)
                 }
             } catch (e: CancellationException) {
                 throw e
