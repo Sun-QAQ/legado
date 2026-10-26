@@ -86,8 +86,7 @@ class ReadBookViewModel(application: Application) : BaseViewModel(application) {
      * 初始化
      */
     fun initData(intent: Intent, success: (() -> Unit)? = null) {
-        isReadingSessionReady = false
-        ReadSessionRecorder.setBook(null)
+        setReadingSessionBook(null)
         execute {
             ReadBook.inBookshelf = intent.getBooleanExtra("inBookshelf", true)
             ReadBook.chapterChanged = intent.getBooleanExtra("chapterChanged", false)
@@ -151,7 +150,11 @@ class ReadBookViewModel(application: Application) : BaseViewModel(application) {
             autoChangeSource(book.name, book.author)
             return
         }
-        isReadingSessionReady = true
+        setReadingSessionBook(book)
+    }
+
+    private fun setReadingSessionBook(book: Book?) {
+        isReadingSessionReady = book != null
         ReadSessionRecorder.setBook(book)
     }
 
@@ -287,6 +290,7 @@ class ReadBookViewModel(application: Application) : BaseViewModel(application) {
             ReadBook.resetData(book)
             ReadBook.upMsg(null)
             ReadBook.loadContent(resetPageOffset = true)
+            setReadingSessionBook(book)
         }.onError {
             AppLog.put("换源失败\n$it", it, true)
             ReadBook.upMsg(null)

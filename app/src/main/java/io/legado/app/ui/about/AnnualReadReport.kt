@@ -1,9 +1,11 @@
 package io.legado.app.ui.about
 
+import androidx.annotation.Keep
 import io.legado.app.data.entities.ReadStat
 import java.time.LocalDate
 
 /** Only dated reading statistics belong in an annual report, never lifetime totals. */
+@Keep
 internal data class AnnualReadReport(
     val year: Int,
     val throughDate: Long,
@@ -17,6 +19,7 @@ internal data class AnnualReadReport(
     val monthlyTimes: List<Long>,
     val books: List<Book>,
 ) {
+    @Keep
     data class Book(val name: String, val readTime: Long)
 
     companion object {

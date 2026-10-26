@@ -11,6 +11,7 @@ import io.legado.app.exception.ContentEmptyException
 import io.legado.app.exception.NoStackTraceException
 import io.legado.app.help.book.BookHelp
 import io.legado.app.help.config.AppConfig
+import io.legado.app.help.source.NativeVideoPlayback
 import io.legado.app.model.Debug
 import io.legado.app.model.analyzeRule.AnalyzeRule
 import io.legado.app.model.analyzeRule.AnalyzeRule.Companion.setChapter
@@ -79,6 +80,9 @@ object BookContent {
         var contentData = analyzeContent(
             book, baseUrl, redirectUrl, body, contentRule, bookChapter, bookSource, mNextChapterUrl
         )
+        // A legacy video rule may open its media URL and return no text.
+        // Consume the captured URL before pagination, replacements and empty-content validation.
+        coroutineContext[NativeVideoPlayback]?.playUrl?.let { return it }
         contentList.add(contentData.first)
         if (contentData.second.size == 1) {
             var nextUrl = contentData.second[0]
