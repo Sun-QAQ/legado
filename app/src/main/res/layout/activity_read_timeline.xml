@@ -13,32 +13,43 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:gravity="center_vertical"
-        android:paddingHorizontal="16dp">
-        <Button
+        android:paddingHorizontal="16dp"
+        android:paddingVertical="6dp">
+        <androidx.appcompat.widget.AppCompatImageButton
             android:id="@+id/previous_day"
-            android:layout_width="52dp"
-            android:layout_height="52dp"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="@null"
             android:contentDescription="@string/read_timeline_previous"
-            android:minWidth="0dp"
-            android:padding="0dp"
-            android:text="‹"
-            android:textSize="28sp" />
-        <Button
+            android:padding="12dp"
+            app:srcCompat="@drawable/ic_timeline_previous" />
+        <androidx.appcompat.widget.AppCompatButton
             android:id="@+id/select_date"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
+            android:layout_marginHorizontal="8dp"
             android:layout_weight="1"
+            android:background="@null"
+            android:drawableStart="@drawable/ic_timeline_calendar"
+            android:drawableEnd="@drawable/ic_expand_more"
+            android:drawablePadding="6dp"
+            android:gravity="center"
             android:minHeight="52dp"
-            android:textSize="17sp" />
-        <Button
-            android:id="@+id/next_day"
-            android:layout_width="52dp"
-            android:layout_height="52dp"
-            android:contentDescription="@string/read_timeline_next"
             android:minWidth="0dp"
-            android:padding="0dp"
-            android:text="›"
-            android:textSize="28sp" />
+            android:paddingHorizontal="8dp"
+            android:paddingVertical="10dp"
+            android:stateListAnimator="@null"
+            android:textAllCaps="false"
+            android:textSize="16sp"
+            android:textStyle="bold" />
+        <androidx.appcompat.widget.AppCompatImageButton
+            android:id="@+id/next_day"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="@null"
+            android:contentDescription="@string/read_timeline_next"
+            android:padding="12dp"
+            app:srcCompat="@drawable/ic_timeline_next" />
     </LinearLayout>
     <TextView
         android:id="@+id/summary"

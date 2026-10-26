@@ -5,11 +5,13 @@ import android.content.Context
 import android.content.res.ColorStateList
 import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
+import android.graphics.drawable.RippleDrawable
 import android.os.Bundle
 import android.view.Menu
 import android.view.MenuItem
 import android.view.ViewGroup
 import androidx.core.view.isVisible
+import androidx.core.widget.TextViewCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
@@ -58,10 +60,15 @@ class ReadTimelineActivity : BaseActivity<ActivityReadTimelineBinding>() {
         binding.summary.setTextColor(palette.text)
         binding.notice.setTextColor(palette.secondaryText)
         binding.empty.setTextColor(palette.secondaryText)
-        listOf(binding.previousDay, binding.selectDate, binding.nextDay).forEach {
-            it.backgroundTintList = ColorStateList.valueOf(palette.accent)
-            it.setTextColor(buttonTextColor)
+        listOf(binding.previousDay, binding.nextDay).forEach {
+            it.backgroundTintList = null
+            it.background = dateNavigationBackground(palette.surface)
+            it.imageTintList = ColorStateList.valueOf(palette.text)
         }
+        binding.selectDate.backgroundTintList = null
+        binding.selectDate.background = dateNavigationBackground(palette.accentContainer)
+        binding.selectDate.setTextColor(palette.text)
+        TextViewCompat.setCompoundDrawableTintList(binding.selectDate, ColorStateList.valueOf(palette.secondaryText))
         binding.previousDay.setOnClickListener { selectDate(date.minusDays(1)) }
         binding.nextDay.setOnClickListener { selectDate(date.plusDays(1)) }
         binding.selectDate.setOnClickListener {
@@ -70,6 +77,20 @@ class ReadTimelineActivity : BaseActivity<ActivityReadTimelineBinding>() {
             }, date.year, date.monthValue - 1, date.dayOfMonth).show()
         }
         selectDate(date)
+    }
+
+    private fun dateNavigationBackground(fill: Int): RippleDrawable {
+        val radius = 14.dpToPx().toFloat()
+        val surface = GradientDrawable().apply {
+            setColor(fill)
+            cornerRadius = radius
+            setStroke(1.dpToPx(), palette.divider)
+        }
+        val mask = GradientDrawable().apply {
+            setColor(Color.WHITE)
+            cornerRadius = radius
+        }
+        return RippleDrawable(ColorStateList.valueOf(palette.accentContainerPressed), surface, mask)
     }
 
     override fun onCompatCreateOptionsMenu(menu: Menu): Boolean {
