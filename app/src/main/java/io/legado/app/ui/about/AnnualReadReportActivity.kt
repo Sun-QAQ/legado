@@ -32,6 +32,9 @@ class AnnualReadReportActivity : BaseActivity<ActivityAnnualReadReportBinding>()
     override val binding by viewBinding(ActivityAnnualReadReportBinding::inflate)
     private val store by lazy { AnnualReadReportStore(this) }
     private val palette by lazy { ThemePalette(this) }
+    private val accentTextColor by lazy {
+        ColorUtils.blendColors(palette.accent, palette.text, 0.6f)
+    }
     private var years = emptyList<Int>()
     private var selectedYear = 0
     private var loading = false
@@ -105,7 +108,7 @@ class AnnualReadReportActivity : BaseActivity<ActivityAnnualReadReportBinding>()
                 throw e
             } catch (_: Exception) {
                 showMessage(R.string.annual_report_error)
-                addText(binding.content, getString(R.string.annual_report_retry), 16, palette.accent)
+                addText(binding.content, getString(R.string.annual_report_retry), 16, accentTextColor)
                     .setOnClickListener { loadReport(refresh) }
             } finally {
                 loading = false
@@ -197,7 +200,7 @@ class AnnualReadReportActivity : BaseActivity<ActivityAnnualReadReportBinding>()
                     addText(this, getString(R.string.annual_report_book_name, index + 1,
                         book.name.ifBlank { getString(R.string.read_record_untitled_book) }),
                         17, palette.text, true)
-                    addText(this, formatTime(book.readTime), 14, palette.accent)
+                    addText(this, formatTime(book.readTime), 14, accentTextColor)
                 }
             }
         }

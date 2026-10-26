@@ -113,6 +113,12 @@ class AnnualReadReportFeatureTest {
                         assertTrue(text.contains("山海之间"))
                         assertTrue(text.contains("长夜与星光"))
                         assertTrue(text.contains("${fixture().year}-12-15"))
+                        val bookDuration = textViews(content).last {
+                            it.text.toString() == activity.getString(R.string.annual_report_duration, 2L, 30L)
+                        }
+                        assertTrue("Book reading time remains readable in theme $night",
+                            androidx.core.graphics.ColorUtils.calculateContrast(
+                                bookDuration.currentTextColor, ThemePalette(activity).surface) >= 4.5)
                         assertTrue(content.height > 0)
                         val image = Bitmap.createBitmap(content.width, content.height, Bitmap.Config.ARGB_8888)
                         val canvas = Canvas(image)
@@ -138,6 +144,12 @@ class AnnualReadReportFeatureTest {
     private fun texts(view: View): List<String> = when (view) {
         is TextView -> listOf(view.text.toString())
         is ViewGroup -> (0 until view.childCount).flatMap { texts(view.getChildAt(it)) }
+        else -> emptyList()
+    }
+
+    private fun textViews(view: View): List<TextView> = when (view) {
+        is TextView -> listOf(view)
+        is ViewGroup -> (0 until view.childCount).flatMap { textViews(view.getChildAt(it)) }
         else -> emptyList()
     }
 
