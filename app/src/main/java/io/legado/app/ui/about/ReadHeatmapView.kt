@@ -102,9 +102,12 @@ class ReadHeatmapView @JvmOverloads constructor(
         paint.textSize = 10 * resources.displayMetrics.scaledDensity
         paint.color = palette.secondaryText
         val locale = Locale.getDefault()
+        val fontMetrics = paint.fontMetrics
         for (row in listOf(0, 2, 4)) {
-            val weekday = java.time.DayOfWeek.of(row + 1).getDisplayName(TextStyle.SHORT, locale)
-            canvas.drawText(weekday, 0f, chartTop + row * step + cellSize, paint)
+            val weekday = java.time.DayOfWeek.of(row + 1).getDisplayName(TextStyle.SHORT, Locale.ENGLISH)
+            val rowCenter = chartTop + row * step + cellSize / 2
+            val baseline = rowCenter - (fontMetrics.ascent + fontMetrics.descent) / 2
+            canvas.drawText(weekday, 0f, baseline, paint)
         }
         // Label month boundaries; the leading partial month may be too short for a label.
         var lastLabelRight = -1f
