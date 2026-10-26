@@ -18,12 +18,14 @@ import io.legado.app.help.book.readSimulating
 import io.legado.app.help.book.simulatedTotalChapterNum
 import io.legado.app.help.book.update
 import io.legado.app.help.coroutine.Coroutine
+import io.legado.app.help.source.NativeVideoPlayback
 import io.legado.app.model.webBook.WebBook
 import io.legado.app.service.VideoPlayService
 import io.legado.app.utils.postEvent
 import io.legado.app.utils.startService
 import io.legado.app.utils.toastOnUi
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers.IO
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.cancelChildren
 import splitties.init.appCtx
@@ -153,12 +155,14 @@ object VideoPlay : CoroutineScope by MainScope() {
                     return
                 }
                 upLoading(true)
-                WebBook.getContent(this, bookSource, book, chapter)
+                val playback = NativeVideoPlayback(bookSource.bookSourceUrl)
+                WebBook.getContent(this, bookSource, book, chapter, context = IO + playback)
                     .onSuccess { content ->
-                        if (content.isEmpty()) {
+                        val playContent = playback.playUrl ?: content
+                        if (playContent.isEmpty()) {
                             appCtx.toastOnUi("未获取到资源链接")
                         } else {
-                            contentLoadFinish(chapter, content)
+                            contentLoadFinish(chapter, playContent)
                         }
                     }.onError {
                         AppLog.put("获取资源链接出错\n$it", it, true)

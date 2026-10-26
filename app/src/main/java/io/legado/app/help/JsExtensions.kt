@@ -18,6 +18,7 @@ import io.legado.app.help.http.CookieManager.cookieJarHeader
 import io.legado.app.help.http.CookieStore
 import io.legado.app.help.http.SSLHelper
 import io.legado.app.help.http.StrResponse
+import io.legado.app.help.source.NativeVideoPlayback
 import io.legado.app.help.source.SourceVerificationHelp
 import io.legado.app.help.source.getSourceType
 import io.legado.app.model.Debug
@@ -232,6 +233,9 @@ interface JsExtensions : JsEncodeUtils {
      */
     fun startBrowser(url: String, title: String) {
         rhinoContext.ensureActive()
+        if (context[NativeVideoPlayback]?.interceptBrowser(getSource()?.getKey(), url) == true) {
+            return
+        }
         SourceVerificationHelp.startBrowser(getSource(), url, title)
     }
 
