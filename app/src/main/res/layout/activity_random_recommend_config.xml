@@ -11,6 +11,37 @@
         android:layout_height="wrap_content"
         app:title="@string/random_recommend_config" />
 
+    <io.legado.app.ui.widget.SearchView
+        android:id="@+id/search_view"
+        android:layout_width="match_parent"
+        android:layout_height="30dp"
+        android:layout_marginStart="18dp"
+        android:layout_marginEnd="18dp"
+        android:layout_marginTop="10dp"
+        android:layout_marginBottom="10dp"
+        android:background="@drawable/bg_searchview"
+        android:focusable="false"
+        android:imeOptions="actionSearch"
+        android:theme="?attr/actionBarStyle"
+        app:defaultQueryHint="@string/search_book_source"
+        app:iconifiedByDefault="false"
+        app:queryBackground="@null"
+        app:searchHintIcon="@drawable/ic_search_hint"
+        app:searchIcon="@null"
+        app:submitBackground="@null" />
+
+    <com.google.android.material.tabs.TabLayout
+        android:id="@+id/tab_group"
+        android:layout_width="match_parent"
+        android:layout_height="40dp"
+        android:background="@android:color/transparent"
+        android:theme="?attr/actionBarStyle"
+        app:tabMode="scrollable"
+        app:tabBackground="@android:color/transparent"
+        app:tabMaxWidth="100dp"
+        app:tabMinWidth="10dp"
+        app:tabRippleColor="@android:color/transparent" />
+
     <TextView
         android:id="@+id/tv_hint"
         android:layout_width="match_parent"

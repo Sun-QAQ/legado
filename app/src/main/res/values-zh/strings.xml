@@ -1437,4 +1437,5 @@
     <string name="random_recommend_error">随机推荐加载失败，请重试。</string>
     <string name="random_recommend_only_selected">仅显示已选分类书源</string>
     <string name="random_recommend_no_selected_sources">暂无已选择分类的书源，请在菜单中关闭筛选后选择分类。</string>
+    <string name="random_recommend_no_matching_sources">没有符合当前筛选条件的书源，请调整搜索词、分组或已选书源筛选。</string>
 </resources>

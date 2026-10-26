@@ -4,8 +4,10 @@ import android.os.Bundle
 import android.view.Menu
 import android.view.MenuItem
 import android.view.ViewGroup
+import androidx.appcompat.widget.SearchView
 import androidx.core.view.isVisible
 import androidx.lifecycle.lifecycleScope
+import com.google.android.material.tabs.TabLayout
 import io.legado.app.R
 import io.legado.app.base.BaseActivity
 import io.legado.app.base.adapter.ItemViewHolder
@@ -16,8 +18,13 @@ import io.legado.app.databinding.ActivityRandomRecommendConfigBinding
 import io.legado.app.databinding.ItemRandomRecommendSourceBinding
 import io.legado.app.help.source.exploreKinds
 import io.legado.app.lib.dialogs.alert
+import io.legado.app.lib.theme.accentColor
+import io.legado.app.lib.theme.primaryTextColor
 import io.legado.app.ui.widget.recycler.VerticalDivider
 import io.legado.app.utils.applyNavigationBarPadding
+import io.legado.app.utils.applyTint
+import io.legado.app.utils.cnCompare
+import io.legado.app.utils.getCompatColor
 import io.legado.app.utils.viewbindingdelegate.viewBinding
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers.IO
@@ -30,18 +37,26 @@ class RandomRecommendConfigActivity : BaseActivity<ActivityRandomRecommendConfig
     private var selections = emptyList<RandomRecommendCategory>()
     private var sources = emptyList<BookSourcePart>()
     private var onlySelected = false
+    private var searchQuery = ""
+    private var selectedGroup: String? = null
+    private var updatingTabs = false
     private var loading = false
     private val adapter by lazy { SourceAdapter() }
 
     override fun onActivityCreated(savedInstanceState: Bundle?) {
         selections = RandomRecommendConfig.read(this)
         onlySelected = savedInstanceState?.getBoolean("onlySelected") ?: false
+        searchQuery = savedInstanceState?.getString("searchQuery").orEmpty()
+        selectedGroup = savedInstanceState?.getString("selectedGroup")
+        initSearchView()
+        initGroupTabs()
         binding.recyclerView.adapter = adapter
         binding.recyclerView.addItemDecoration(VerticalDivider(this))
         binding.recyclerView.applyNavigationBarPadding()
         lifecycleScope.launch {
             appDb.bookSourceDao.flowExplore().collect {
                 sources = it
+                updateGroupTabs()
                 updateSources()
             }
         }
@@ -55,7 +70,76 @@ class RandomRecommendConfigActivity : BaseActivity<ActivityRandomRecommendConfig
 
     override fun onSaveInstanceState(outState: Bundle) {
         outState.putBoolean("onlySelected", onlySelected)
+        outState.putString("searchQuery", searchQuery)
+        outState.putString("selectedGroup", selectedGroup)
         super.onSaveInstanceState(outState)
+    }
+
+    override fun onPause() {
+        super.onPause()
+        binding.searchView.clearFocus()
+    }
+
+    private fun initSearchView() {
+        binding.searchView.apply {
+            applyTint(primaryTextColor)
+            setQuery(searchQuery, false)
+            setOnQueryTextListener(object : SearchView.OnQueryTextListener {
+                override fun onQueryTextSubmit(query: String?): Boolean {
+                    clearFocus()
+                    return true
+                }
+
+                override fun onQueryTextChange(newText: String?): Boolean {
+                    searchQuery = newText.orEmpty()
+                    updateSources()
+                    binding.recyclerView.scrollToPosition(0)
+                    return true
+                }
+            })
+        }
+    }
+
+    private fun initGroupTabs() {
+        binding.tabGroup.apply {
+            isTabIndicatorFullWidth = false
+            setSelectedTabIndicatorColor(context.accentColor)
+            setTabTextColors(context.getCompatColor(R.color.secondaryText), context.accentColor)
+            addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
+                override fun onTabSelected(tab: TabLayout.Tab) {
+                    if (updatingTabs) return
+                    selectedGroup = tab.tag as? String
+                    updateSources()
+                    binding.recyclerView.scrollToPosition(0)
+                }
+
+                override fun onTabUnselected(tab: TabLayout.Tab) = Unit
+                override fun onTabReselected(tab: TabLayout.Tab) = Unit
+            })
+        }
+    }
+
+    private fun updateGroupTabs() {
+        val groups = sources.flatMap(RandomRecommendSourceFilter::groups).distinct()
+            .sortedWith { first, second -> first.cnCompare(second) }
+        val hasUngrouped = sources.any { RandomRecommendSourceFilter.groups(it).isEmpty() }
+        if (selectedGroup != null && selectedGroup !in groups
+            && !(selectedGroup == "" && hasUngrouped)
+        ) {
+            selectedGroup = null
+        }
+        updatingTabs = true
+        binding.tabGroup.apply {
+            removeAllTabs()
+            addTab(newTab().setText(R.string.all), selectedGroup == null)
+            if (hasUngrouped) {
+                addTab(newTab().setText(R.string.no_group).setTag(""), selectedGroup == "")
+            }
+            groups.forEach { group ->
+                addTab(newTab().setText(group).setTag(group), selectedGroup == group)
+            }
+        }
+        updatingTabs = false
     }
 
     override fun onCompatOptionsItemSelected(item: MenuItem): Boolean {
@@ -84,14 +168,14 @@ class RandomRecommendConfigActivity : BaseActivity<ActivityRandomRecommendConfig
 
     private fun updateSources() {
         val selectedUrls = selections.mapTo(hashSetOf()) { it.sourceUrl }
-        val visibleSources = if (onlySelected) {
-            sources.filter { it.bookSourceUrl in selectedUrls }
-        } else {
-            sources
-        }
+        val visibleSources = RandomRecommendSourceFilter.filter(
+            sources, searchQuery, selectedGroup, onlySelected, selectedUrls
+        )
         adapter.setItems(visibleSources)
         binding.tvHint.setText(when {
             sources.isEmpty() -> R.string.random_recommend_no_sources
+            visibleSources.isEmpty() && (searchQuery.isNotBlank() || selectedGroup != null) ->
+                R.string.random_recommend_no_matching_sources
             onlySelected && visibleSources.isEmpty() -> R.string.random_recommend_no_selected_sources
             else -> R.string.random_recommend_config_hint
         })
@@ -160,6 +244,9 @@ class RandomRecommendConfigActivity : BaseActivity<ActivityRandomRecommendConfig
             payloads: MutableList<Any>
         ) {
             binding.tvName.text = item.bookSourceName
+            val groups = RandomRecommendSourceFilter.groups(item)
+            binding.tvGroup.text = groups.joinToString(" · ")
+            binding.tvGroup.isVisible = groups.isNotEmpty()
             val selected = selections.filter { it.sourceUrl == item.bookSourceUrl }
             binding.tvSelection.text = if (selected.isEmpty()) {
                 getString(R.string.random_recommend_not_selected)
