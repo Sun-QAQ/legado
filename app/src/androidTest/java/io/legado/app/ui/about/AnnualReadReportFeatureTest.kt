@@ -7,19 +7,23 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import androidx.core.view.isVisible
+import androidx.lifecycle.Lifecycle
 import androidx.test.core.app.ActivityScenario
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.espresso.Espresso.onView
 import androidx.test.espresso.Espresso.pressBack
 import androidx.test.espresso.action.ViewActions.click
 import androidx.test.espresso.assertion.ViewAssertions.matches
+import androidx.test.espresso.assertion.ViewAssertions.doesNotExist
 import androidx.test.espresso.matcher.ViewMatchers.isDisplayed
 import androidx.test.espresso.matcher.ViewMatchers.withId
+import androidx.test.espresso.matcher.ViewMatchers.withText
 import androidx.test.platform.app.InstrumentationRegistry
 import io.legado.app.R
 import io.legado.app.data.entities.ReadStat
 import io.legado.app.help.config.AppConfig
 import io.legado.app.help.config.ThemeConfig
+import io.legado.app.help.config.LocalConfig
 import io.legado.app.lib.theme.ThemePalette
 import org.junit.Assert.*
 import org.junit.Test
@@ -40,6 +44,39 @@ class AnnualReadReportFeatureTest {
             ReadStat("长夜与星光", LocalDate.of(year, 6, 3).toEpochDay(), 1_800_000),
             ReadStat("山海之间", LocalDate.of(year, 12, 15).toEpochDay(), 900_000),
         ))
+    }
+
+    @Test
+    fun invitationRequestedBeforeResumeAppearsOnceWhenTheActivityResumes() {
+        val key = "annualReadReportPromptYear"
+        val originalYear = LocalConfig.getInt(key, 0)
+        val hadYear = LocalConfig.contains(key)
+        val originalPrivacy = LocalConfig.privacyPolicyOk
+        val december = LocalDate.of(LocalDate.now().year + 100, 12, 1)
+        val context = instrumentation.targetContext
+        val message = context.getString(R.string.annual_report_prompt, december.year)
+        try {
+            LocalConfig.edit().remove(key).commit()
+            LocalConfig.privacyPolicyOk = true
+            ActivityScenario.launch(ReadRecordActivity::class.java).use { scenario ->
+                scenario.moveToState(Lifecycle.State.CREATED)
+                scenario.onActivity { activity ->
+                    AnnualReadReportPrompt.showIfNeeded(activity) { december }
+                    assertNotEquals(december.year, LocalConfig.getInt(key, 0))
+                }
+                scenario.moveToState(Lifecycle.State.RESUMED)
+                onView(withText(message)).check(matches(isDisplayed()))
+                onView(withText(R.string.annual_report_later)).perform(click())
+                scenario.onActivity { AnnualReadReportPrompt.showIfNeeded(it) { december } }
+                onView(withText(message)).check(doesNotExist())
+                assertEquals(december.year, LocalConfig.getInt(key, 0))
+            }
+        } finally {
+            LocalConfig.edit().apply {
+                if (hadYear) putInt(key, originalYear) else remove(key)
+            }.commit()
+            LocalConfig.privacyPolicyOk = originalPrivacy
+        }
     }
 
     @Test

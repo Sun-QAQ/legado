@@ -1,18 +1,32 @@
 package io.legado.app.ui.about
 
 import androidx.appcompat.app.AppCompatActivity
-import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.withResumed
 import io.legado.app.R
 import io.legado.app.help.config.LocalConfig
 import io.legado.app.lib.dialogs.alert
 import io.legado.app.utils.putInt
 import io.legado.app.utils.startActivity
+import kotlinx.coroutines.launch
 import java.time.LocalDate
 
 internal object AnnualReadReportPrompt {
-    fun showIfNeeded(activity: AppCompatActivity, today: LocalDate = LocalDate.now()) {
-        if (!LocalConfig.privacyPolicyOk ||
-            !activity.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) return
+    fun showIfNeeded(
+        activity: AppCompatActivity,
+        dateProvider: () -> LocalDate = { LocalDate.now() },
+    ) {
+        // onPostResume can run before the lifecycle dispatches RESUMED. Wait instead
+        // of dropping the invitation; a background activity also waits until visible.
+        activity.lifecycleScope.launch {
+            activity.lifecycle.withResumed {
+                showInvitation(activity, dateProvider())
+            }
+        }
+    }
+
+    private fun showInvitation(activity: AppCompatActivity, today: LocalDate) {
+        if (!LocalConfig.privacyPolicyOk) return
         if (!AnnualReadReportPolicy.shouldPrompt(today,
                 LocalConfig.getInt("annualReadReportPromptYear", 0),
                 AnnualReadReportStore(activity).hasReport(today.year))) return
