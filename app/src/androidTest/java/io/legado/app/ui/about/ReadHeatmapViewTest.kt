@@ -92,8 +92,8 @@ class ReadHeatmapViewTest {
                         val selectedIndex = data.days.lastIndex - 3
                         assertTrue(chart.accessibilityNodeProvider.performAction(selectedIndex,
                             AccessibilityNodeInfoCompat.ACTION_CLICK, null))
-                        val detail = activity.findViewById<TextView>(R.id.tv_heatmap_day)
-                        assertEquals(chart.describeDay(data.days[selectedIndex]), detail.text.toString())
+                        assertTrue(checkNotNull(chart.accessibilityNodeProvider
+                            .createAccessibilityNodeInfo(selectedIndex)).isSelected)
                         val bounds = Rect()
                         @Suppress("DEPRECATION")
                         checkNotNull(chart.accessibilityNodeProvider.createAccessibilityNodeInfo(data.days.lastIndex))
@@ -104,7 +104,8 @@ class ReadHeatmapViewTest {
                             chart.dispatchTouchEvent(event)
                             event.recycle()
                         }
-                        assertEquals(chart.describeDay(data.days.last()), detail.text.toString())
+                        assertTrue(checkNotNull(chart.accessibilityNodeProvider
+                            .createAccessibilityNodeInfo(data.days.lastIndex)).isSelected)
                         val card = activity.findViewById<View>(R.id.heatmap_card)
                         val preview = Bitmap.createBitmap(card.width, card.height, Bitmap.Config.ARGB_8888)
                         card.draw(Canvas(preview))

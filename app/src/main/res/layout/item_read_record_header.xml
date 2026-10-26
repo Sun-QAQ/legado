@@ -45,22 +45,6 @@
             android:layout_marginTop="12dp"
             android:layoutDirection="ltr" />
 
-        <TextView
-            android:id="@+id/tv_heatmap_day"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:accessibilityLiveRegion="polite"
-            android:textSize="12sp"
-            tools:text="2026年10月23日 · 阅读 2小时30分钟" />
-
-        <TextView
-            android:id="@+id/tv_heatmap_hint"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:text="@string/read_heatmap_hint"
-            android:textSize="10sp" />
     </LinearLayout>
 
     <LinearLayout android:id="@+id/week_chart_card" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginStart="16dp" android:layout_marginTop="14dp" android:layout_marginEnd="16dp" android:orientation="vertical" android:padding="16dp">

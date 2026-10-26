@@ -190,9 +190,6 @@ class ReadRecordActivity : BaseActivity<ActivityReadRecordBinding>() {
             }
         }
         updateFilterStyle()
-        headerBinding.readHeatmap.onDaySelected = { day ->
-            headerBinding.tvHeatmapDay.text = headerBinding.readHeatmap.describeDay(day)
-        }
     }
 
     private fun initSearchView(searchMenu: MenuItem) {
@@ -237,8 +234,6 @@ class ReadRecordActivity : BaseActivity<ActivityReadRecordBinding>() {
         headerBinding.heatmapCard.background = roundedBackground(palette.surface, 20)
         headerBinding.tvHeatmapTitle.setTextColor(palette.text)
         headerBinding.tvHeatmapSummary.setTextColor(palette.secondaryText)
-        headerBinding.tvHeatmapDay.setTextColor(palette.text)
-        headerBinding.tvHeatmapHint.setTextColor(palette.secondaryText)
         headerBinding.weekChartCard.background = roundedBackground(palette.surface, 20)
         headerBinding.tvWeekChartTitle.setTextColor(palette.text)
         headerBinding.tvWeekChartRange.setTextColor(palette.secondaryText)
@@ -291,7 +286,6 @@ class ReadRecordActivity : BaseActivity<ActivityReadRecordBinding>() {
                 heatmap.activeDays,
                 formatHoursAndMinutes(heatmap.totalTime),
             )
-            headerBinding.tvHeatmapDay.text = headerBinding.readHeatmap.describeDay(heatmap.days.last())
         }
     }
 

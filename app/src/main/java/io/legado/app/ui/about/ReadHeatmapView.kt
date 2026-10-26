@@ -48,7 +48,6 @@ class ReadHeatmapView @JvmOverloads constructor(
     }
     private var heatmap = ReadHeatmap(LocalDate.now(), emptyList())
     private var selectedDate: LocalDate = heatmap.days.last().date
-    internal var onDaySelected: ((ReadHeatmap.Day) -> Unit)? = null
     private val accessibility = object : ExploreByTouchHelper(this) {
         override fun getVirtualViewAt(x: Float, y: Float): Int = dayAt(x, y) ?: INVALID_ID
 
@@ -171,7 +170,6 @@ class ReadHeatmapView @JvmOverloads constructor(
     private fun selectDay(index: Int) {
         val day = heatmap.days[index]
         selectedDate = day.date
-        onDaySelected?.invoke(day)
         accessibility.invalidateRoot()
         invalidate()
     }

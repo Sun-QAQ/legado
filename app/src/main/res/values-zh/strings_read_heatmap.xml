@@ -7,5 +7,4 @@
     <string name="read_heatmap_day_short">%1$s · 阅读不足1分钟</string>
     <string name="read_heatmap_less">少</string>
     <string name="read_heatmap_more">多</string>
-    <string name="read_heatmap_hint">点击格子查看当天阅读时长</string>
 </resources>
