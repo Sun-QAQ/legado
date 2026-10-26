@@ -62,6 +62,8 @@ class VideoPlayerControlsTest {
 
         override fun getState(): State = State.Builder()
             .setAvailableCommands(Player.Commands.Builder().add(Player.COMMAND_PLAY_PAUSE).build())
+            .setPlaylist(listOf(MediaItemData.Builder("video-controls-test").setDurationUs(60_000_000).build()))
+            .setPlaybackState(Player.STATE_READY)
             .setPlayWhenReady(shouldPlay, Player.PLAY_WHEN_READY_CHANGE_REASON_USER_REQUEST)
             .build()
 
