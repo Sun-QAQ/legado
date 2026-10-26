@@ -2,6 +2,8 @@ package io.legado.app.ui.about
 
 import android.app.DatePickerDialog
 import android.content.Context
+import android.content.res.ColorStateList
+import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
 import android.view.Menu
@@ -24,6 +26,7 @@ import io.legado.app.lib.dialogs.alert
 import io.legado.app.lib.theme.ThemePalette
 import io.legado.app.model.ReadSessionStorage
 import io.legado.app.utils.applyNavigationBarPadding
+import io.legado.app.utils.ColorUtils
 import io.legado.app.utils.dpToPx
 import io.legado.app.utils.toastOnUi
 import io.legado.app.utils.viewbindingdelegate.viewBinding
@@ -40,6 +43,9 @@ import java.time.format.DateTimeFormatter
 class ReadTimelineActivity : BaseActivity<ActivityReadTimelineBinding>() {
     override val binding by viewBinding(ActivityReadTimelineBinding::inflate)
     private val palette by lazy { ThemePalette(this) }
+    private val buttonTextColor by lazy {
+        if (ColorUtils.isColorLight(palette.accent)) Color.BLACK else Color.WHITE
+    }
     private val adapter by lazy { SessionAdapter(this) }
     private var date = LocalDate.now()
     private var loadJob: Job? = null
@@ -52,6 +58,10 @@ class ReadTimelineActivity : BaseActivity<ActivityReadTimelineBinding>() {
         binding.summary.setTextColor(palette.text)
         binding.notice.setTextColor(palette.secondaryText)
         binding.empty.setTextColor(palette.secondaryText)
+        listOf(binding.previousDay, binding.selectDate, binding.nextDay).forEach {
+            it.backgroundTintList = ColorStateList.valueOf(palette.accent)
+            it.setTextColor(buttonTextColor)
+        }
         binding.previousDay.setOnClickListener { selectDate(date.minusDays(1)) }
         binding.nextDay.setOnClickListener { selectDate(date.plusDays(1)) }
         binding.selectDate.setOnClickListener {
@@ -135,6 +145,8 @@ class ReadTimelineActivity : BaseActivity<ActivityReadTimelineBinding>() {
                 .filter { it.isNotBlank() }.joinToString(" · ")
             binding.delete.contentDescription = getString(R.string.read_timeline_delete_description,
                 binding.timeRange.text, binding.bookName.text)
+            binding.delete.backgroundTintList = ColorStateList.valueOf(palette.accent)
+            binding.delete.setTextColor(buttonTextColor)
         }
 
         override fun registerListener(holder: ItemViewHolder, binding: ItemReadSessionBinding) {

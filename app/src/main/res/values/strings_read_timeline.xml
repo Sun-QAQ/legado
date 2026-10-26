@@ -9,7 +9,7 @@
     <string name="read_timeline_summary">%1$d sessions · %2$d books\n%3$s</string>
     <string name="read_timeline_duration">%1$d hr %2$d min %3$d sec</string>
     <string name="read_timeline_range">%1$s – %2$s</string>
-    <string name="read_timeline_notice">Foreground reading only; background listening is excluded. Recorded from this version onward while reading records are enabled. Earlier totals cannot be reconstructed into intervals. Sessions are saved every 30 seconds and when leaving the reader.</string>
+    <string name="read_timeline_notice">Records foreground reading while reading records are enabled; background listening is excluded. Earlier totals cannot be reconstructed into intervals.</string>
     <string name="read_timeline_empty">No reading sessions for this day.\nChoose another date or start reading.</string>
     <string name="read_timeline_error">Unable to load or update reading sessions. Please try again.</string>
     <string name="read_timeline_delete_confirm">Delete this session and subtract its duration from daily and total reading time?</string>

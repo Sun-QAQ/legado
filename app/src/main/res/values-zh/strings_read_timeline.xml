@@ -8,7 +8,7 @@
     <string name="read_timeline_summary">%1$d 个时段 · %2$d 本书\n%3$s</string>
     <string name="read_timeline_duration">%1$d 小时 %2$d 分 %3$d 秒</string>
     <string name="read_timeline_range">%1$s — %2$s</string>
-    <string name="read_timeline_notice">仅记录阅读页处于前台的时间，不含后台朗读。开启阅读记录后，从本版本开始记录；旧累计数据无法还原为时段。每 30 秒及离开阅读页时保存。</string>
+    <string name="read_timeline_notice">仅记录开启阅读记录后的前台阅读时段，不含后台朗读。旧累计记录无法补全。</string>
     <string name="read_timeline_empty">当天还没有阅读时段\n可以切换日期，或开始一段阅读</string>
     <string name="read_timeline_error">暂时无法读取或更新阅读时段，请重试。</string>
     <string name="read_timeline_delete_confirm">删除此时段，并从每日统计及总阅读时长中扣除对应时长？</string>
