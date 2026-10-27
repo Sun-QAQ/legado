@@ -14,6 +14,7 @@ import io.legado.app.constant.AppLog
 import io.legado.app.databinding.DialogOpenUrlConfirmBinding
 import io.legado.app.lib.dialogs.alert
 import io.legado.app.lib.theme.backgroundColor
+import io.legado.app.utils.applyDialogRoundedBackground
 import io.legado.app.utils.applyTint
 import io.legado.app.utils.setLayout
 import io.legado.app.utils.toastOnUi
@@ -44,10 +45,12 @@ class OpenUrlConfirmDialog() : BaseDialogFragment(R.layout.dialog_open_url_confi
 
     override fun onStart() {
         super.onStart()
-        setLayout(1f, ViewGroup.LayoutParams.WRAP_CONTENT)
+        dialog?.window?.setBackgroundDrawableResource(R.color.transparent)
+        setLayout(0.9f, ViewGroup.LayoutParams.WRAP_CONTENT)
     }
 
     override fun onFragmentCreated(view: View, savedInstanceState: Bundle?) {
+        view.applyDialogRoundedBackground()
         initMenu()
         val arguments = arguments ?: return
         viewModel.initData(arguments)
