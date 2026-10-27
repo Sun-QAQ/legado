@@ -3,6 +3,7 @@ package io.legado.app.ui.rss.read
 import android.annotation.SuppressLint
 import android.content.pm.ActivityInfo
 import android.content.res.Configuration
+import android.graphics.Bitmap
 import android.net.Uri
 import android.net.http.SslError
 import android.os.Bundle
@@ -11,6 +12,7 @@ import android.view.Menu
 import android.view.MenuItem
 import android.view.View
 import android.view.WindowManager
+import android.webkit.HttpAuthHandler
 import android.webkit.JavascriptInterface
 import android.webkit.SslErrorHandler
 import android.webkit.URLUtil
@@ -22,6 +24,7 @@ import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.activity.addCallback
 import androidx.activity.viewModels
+import androidx.appcompat.app.AlertDialog
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.size
 import androidx.lifecycle.lifecycleScope
@@ -33,9 +36,11 @@ import io.legado.app.constant.AppConst.imagePathKey
 import io.legado.app.constant.AppLog
 import io.legado.app.data.entities.RssSource
 import io.legado.app.databinding.ActivityRssReadBinding
+import io.legado.app.databinding.DialogHttpAuthBinding
 import io.legado.app.help.config.AppConfig
 import io.legado.app.help.http.CookieManager
 import io.legado.app.lib.dialogs.SelectItem
+import io.legado.app.lib.dialogs.alert
 import io.legado.app.lib.dialogs.selector
 import io.legado.app.lib.theme.accentColor
 import io.legado.app.lib.theme.primaryTextColor
@@ -84,6 +89,7 @@ class ReadRssActivity : VMBaseActivity<ActivityRssReadBinding, ReadRssViewModel>
     private var starMenuItem: MenuItem? = null
     private var ttsMenuItem: MenuItem? = null
     private var customWebViewCallback: WebChromeClient.CustomViewCallback? = null
+    private var httpAuthDialog: AlertDialog? = null
     private val selectImageDir = registerForActivityResult(HandleFileContract()) {
         it.uri?.let { uri ->
             ACache.get().put(imagePathKey, uri.toString())
@@ -365,6 +371,7 @@ class ReadRssActivity : VMBaseActivity<ActivityRssReadBinding, ReadRssViewModel>
     }
 
     override fun onDestroy() {
+        httpAuthDialog?.dismiss()
         super.onDestroy()
         binding.webView.destroy()
     }
@@ -396,6 +403,48 @@ class ReadRssActivity : VMBaseActivity<ActivityRssReadBinding, ReadRssViewModel>
     }
 
     inner class CustomWebViewClient : WebViewClient() {
+
+        override fun onPageStarted(view: WebView, url: String?, favicon: Bitmap?) {
+            httpAuthDialog?.dismiss()
+            super.onPageStarted(view, url, favicon)
+        }
+
+        override fun onReceivedHttpAuthRequest(
+            view: WebView,
+            handler: HttpAuthHandler,
+            host: String,
+            realm: String?
+        ) {
+            if (isFinishing || isDestroyed) {
+                handler.cancel()
+                return
+            }
+            httpAuthDialog?.dismiss()
+            val authBinding = DialogHttpAuthBinding.inflate(layoutInflater)
+            var submitted = false
+            httpAuthDialog = alert(R.string.login) {
+                setMessage(
+                    getString(R.string.http_auth_message, host) +
+                        if (realm.isNullOrBlank()) "" else "\n$realm"
+                )
+                setCustomView(authBinding.root)
+                positiveButton(R.string.login) {
+                    submitted = true
+                    handler.proceed(
+                        authBinding.httpAuthUsername.text.toString(),
+                        authBinding.httpAuthPassword.text.toString()
+                    )
+                }
+                negativeButton(R.string.cancel)
+                onDismiss { dialog ->
+                    // 包括取消、返回、页面跳转及 Activity 销毁，保证认证请求结束。
+                    if (!submitted) handler.cancel()
+                    authBinding.httpAuthUsername.text?.clear()
+                    authBinding.httpAuthPassword.text?.clear()
+                    if (httpAuthDialog === dialog) httpAuthDialog = null
+                }
+            }
+        }
 
         override fun shouldOverrideUrlLoading(
             view: WebView,

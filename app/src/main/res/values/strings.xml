@@ -396,6 +396,9 @@
     <string name="behavior_main_t">Auto hide ToolBar</string>
     <string name="behavior_main_s">The toolbar will be hidden automatically when scroll the Bookshelf</string>
     <string name="login">Login</string>
+    <string name="http_auth_message">%1$s requires a username and password</string>
+    <string name="http_auth_username">Username</string>
+    <string name="http_auth_password">Password</string>
     <string name="login_source">Login%s</string>
     <string name="success">Success</string>
     <string name="source_no_login">The current source has not configured with a login address</string>

@@ -391,6 +391,9 @@
     <string name="behavior_main_t">书架工具栏自动隐藏</string>
     <string name="behavior_main_s">滚动书架时工具栏自动隐藏与显示</string>
     <string name="login">登录</string>
+    <string name="http_auth_message">%1$s 要求提供用户名和密码</string>
+    <string name="http_auth_username">用户名</string>
+    <string name="http_auth_password">密码</string>
     <string name="login_source">登录 %s</string>
     <string name="success">成功</string>
     <string name="source_no_login">当前源没有配置登陆地址</string>
