@@ -162,7 +162,7 @@ class ReadTimelineActivity : BaseActivity<ActivityReadTimelineBinding>() {
             binding.bookName.setTextColor(palette.text)
             binding.bookName.text = item.bookName.ifBlank { getString(R.string.read_record_untitled_book) }
             binding.detail.setTextColor(palette.secondaryText)
-            binding.detail.text = listOf(item.author, duration(item.readTime), item.zoneId)
+            binding.detail.text = listOf(item.author, duration(item.readTime))
                 .filter { it.isNotBlank() }.joinToString(" · ")
             binding.delete.contentDescription = getString(R.string.read_timeline_delete_description,
                 binding.timeRange.text, binding.bookName.text)
