@@ -10,6 +10,8 @@ import io.legado.app.R
 import io.legado.app.base.VMBaseActivity
 import io.legado.app.data.entities.SearchBook
 import io.legado.app.databinding.ActivityRandomRecommendBinding
+import io.legado.app.lib.dialogs.alert
+import io.legado.app.lib.theme.accentColor
 import io.legado.app.ui.book.info.BookInfoActivity
 import io.legado.app.ui.widget.recycler.VerticalDivider
 import io.legado.app.utils.applyNavigationBarPadding
@@ -30,8 +32,21 @@ class RandomRecommendActivity :
         binding.recyclerView.applyNavigationBarPadding()
         viewModel.state.observe(this) { state ->
             binding.progressBar.isVisible = state.loading
-            binding.tvStatus.text = state.message
-            binding.tvStatus.isVisible = state.message.isNotBlank()
+            val status = (listOf(state.message) + state.failedCategories.take(3))
+                .filter { it.isNotBlank() }.joinToString("\n")
+            binding.tvStatus.text = status
+            binding.tvStatus.isVisible = status.isNotBlank()
+            binding.tvFailedCategories.apply {
+                isVisible = state.failedCategories.isNotEmpty()
+                text = getString(R.string.random_recommend_view_failed_categories, state.failedCategories.size)
+                setTextColor(context.accentColor)
+                setOnClickListener {
+                    alert(R.string.random_recommend_failed_categories) {
+                        setMessage(state.failedCategories.joinToString("\n\n"))
+                        okButton()
+                    }
+                }
+            }
             adapter.setItems(state.books)
         }
         viewModel.shelfKeys.observe(this) {

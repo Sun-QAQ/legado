@@ -33,7 +33,7 @@ class RandomRecommendLoaderTest {
         assertEquals(20, result.books.size)
         assertEquals(20, result.books.toSet().size)
         assertTrue(result.books != (1..20).toList())
-        assertEquals(0, result.failedCategories)
+        assertTrue(result.failedCategories.isEmpty())
     }
 
     @Test
@@ -66,7 +66,41 @@ class RandomRecommendLoaderTest {
         })
         val result = loader.load(listOf("failed", "working"))
         assertEquals(setOf(1, 2, 3), result.books.toSet())
-        assertEquals(1, result.failedCategories)
+        assertEquals(listOf("failed"), result.failedCategories)
+    }
+
+    @Test
+    fun `all failures retain category identities once in configuration order`() = runBlocking {
+        val loader = RandomRecommendLoader<String, Int>(key = { it }, fetch = { _, _ ->
+            error("Unavailable category")
+        }, random = Random(7))
+        val result = loader.load(listOf("first", "second", "first", "third"))
+        assertTrue(result.books.isEmpty())
+        assertEquals(listOf("first", "second", "third"), result.failedCategories)
+    }
+
+    @Test
+    fun `later page failure preserves earlier books and identifies the category`() = runBlocking {
+        val loader = RandomRecommendLoader<String, Int>(key = { it }, fetch = { _, page ->
+            if (page > 1) error("Later page failed")
+            listOf(1, 2, 3)
+        })
+        val result = loader.load(listOf("selected"))
+        assertEquals(setOf(1, 2, 3), result.books.toSet())
+        assertEquals(listOf("selected"), result.failedCategories)
+    }
+
+    @Test
+    fun `identical category titles from different sources remain distinguishable`() = runBlocking {
+        val first = RandomRecommendCategory("first-source", "同名分类", "category")
+        val second = RandomRecommendCategory("second-source", "同名分类", "category")
+        val loader = RandomRecommendLoader<RandomRecommendCategory, Int>(key = { it }, fetch = { category, _ ->
+            if (category == second) error("Unavailable category")
+            (1..20).toList()
+        })
+        val result = loader.load(listOf(first, second))
+        assertEquals(20, result.books.size)
+        assertEquals(listOf(second), result.failedCategories)
     }
 
     @Test(expected = CancellationException::class)

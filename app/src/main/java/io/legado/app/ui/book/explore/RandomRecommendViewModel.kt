@@ -19,7 +19,8 @@ class RandomRecommendViewModel(application: Application) : BaseViewModel(applica
     data class State(
         val books: List<SearchBook> = emptyList(),
         val loading: Boolean = false,
-        val message: String = ""
+        val message: String = "",
+        val failedCategories: List<String> = emptyList()
     )
 
     val state = MutableLiveData(State())
@@ -52,7 +53,7 @@ class RandomRecommendViewModel(application: Application) : BaseViewModel(applica
         state.value = State(loading = true, message = context.getString(R.string.random_recommend_loading))
         loadJob = viewModelScope.launch {
             try {
-                val result = withContext(IO) {
+                val (result, failedCategories) = withContext(IO) {
                     val loader = RandomRecommendLoader<RandomRecommendCategory, SearchBook>(
                         key = { book ->
                             if (book.author.isNotBlank()) listOf(book.name, book.author)
@@ -65,19 +66,26 @@ class RandomRecommendViewModel(application: Application) : BaseViewModel(applica
                                 .filter { it.bookUrl.isNotBlank() && it.name.isNotBlank() }
                         }
                     )
-                    loader.load(config).also {
-                        // BookInfoActivity resolves the selected book from this table.
-                        appDb.searchBookDao.insert(*it.books.toTypedArray())
+                    val result = loader.load(config)
+                    // BookInfoActivity resolves the selected book from this table.
+                    appDb.searchBookDao.insert(*result.books.toTypedArray())
+                    val sourceNames = result.failedCategories.map { it.sourceUrl }.distinct()
+                        .associateWith { url ->
+                            appDb.bookSourceDao.getBookSource(url)?.bookSourceName
+                                ?.takeIf { it.isNotBlank() } ?: url
+                        }
+                    result to result.failedCategories.map { category ->
+                        "${sourceNames.getValue(category.sourceUrl)} · ${category.title.ifBlank { category.url }}"
                     }
                 }
                 val message = when {
-                    result.books.isEmpty() -> context.getString(R.string.random_recommend_empty)
-                    result.failedCategories > 0 -> context.getString(
-                        R.string.random_recommend_partial, result.books.size, result.failedCategories
+                    result.failedCategories.isNotEmpty() -> context.getString(
+                        R.string.random_recommend_partial, result.books.size, result.failedCategories.size
                     )
+                    result.books.isEmpty() -> context.getString(R.string.random_recommend_empty)
                     else -> ""
                 }
-                state.value = State(result.books, message = message)
+                state.value = State(result.books, message = message, failedCategories = failedCategories)
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {

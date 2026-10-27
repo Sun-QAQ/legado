@@ -15,9 +15,9 @@ internal class RandomRecommendLoader<C, B>(
     private val fetch: suspend (C, Int) -> List<B>,
     private val random: Random = Random.Default
 ) {
-    data class Result<B>(val books: List<B>, val failedCategories: Int)
+    data class Result<C, B>(val books: List<B>, val failedCategories: List<C>)
 
-    suspend fun load(categories: List<C>): Result<B> = coroutineScope {
+    suspend fun load(categories: List<C>): Result<C, B> = coroutineScope {
         val books = linkedMapOf<Any, B>()
         val failed = hashSetOf<C>()
         var active = categories.distinct().shuffled(random)
@@ -52,6 +52,6 @@ internal class RandomRecommendLoader<C, B>(
             if (books.size >= 20 || next.isEmpty()) break
             active = next.shuffled(random)
         }
-        Result(books.values.shuffled(random).take(20), failed.size)
+        Result(books.values.shuffled(random).take(20), categories.distinct().filter { it in failed })
     }
 }

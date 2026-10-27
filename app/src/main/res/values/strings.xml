@@ -1469,4 +1469,6 @@
     <string name="random_recommend_only_selected">Only show sources with selected categories</string>
     <string name="random_recommend_no_selected_sources">No sources have selected categories. Turn off the filter in the menu to choose categories.</string>
     <string name="random_recommend_no_matching_sources">No sources match the current filters. Try changing the search, group, or selected-source filter.</string>
+    <string name="random_recommend_failed_categories">Failed discovery categories</string>
+    <string name="random_recommend_view_failed_categories">View all %1$d failed categories</string>
 </resources>
