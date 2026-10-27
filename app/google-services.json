@@ -7,6 +7,25 @@
   "client": [
     {
       "client_info": {
+        "mobilesdk_app_id": "1:56906600607:android:9333d497ef41d5f89c12aa",
+        "android_client_info": {
+          "package_name": "io.legadoS.app.debug"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyATBCrAJMC3u42B6fMOmbcCVwAFI-tcP98"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
         "mobilesdk_app_id": "1:56906600607:android:45d44006db67c2709c12aa",
         "android_client_info": {
           "package_name": "io.legadoS.app.release"
