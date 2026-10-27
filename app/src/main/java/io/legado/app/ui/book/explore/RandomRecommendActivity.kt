@@ -22,7 +22,7 @@ class RandomRecommendActivity :
 
     override val binding by viewBinding(ActivityRandomRecommendBinding::inflate)
     override val viewModel by viewModels<RandomRecommendViewModel>()
-    private val adapter by lazy { ExploreShowAdapter(this, this) }
+    private val adapter by lazy { ExploreShowAdapter(this, this, showSourceName = true) }
 
     override fun onActivityCreated(savedInstanceState: Bundle?) {
         binding.recyclerView.adapter = adapter

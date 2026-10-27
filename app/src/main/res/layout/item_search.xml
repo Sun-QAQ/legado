@@ -97,6 +97,17 @@
             android:textColor="@color/primaryText"
             android:textSize="12sp" />
 
+        <TextView
+            android:id="@+id/tv_source_name"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:ellipsize="end"
+            android:lines="1"
+            android:scrollbars="none"
+            android:textColor="@color/primaryText"
+            android:textSize="12sp"
+            android:visibility="gone" />
+
         <io.legado.app.ui.widget.text.MultilineTextView
             android:id="@+id/tv_introduce"
             android:layout_width="match_parent"

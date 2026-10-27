@@ -14,7 +14,11 @@ import io.legado.app.utils.gone
 import io.legado.app.utils.visible
 
 
-class ExploreShowAdapter(context: Context, val callBack: CallBack) :
+class ExploreShowAdapter(
+    context: Context,
+    val callBack: CallBack,
+    private val showSourceName: Boolean = false
+) :
     RecyclerAdapter<SearchBook, ItemSearchBinding>(context) {
 
     override fun getViewBinding(parent: ViewGroup): ItemSearchBinding {
@@ -49,6 +53,9 @@ class ExploreShowAdapter(context: Context, val callBack: CallBack) :
                 tvLasted.text = context.getString(R.string.lasted_show, item.latestChapterTitle)
                 tvLasted.visible()
             }
+            val sourceName = item.originName.ifBlank { item.origin }
+            tvSourceName.text = context.getString(R.string.origin_show, sourceName)
+            tvSourceName.isVisible = showSourceName && sourceName.isNotBlank()
             tvIntroduce.text = item.trimIntro(context)
             val kinds = item.getKindList()
             if (kinds.isEmpty()) {
