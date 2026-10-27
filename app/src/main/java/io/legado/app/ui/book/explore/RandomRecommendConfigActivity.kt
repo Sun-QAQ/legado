@@ -20,11 +20,14 @@ import io.legado.app.help.source.exploreKinds
 import io.legado.app.lib.dialogs.alert
 import io.legado.app.lib.theme.accentColor
 import io.legado.app.lib.theme.primaryTextColor
+import io.legado.app.ui.book.source.edit.BookSourceEditActivity
+import io.legado.app.ui.login.SourceLoginActivity
 import io.legado.app.ui.widget.recycler.VerticalDivider
 import io.legado.app.utils.applyNavigationBarPadding
 import io.legado.app.utils.applyTint
 import io.legado.app.utils.cnCompare
 import io.legado.app.utils.getCompatColor
+import io.legado.app.utils.startActivity
 import io.legado.app.utils.viewbindingdelegate.viewBinding
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers.IO
@@ -181,6 +184,27 @@ class RandomRecommendConfigActivity : BaseActivity<ActivityRandomRecommendConfig
         })
     }
 
+    private fun showSourceMenu(source: BookSourcePart) {
+        val actions = buildList {
+            if (source.hasLoginUrl) add(R.string.login)
+            add(R.string.edit)
+        }
+        alert(source.bookSourceName) {
+            items(actions.map { getString(it) }) { _, index ->
+                when (actions[index]) {
+                    R.string.login -> startActivity<SourceLoginActivity> {
+                        putExtra("type", "bookSource")
+                        putExtra("key", source.bookSourceUrl)
+                    }
+                    R.string.edit -> startActivity<BookSourceEditActivity> {
+                        putExtra("sourceUrl", source.bookSourceUrl)
+                    }
+                }
+            }
+            cancelButton()
+        }
+    }
+
     private fun selectCategories(source: BookSourcePart) {
         if (loading) return
         loading = true
@@ -259,6 +283,11 @@ class RandomRecommendConfigActivity : BaseActivity<ActivityRandomRecommendConfig
         override fun registerListener(holder: ItemViewHolder, binding: ItemRandomRecommendSourceBinding) {
             binding.root.setOnClickListener {
                 getItem(holder.layoutPosition)?.let(::selectCategories)
+            }
+            binding.root.setOnLongClickListener {
+                val source = getItem(holder.layoutPosition) ?: return@setOnLongClickListener false
+                showSourceMenu(source)
+                true
             }
         }
     }

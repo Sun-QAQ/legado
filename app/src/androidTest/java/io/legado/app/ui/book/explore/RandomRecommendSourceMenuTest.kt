@@ -1,0 +1,74 @@
+package io.legado.app.ui.book.explore
+
+import android.os.SystemClock
+import android.widget.TextView
+import androidx.recyclerview.widget.RecyclerView
+import androidx.test.core.app.ActivityScenario
+import androidx.test.espresso.Espresso.onView
+import androidx.test.espresso.action.ViewActions.click
+import androidx.test.espresso.assertion.ViewAssertions.doesNotExist
+import androidx.test.espresso.assertion.ViewAssertions.matches
+import androidx.test.espresso.matcher.ViewMatchers.isDisplayed
+import androidx.test.espresso.matcher.ViewMatchers.withText
+import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.google.android.material.tabs.TabLayout
+import io.legado.app.R
+import io.legado.app.base.adapter.RecyclerAdapter
+import io.legado.app.data.entities.BookSourcePart
+import org.junit.Assert.assertTrue
+import org.junit.Test
+import org.junit.runner.RunWith
+
+@RunWith(AndroidJUnit4::class)
+class RandomRecommendSourceMenuTest {
+    @Test
+    fun longPressUsesCurrentRowAndShowsLoginOnlyWhenSupported() {
+        ActivityScenario.launch(RandomRecommendConfigActivity::class.java).use { scenario ->
+            awaitActivity(scenario) { it.findViewById<TabLayout>(R.id.tab_group).tabCount > 0 }
+            showMenu(scenario, BookSourcePart("first", "测试登录书源", hasLoginUrl = true))
+            onView(withText("测试登录书源")).check(matches(isDisplayed()))
+            onView(withText(R.string.login)).check(matches(isDisplayed()))
+            onView(withText(R.string.edit)).check(matches(isDisplayed()))
+            onView(withText(android.R.string.cancel)).perform(click())
+
+            showMenu(scenario, BookSourcePart("second", "测试普通书源"))
+            onView(withText("测试普通书源")).check(matches(isDisplayed()))
+            onView(withText(R.string.login)).check(doesNotExist())
+            onView(withText(R.string.edit)).check(matches(isDisplayed()))
+            onView(withText(android.R.string.cancel)).perform(click())
+        }
+    }
+
+    private fun showMenu(scenario: ActivityScenario<RandomRecommendConfigActivity>, source: BookSourcePart) {
+        scenario.onActivity { activity ->
+            // Populate only the view adapter; never persist synthetic sources or change selections.
+            @Suppress("UNCHECKED_CAST")
+            val adapter = activity.findViewById<RecyclerView>(R.id.recycler_view).adapter
+                as RecyclerAdapter<BookSourcePart, *>
+            adapter.setItems(listOf(source))
+        }
+        awaitActivity(scenario) { activity ->
+            activity.findViewById<RecyclerView>(R.id.recycler_view).findViewHolderForAdapterPosition(0)
+                ?.itemView?.findViewById<TextView>(R.id.tv_name)?.text == source.bookSourceName
+        }
+        scenario.onActivity { activity ->
+            val row = activity.findViewById<RecyclerView>(R.id.recycler_view)
+                .findViewHolderForAdapterPosition(0)!!.itemView
+            assertTrue(row.performLongClick())
+        }
+    }
+
+    private fun awaitActivity(
+        scenario: ActivityScenario<RandomRecommendConfigActivity>,
+        condition: (RandomRecommendConfigActivity) -> Boolean
+    ) {
+        val deadline = SystemClock.uptimeMillis() + 5_000
+        while (SystemClock.uptimeMillis() < deadline) {
+            var ready = false
+            scenario.onActivity { ready = condition(it) }
+            if (ready) return
+            SystemClock.sleep(50)
+        }
+        error("Configuration source row did not become ready")
+    }
+}
