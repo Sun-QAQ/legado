@@ -35,7 +35,7 @@ class AgentSupplierModelSelectionTest {
     private val instrumentation = InstrumentationRegistry.getInstrumentation()
 
     @Test
-    fun selectorSwitchesProviderAndModelAndTracksConfigurationAndConversationChanges() {
+    fun inlineGroupsSwitchModelsAndTrackConfigurationAndConversationChanges() {
         val context = instrumentation.targetContext
         val previousSupplier = context.getPrefLong(PreferKey.aiSupplierId)
         val previousConversation = context.getPrefString(PreferKey.aiConversationId)
@@ -133,6 +133,10 @@ class AgentSupplierModelSelectionTest {
                 awaitMain { label.text.toString() == "供应商甲 · model-updated" }
                 instrumentation.runOnMainSync {
                     fragment.parentFragmentManager.beginTransaction().detach(fragment).commitNow()
+                }
+                // 视图绑定在主线程队列中释放，等待释放后再重建视图。
+                instrumentation.waitForIdleSync()
+                instrumentation.runOnMainSync {
                     fragment.parentFragmentManager.beginTransaction().attach(fragment).commitNow()
                     label = fragment.requireView().findViewById(R.id.tv_supplier_model)
                 }
@@ -146,10 +150,13 @@ class AgentSupplierModelSelectionTest {
                 instrumentation.runOnMainSync {
                     label.performClick()
                 }
-                awaitMain { modelList(fragment).height > 0 }
+                awaitMain(details = {
+                    val list = modelList(fragment)
+                    "list=${list.visibility}/${list.width}x${list.height}, root=${fragment.requireView().width}x${fragment.requireView().height}, label=${label.isEnabled}/${label.width}x${label.height}, rows=${list.adapter?.itemCount}"
+                }) { modelList(fragment).height > 0 }
                 instrumentation.runOnMainSync {
                     File(context.cacheDir, "agent_supplier_model_preview.png").outputStream().use {
-                        fragment.requireView().drawToBitmap().compress(Bitmap.CompressFormat.PNG, 100, it)
+                        fragment.requireActivity().window.decorView.drawToBitmap().compress(Bitmap.CompressFormat.PNG, 100, it)
                     }
                 }
             }
@@ -181,7 +188,7 @@ class AgentSupplierModelSelectionTest {
         }
     }
 
-    private fun awaitMain(condition: () -> Boolean) {
+    private fun awaitMain(details: () -> String = { "" }, condition: () -> Boolean) {
         val deadline = SystemClock.uptimeMillis() + 10000
         do {
             var ready = false
@@ -189,6 +196,8 @@ class AgentSupplierModelSelectionTest {
             if (ready) return
             SystemClock.sleep(20)
         } while (SystemClock.uptimeMillis() < deadline)
-        throw AssertionError("等待供应商及模型界面更新超时")
+        var diagnostic = ""
+        instrumentation.runOnMainSync { diagnostic = details() }
+        throw AssertionError("等待供应商及模型界面更新超时 $diagnostic")
     }
 }
