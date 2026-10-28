@@ -104,7 +104,7 @@ class AgentSupplierModelSelectionTest {
                 val model = showItem(fragment) { it is AgentModelItem.Model && it.source.id == first.id && it.name == "model-a" }
                 instrumentation.runOnMainSync {
                     val name = model.findViewById<TextView>(R.id.tv_name)
-                    assertFalse(name.typeface.isBold)
+                    assertFalse(name.typeface?.isBold ?: false)
                     assertEquals(name.paint.measureText("\u3000\u3000").roundToInt(), name.paddingStart)
                     assertEquals("model-a", name.text.toString())
                     assertTrue(model.findViewById<View>(R.id.iv_selected).isVisible)
