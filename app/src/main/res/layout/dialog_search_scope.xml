@@ -37,6 +37,7 @@
             android:layout_weight="1"
             android:button="@null"
             android:gravity="center"
+            android:minHeight="36dp"
             android:padding="5dp"
             android:singleLine="true"
             android:checked="true"
@@ -50,6 +51,7 @@
             android:layout_weight="1"
             android:button="@null"
             android:gravity="center"
+            android:minHeight="36dp"
             android:padding="5dp"
             android:singleLine="true"
             android:text="@string/book_source" />
