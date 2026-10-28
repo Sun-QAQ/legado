@@ -37,69 +37,96 @@
         android:layout_marginStart="12dp"
         android:layout_marginEnd="12dp"
         android:layout_marginBottom="10dp"
-        android:background="@drawable/bg_input_bar"
-        android:gravity="center_vertical"
         android:orientation="vertical"
-        android:paddingLeft="14dp"
-        android:paddingTop="4dp"
-        android:paddingRight="8dp"
-        android:paddingBottom="4dp"
         app:layout_constraintBottom_toBottomOf="parent">
 
-        <HorizontalScrollView
-            android:id="@+id/attachment_scroll"
+        <androidx.appcompat.widget.AppCompatTextView
+            android:id="@+id/tv_supplier_model"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:scrollbars="none"
-            android:visibility="gone">
-
-            <LinearLayout
-                android:id="@+id/ll_attachments"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal" />
-        </HorizontalScrollView>
+            android:minHeight="48dp"
+            android:background="?attr/selectableItemBackground"
+            android:clickable="true"
+            android:ellipsize="middle"
+            android:focusable="true"
+            android:gravity="center_vertical"
+            android:maxLines="1"
+            android:paddingStart="14dp"
+            android:paddingEnd="12dp"
+            android:text="@string/ai_source_select_use"
+            android:textColor="?android:attr/textColorSecondary"
+            android:textSize="12sp"
+            app:drawableEndCompat="@drawable/ic_arrow_drop_down"
+            app:drawableTint="?android:attr/textColorSecondary"
+            tools:text="DeepSeek · deepseek-chat" />
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:background="@drawable/bg_input_bar"
             android:gravity="center_vertical"
-            android:orientation="horizontal">
+            android:orientation="vertical"
+            android:paddingLeft="14dp"
+            android:paddingTop="4dp"
+            android:paddingRight="8dp"
+            android:paddingBottom="4dp">
 
-            <io.legado.app.ui.book.agent.AgentInputEditText
-                android:id="@+id/et_input"
-                android:layout_width="0dp"
+            <HorizontalScrollView
+                android:id="@+id/attachment_scroll"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:background="@null"
-                android:hint="@string/agent_hint"
-                android:imeOptions="actionSend"
-                android:inputType="textCapSentences|textMultiLine"
-                android:maxLines="4"
-                android:minLines="1" />
+                android:scrollbars="none"
+                android:visibility="gone">
 
-            <androidx.appcompat.widget.AppCompatImageButton
-                android:id="@+id/btn_upload"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
-                android:layout_marginStart="4dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:contentDescription="@string/agent_upload"
-                android:padding="12dp"
-                app:srcCompat="@drawable/ic_add"
-                app:tint="?attr/colorControlNormal" />
+                <LinearLayout
+                    android:id="@+id/ll_attachments"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal" />
+            </HorizontalScrollView>
 
-            <androidx.appcompat.widget.AppCompatImageButton
-                android:id="@+id/btn_send"
-                android:layout_width="38dp"
-                android:layout_height="38dp"
-                android:layout_marginLeft="8dp"
-                android:background="@drawable/bg_btn_send"
-                android:contentDescription="@string/agent_send"
-                android:padding="10dp"
-                android:src="@drawable/ic_send"
-                android:tint="@color/white"
-                tools:ignore="RtlSymmetry" />
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <io.legado.app.ui.book.agent.AgentInputEditText
+                    android:id="@+id/et_input"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:background="@null"
+                    android:hint="@string/agent_hint"
+                    android:imeOptions="actionSend"
+                    android:inputType="textCapSentences|textMultiLine"
+                    android:maxLines="4"
+                    android:minLines="1" />
+
+                <androidx.appcompat.widget.AppCompatImageButton
+                    android:id="@+id/btn_upload"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:layout_marginStart="4dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="@string/agent_upload"
+                    android:padding="12dp"
+                    app:srcCompat="@drawable/ic_add"
+                    app:tint="?attr/colorControlNormal" />
+
+                <androidx.appcompat.widget.AppCompatImageButton
+                    android:id="@+id/btn_send"
+                    android:layout_width="38dp"
+                    android:layout_height="38dp"
+                    android:layout_marginLeft="8dp"
+                    android:background="@drawable/bg_btn_send"
+                    android:contentDescription="@string/agent_send"
+                    android:padding="10dp"
+                    android:src="@drawable/ic_send"
+                    android:tint="@color/white"
+                    tools:ignore="RtlSymmetry" />
+
+            </LinearLayout>
 
         </LinearLayout>
 

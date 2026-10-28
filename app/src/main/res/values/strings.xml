@@ -728,6 +728,9 @@
     <string name="agent_steps_count">Execution steps (%1$d)</string>
     <string name="agent_expand_steps">Expand or collapse execution steps</string>
     <string name="agent_no_supplier">No enabled AI supplier</string>
+    <string name="agent_supplier_model">%1$s · %2$s</string>
+    <string name="agent_model_not_selected">No model selected</string>
+    <string name="agent_change_supplier_model">%1$s. Tap to change supplier and model</string>
     <string name="agent_no_source_group">No source group or book source: %1$s</string>
     <string name="agent_step_requesting">Requesting AI</string>
     <string name="agent_step_generating">AI is generating a reply</string>
