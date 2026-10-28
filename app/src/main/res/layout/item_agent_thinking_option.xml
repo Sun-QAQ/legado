@@ -2,9 +2,11 @@
 <io.legado.app.lib.theme.view.ThemeRadioButton xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:minHeight="48dp"
+    android:minHeight="36dp"
     android:drawablePadding="8dp"
     android:paddingStart="8dp"
     android:paddingEnd="8dp"
+    android:paddingTop="0dp"
+    android:paddingBottom="0dp"
     android:textColor="?android:attr/textColorPrimary"
     android:textSize="14sp" />
