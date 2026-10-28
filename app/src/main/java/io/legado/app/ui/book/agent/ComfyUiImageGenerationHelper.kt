@@ -7,7 +7,6 @@ import com.google.gson.JsonParser
 import com.google.gson.JsonPrimitive
 import io.legado.app.data.entities.AiImageSource
 import io.legado.app.help.http.addHeaders
-import io.legado.app.help.http.newCallResponse
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withTimeoutOrNull
 import okhttp3.HttpUrl
@@ -166,11 +165,11 @@ internal object ComfyUiImageGenerationHelper {
         endpoint: HttpUrl,
         headers: Map<String, String>,
         body: JsonObject? = null
-    ): String = client.newCallResponse {
+    ): String = AiImageHttp.read(client, {
         url(endpoint)
         addHeaders(headers)
         if (body != null) post(body.toString().toRequestBody(JSON_MEDIA_TYPE))
-    }.use { response ->
+    }) { response ->
         val text = response.body.string()
         check(response.isSuccessful) { "ComfyUI HTTP ${response.code}：${text.take(2000)}" }
         text

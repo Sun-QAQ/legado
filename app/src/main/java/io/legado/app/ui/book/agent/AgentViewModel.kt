@@ -1115,7 +1115,9 @@ class AgentViewModel @JvmOverloads constructor(
             val conversationId = _currentConversationId.value
                 ?: currentConversationSnapshot()?.id
                 ?: UUID.randomUUID().toString()
-            val path = AgentImageStorage.save(context, conversationId, bytes)
+            val path = withContext(Dispatchers.IO) {
+                AgentImageStorage.save(context, conversationId, bytes)
+            }
             lastGeneratedImages = lastGeneratedImages + AgentGeneratedImage(path, prompt)
             finishStep(stepId, getString(R.string.agent_step_image_done))
             getString(R.string.agent_image_generated)

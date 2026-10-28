@@ -4,9 +4,9 @@ import com.google.gson.JsonObject
 import com.google.gson.JsonParser
 import io.legado.app.data.entities.AiImageSource
 import io.legado.app.help.http.addHeaders
-import io.legado.app.help.http.newCallResponse
-import io.legado.app.help.http.newCallStrResponse
 import io.legado.app.help.http.okHttpClient
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.RequestBody.Companion.toRequestBody
@@ -57,7 +57,7 @@ internal object AiImageGenerationHelper {
         prompt: String,
         size: String,
         httpClient: OkHttpClient = okHttpClient
-    ): ByteArray {
+    ): ByteArray = withContext(Dispatchers.IO) {
         val client = httpClient.newBuilder()
             .callTimeout(180, TimeUnit.SECONDS)
             .readTimeout(180, TimeUnit.SECONDS)
@@ -74,23 +74,25 @@ internal object AiImageGenerationHelper {
             val imageUrl = ComfyUiImageGenerationHelper.generateImageUrl(
                 client, source, prompt, size, headers
             )
-            return downloadImage(client, imageUrl, headers)
+            return@withContext downloadImage(client, imageUrl, headers)
         }
         val endpoint = source.baseUrl.trimEnd('/').let {
             if (it.endsWith("/images/generations")) it else "$it/images/generations"
         }
-        val response = client.newCallStrResponse {
+        val body = AiImageHttp.read(client, {
             addHeaders(headers)
             url(endpoint)
             post(buildRequest(source, prompt, size).toString().toRequestBody(JSON_MEDIA_TYPE))
-        }
-        val body = response.body.orEmpty()
-        if (!response.isSuccessful()) {
-            val message = runCatching {
-                JsonParser.parseString(body).asJsonObject
-                    .getAsJsonObject("error")?.get("message")?.asString
-            }.getOrNull()
-            throw IllegalStateException(message ?: "HTTP ${response.code()}: ${response.message()}")
+        }) { response ->
+            val body = response.body.string()
+            if (!response.isSuccessful) {
+                val message = runCatching {
+                    JsonParser.parseString(body).asJsonObject
+                        .getAsJsonObject("error")?.get("message")?.asString
+                }.getOrNull()
+                throw IllegalStateException(message ?: "HTTP ${response.code}: ${response.message}")
+            }
+            body
         }
         val reference = parseResponse(body)
         reference.base64?.let { encoded ->
@@ -98,32 +100,29 @@ internal object AiImageGenerationHelper {
             val bytes = encoded.decodeBase64()?.toByteArray()
                 ?: throw IllegalArgumentException("Base64 图片数据无效")
             require(bytes.size <= MAX_IMAGE_BYTES) { "图片数据过大" }
-            return bytes
+            return@withContext bytes
         }
-        return downloadImage(client, requireNotNull(reference.url))
+        downloadImage(client, requireNotNull(reference.url))
     }
 
     private suspend fun downloadImage(
         client: OkHttpClient,
         imageUrl: String,
         headers: Map<String, String> = emptyMap()
-    ): ByteArray {
-        val imageResponse = client.newCallResponse {
-            url(imageUrl)
-            addHeaders(headers)
+    ): ByteArray = AiImageHttp.read(client, {
+        url(imageUrl)
+        addHeaders(headers)
+    }) {
+        if (!it.isSuccessful) throw IllegalStateException("下载图片失败：HTTP ${it.code}")
+        val responseBody = it.body
+        val length = responseBody.contentLength()
+        require(length < 0 || length <= MAX_IMAGE_BYTES) { "图片文件过大" }
+        val buffer = Buffer()
+        val input = responseBody.source()
+        while (input.read(buffer, minOf(8192L, MAX_IMAGE_BYTES + 1L - buffer.size)) != -1L) {
+            require(buffer.size <= MAX_IMAGE_BYTES) { "图片文件过大" }
         }
-        imageResponse.use {
-            if (!it.isSuccessful) throw IllegalStateException("下载图片失败：HTTP ${it.code}")
-            val responseBody = it.body
-            val length = responseBody.contentLength()
-            require(length < 0 || length <= MAX_IMAGE_BYTES) { "图片文件过大" }
-            val buffer = Buffer()
-            val input = responseBody.source()
-            while (input.read(buffer, minOf(8192L, MAX_IMAGE_BYTES + 1L - buffer.size)) != -1L) {
-                require(buffer.size <= MAX_IMAGE_BYTES) { "图片文件过大" }
-            }
-            return buffer.readByteArray()
-        }
+        buffer.readByteArray()
     }
 
     private val JSON_MEDIA_TYPE = "application/json; charset=UTF-8".toMediaType()
