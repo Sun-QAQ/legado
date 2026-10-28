@@ -28,6 +28,7 @@ import org.junit.Assert.*
 import org.junit.Test
 import org.junit.runner.RunWith
 import java.io.File
+import kotlin.math.roundToInt
 
 /** 使用本地合成供应商验证选择、持久化与界面同步，不发送 AI 请求。 */
 @RunWith(AndroidJUnit4::class)
@@ -93,6 +94,48 @@ class AgentSupplierModelSelectionTest {
                     assertTrue(panelBounds.bottom <= labelBounds.top)
                     assertTrue(list.height <= (320 * context.resources.displayMetrics.density).toInt())
                 }
+                val heading = showItem(fragment) { it is AgentModelItem.Supplier && it.source.id == first.id }
+                instrumentation.runOnMainSync {
+                    val name = heading.findViewById<TextView>(R.id.tv_name)
+                    assertTrue(name.typeface.isBold)
+                    assertEquals(0, name.paddingStart)
+                    assertTrue(heading.findViewById<View>(R.id.iv_expand).isVisible)
+                }
+                val model = showItem(fragment) { it is AgentModelItem.Model && it.source.id == first.id && it.name == "model-a" }
+                instrumentation.runOnMainSync {
+                    val name = model.findViewById<TextView>(R.id.tv_name)
+                    assertFalse(name.typeface.isBold)
+                    assertEquals(name.paint.measureText("\u3000\u3000").roundToInt(), name.paddingStart)
+                    assertEquals("model-a", name.text.toString())
+                    assertTrue(model.findViewById<View>(R.id.iv_selected).isVisible)
+                }
+                toggleGroup(fragment, first.id)
+                awaitMain { rows(fragment).none { it is AgentModelItem.Model && it.source.id == first.id } }
+                instrumentation.runOnMainSync {
+                    assertTrue(modelList(fragment).isVisible)
+                    assertEquals(first.id, agent.currentSupplierId.value)
+                    assertTrue(rows(fragment).any { it is AgentModelItem.Model && it.source.id == second.id })
+                }
+                toggleGroup(fragment, second.id)
+                awaitMain { rows(fragment).none { it is AgentModelItem.Model && it.source.id == second.id } }
+                // 配置刷新、关闭和重开列表均应保留各分组的收起状态。
+                appDb.aiSourceDao.update(second.copy(lastUpdateTime = now + 3))
+                awaitMain {
+                    rows(fragment).filterIsInstance<AgentModelItem.Supplier>()
+                        .any { it.source.id == second.id && it.source.lastUpdateTime == now + 3 }
+                }
+                instrumentation.runOnMainSync {
+                    label.performClick()
+                    label.performClick()
+                    assertTrue(rows(fragment).none { it is AgentModelItem.Model && it.source.id in listOf(first.id, second.id) })
+                }
+                toggleGroup(fragment, first.id)
+                awaitMain { rows(fragment).count { it is AgentModelItem.Model && it.source.id == first.id } == 2 }
+                instrumentation.runOnMainSync {
+                    assertTrue(rows(fragment).none { it is AgentModelItem.Model && it.source.id == second.id })
+                }
+                toggleGroup(fragment, second.id)
+                awaitMain { rows(fragment).any { it is AgentModelItem.Model && it.source.id == second.id } }
                 choose(fragment, first.id, "model-b")
                 awaitMain { label.text.toString() == "供应商甲 · model-b" }
                 assertEquals("model-b", appDb.aiSourceDao.get(first.id)!!.model)
@@ -171,21 +214,37 @@ class AgentSupplierModelSelectionTest {
         fragment.requireView().findViewById(R.id.model_list)
 
     private fun choose(fragment: AgentFragment, supplierId: Long, model: String) {
+        val row = showItem(fragment) {
+            it is AgentModelItem.Model && it.source.id == supplierId && it.name == model
+        }
+        instrumentation.runOnMainSync { assertTrue(row.performClick()) }
+    }
+
+    private fun toggleGroup(fragment: AgentFragment, supplierId: Long) {
+        val row = showItem(fragment) { it is AgentModelItem.Supplier && it.source.id == supplierId }
+        instrumentation.runOnMainSync { assertTrue(row.performClick()) }
+    }
+
+    private fun rows(fragment: AgentFragment): List<AgentModelItem?> {
+        val adapter = modelList(fragment).adapter as AgentModelAdapter
+        return (0 until adapter.itemCount).map { adapter.getItem(it) }
+    }
+
+    private fun showItem(fragment: AgentFragment, matches: (AgentModelItem?) -> Boolean): View {
+        instrumentation.waitForIdleSync()
         var position = -1
         instrumentation.runOnMainSync {
             val list = modelList(fragment)
             val adapter = list.adapter as AgentModelAdapter
             position = (0 until adapter.itemCount).first {
-                val item = adapter.getItem(it)
-                item is AgentModelItem.Model && item.source.id == supplierId && item.name == model
+                matches(adapter.getItem(it))
             }
             list.scrollToPosition(position)
         }
         awaitMain { modelList(fragment).findViewHolderForAdapterPosition(position) != null }
-        instrumentation.runOnMainSync {
-            val row = modelList(fragment).findViewHolderForAdapterPosition(position)!!.itemView
-            assertTrue(row.performClick())
-        }
+        lateinit var row: View
+        instrumentation.runOnMainSync { row = modelList(fragment).findViewHolderForAdapterPosition(position)!!.itemView }
+        return row
     }
 
     private fun awaitMain(details: () -> String = { "" }, condition: () -> Boolean) {

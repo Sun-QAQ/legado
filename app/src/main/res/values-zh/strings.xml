@@ -723,6 +723,8 @@
     <string name="agent_no_supplier">没有可用的AI供应商</string>
     <string name="agent_supplier_model">%1$s · %2$s</string>
     <string name="agent_model_not_selected">未选择模型</string>
+    <string name="agent_expand_model_group">展开%1$s的模型</string>
+    <string name="agent_collapse_model_group">收起%1$s的模型</string>
     <string name="agent_change_supplier_model">%1$s，点击更换供应商和模型</string>
     <string name="agent_no_source_group">未找到书源分组或书源：%1$s</string>
     <string name="agent_step_requesting">请求 AI</string>

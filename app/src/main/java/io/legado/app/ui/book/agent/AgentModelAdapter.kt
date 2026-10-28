@@ -3,6 +3,7 @@ package io.legado.app.ui.book.agent
 import android.content.Context
 import android.graphics.Typeface
 import android.view.ViewGroup
+import androidx.core.view.ViewCompat
 import androidx.core.view.isVisible
 import io.legado.app.R
 import io.legado.app.base.adapter.ItemViewHolder
@@ -12,6 +13,7 @@ import io.legado.app.databinding.ItemAgentModelBinding
 import io.legado.app.lib.theme.accentColor
 import io.legado.app.lib.theme.primaryTextColor
 import io.legado.app.lib.theme.secondaryTextColor
+import kotlin.math.roundToInt
 
 internal sealed interface AgentModelItem {
     data class Supplier(val source: AiSource) : AgentModelItem
@@ -28,6 +30,8 @@ internal class AgentModelAdapter(
 ) : RecyclerAdapter<AgentModelItem, ItemAgentModelBinding>(context) {
 
     private var currentId = 0L
+    private var sources = emptyList<AiSource>()
+    private val collapsedSupplierIds = mutableSetOf<Long>()
 
     fun currentGroupPosition(): Int = (0 until itemCount).firstOrNull {
         (getItem(it) as? AgentModelItem.Supplier)?.source?.id == currentId
@@ -35,10 +39,17 @@ internal class AgentModelAdapter(
 
     fun update(sources: List<AiSource>, selectedId: Long) {
         currentId = selectedId
+        this.sources = sources.toList()
+        collapsedSupplierIds.retainAll(sources.map { it.id }.toSet())
+        renderGroups()
+    }
+
+    private fun renderGroups() {
         setItems(buildList {
             if (sources.isEmpty()) add(AgentModelItem.Hint(context.getString(R.string.agent_no_supplier)))
             sources.forEach { source ->
                 add(AgentModelItem.Supplier(source))
+                if (source.id in collapsedSupplierIds) return@forEach
                 val models = (listOf(source.model) + source.getModelList()).filter { it.isNotBlank() }.distinct()
                 if (models.isEmpty()) add(AgentModelItem.Hint(context.getString(R.string.ai_source_no_models)))
                 models.forEach { add(AgentModelItem.Model(source, it)) }
@@ -63,25 +74,46 @@ internal class AgentModelAdapter(
             is AgentModelItem.Hint -> item.text
             AgentModelItem.Manage -> context.getString(R.string.ai_source_manage)
         }
-        binding.tvName.textSize = if (heading || item is AgentModelItem.Hint) 12f else 14f
+        binding.tvName.textSize = if (item is AgentModelItem.Hint) 12f else 14f
         binding.tvName.setTypeface(null, if (heading) Typeface.BOLD else Typeface.NORMAL)
+        // 使用两个全角空格的字宽缩进，不改变模型 ID 或无障碍朗读内容。
+        binding.tvName.setPaddingRelative(
+            if (item is AgentModelItem.Model) binding.tvName.paint.measureText("\u3000\u3000").roundToInt() else 0,
+            0, 0, 0
+        )
         binding.tvName.setTextColor(when {
             selected || item == AgentModelItem.Manage -> context.accentColor
-            heading || item is AgentModelItem.Hint -> context.secondaryTextColor
+            item is AgentModelItem.Hint -> context.secondaryTextColor
             else -> context.primaryTextColor
         })
         binding.ivSelected.isVisible = selected
+        binding.ivExpand.isVisible = heading
+        if (item is AgentModelItem.Supplier) {
+            binding.ivExpand.setImageResource(
+                if (item.source.id in collapsedSupplierIds) R.drawable.ic_expand_more else R.drawable.ic_expand_less
+            )
+        }
         binding.root.isSelected = selected
-        binding.root.isClickable = item is AgentModelItem.Model || item == AgentModelItem.Manage
+        binding.root.isClickable = heading || item is AgentModelItem.Model || item == AgentModelItem.Manage
         binding.root.isFocusable = binding.root.isClickable
-        binding.root.contentDescription = if (selected) {
-            "${binding.tvName.text}, ${context.getString(R.string.ai_source_current)}"
-        } else null
+        ViewCompat.setAccessibilityHeading(binding.root, heading)
+        binding.root.contentDescription = when {
+            item is AgentModelItem.Supplier -> context.getString(
+                if (item.source.id in collapsedSupplierIds) R.string.agent_expand_model_group else R.string.agent_collapse_model_group,
+                binding.tvName.text
+            )
+            selected -> "${binding.tvName.text}, ${context.getString(R.string.ai_source_current)}"
+            else -> null
+        }
     }
 
     override fun registerListener(holder: ItemViewHolder, binding: ItemAgentModelBinding) {
         binding.root.setOnClickListener {
             when (val item = getItem(holder.layoutPosition)) {
+                is AgentModelItem.Supplier -> {
+                    if (!collapsedSupplierIds.add(item.source.id)) collapsedSupplierIds.remove(item.source.id)
+                    renderGroups()
+                }
                 is AgentModelItem.Model -> select(item.source, item.name)
                 AgentModelItem.Manage -> manage()
                 else -> Unit
