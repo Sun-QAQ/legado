@@ -27,16 +27,31 @@ class RandomRecommendSourceMenuTest {
         ActivityScenario.launch(RandomRecommendConfigActivity::class.java).use { scenario ->
             awaitActivity(scenario) { it.findViewById<TabLayout>(R.id.tab_group).tabCount > 0 }
             showMenu(scenario, BookSourcePart("first", "测试登录书源", hasLoginUrl = true))
-            onView(withText(R.string.login)).inRoot(isPlatformPopup()).check(matches(isDisplayed()))
-            onView(withText(R.string.edit)).inRoot(isPlatformPopup()).check(matches(isDisplayed()))
+            awaitPopupItem(R.string.login)
+            awaitPopupItem(R.string.edit)
             onView(withText(android.R.string.cancel)).inRoot(isPlatformPopup()).check(doesNotExist())
             pressBack()
 
             showMenu(scenario, BookSourcePart("second", "测试普通书源"))
+            awaitPopupItem(R.string.edit)
             onView(withText(R.string.login)).inRoot(isPlatformPopup()).check(doesNotExist())
-            onView(withText(R.string.edit)).inRoot(isPlatformPopup()).check(matches(isDisplayed()))
             pressBack()
         }
+    }
+
+    private fun awaitPopupItem(title: Int) {
+        val deadline = SystemClock.uptimeMillis() + 5_000
+        var lastFailure: AssertionError? = null
+        while (SystemClock.uptimeMillis() < deadline) {
+            try {
+                onView(withText(title)).inRoot(isPlatformPopup()).check(matches(isDisplayed()))
+                return
+            } catch (failure: AssertionError) {
+                lastFailure = failure
+            }
+            SystemClock.sleep(50)
+        }
+        throw lastFailure ?: AssertionError("Source popup did not become visible")
     }
 
     private fun showMenu(scenario: ActivityScenario<RandomRecommendConfigActivity>, source: BookSourcePart) {
