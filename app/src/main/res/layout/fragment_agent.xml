@@ -182,16 +182,14 @@
 
     <androidx.core.widget.NestedScrollView
         android:id="@+id/thinking_panel"
-        android:layout_width="0dp"
+        android:layout_width="160dp"
         android:layout_height="0dp"
-        android:layout_marginStart="12dp"
         android:layout_marginEnd="12dp"
         android:layout_marginBottom="4dp"
         android:background="@drawable/bg_input_bar"
         android:elevation="8dp"
         android:padding="12dp"
         android:visibility="gone"
-        app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toBottomOf="@id/title_bar"
         app:layout_constraintBottom_toTopOf="@id/ll_input"
