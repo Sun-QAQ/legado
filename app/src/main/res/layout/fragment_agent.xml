@@ -56,7 +56,7 @@
             android:text="@string/ai_source_select_use"
             android:textColor="?android:attr/textColorSecondary"
             android:textSize="12sp"
-            app:drawableEndCompat="@drawable/ic_arrow_drop_down"
+            app:drawableEndCompat="@drawable/ic_arrow_drop_up"
             app:drawableTint="?android:attr/textColorSecondary"
             tools:text="DeepSeek · deepseek-chat" />
 
@@ -131,5 +131,28 @@
         </LinearLayout>
 
     </LinearLayout>
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/model_list"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_marginStart="12dp"
+        android:layout_marginEnd="12dp"
+        android:layout_marginBottom="4dp"
+        android:background="@drawable/bg_input_bar"
+        android:clipToPadding="false"
+        android:elevation="8dp"
+        android:paddingTop="8dp"
+        android:paddingBottom="8dp"
+        android:scrollbars="vertical"
+        android:visibility="gone"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/title_bar"
+        app:layout_constraintBottom_toTopOf="@id/ll_input"
+        app:layout_constraintHeight_default="wrap"
+        app:layout_constraintHeight_max="320dp"
+        app:layout_constraintVertical_bias="1"
+        tools:listitem="@layout/item_agent_model" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

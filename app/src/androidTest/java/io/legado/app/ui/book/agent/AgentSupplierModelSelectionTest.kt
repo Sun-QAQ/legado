@@ -1,13 +1,13 @@
 package io.legado.app.ui.book.agent
 
-import android.content.DialogInterface
 import android.graphics.Bitmap
 import android.os.SystemClock
 import android.view.View
 import android.widget.FrameLayout
 import android.widget.TextView
-import androidx.appcompat.app.AlertDialog
 import androidx.core.view.drawToBitmap
+import androidx.core.view.isVisible
+import androidx.recyclerview.widget.RecyclerView
 import androidx.lifecycle.ViewModelProvider
 import androidx.test.core.app.ActivityScenario
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -17,6 +17,7 @@ import io.legado.app.constant.PreferKey
 import io.legado.app.data.appDb
 import io.legado.app.data.entities.AiSource
 import io.legado.app.ui.main.MainActivity
+import io.legado.app.lib.theme.backgroundColor
 import io.legado.app.utils.GSON
 import io.legado.app.utils.getPrefLong
 import io.legado.app.utils.getPrefString
@@ -53,7 +54,10 @@ class AgentSupplierModelSelectionTest {
             context.putPrefString(PreferKey.aiConversationId, "")
             ActivityScenario.launch(MainActivity::class.java).use { scenario ->
                 scenario.onActivity { activity ->
-                    val container = FrameLayout(activity).apply { id = View.generateViewId() }
+                    val container = FrameLayout(activity).apply {
+                        id = View.generateViewId()
+                        setBackgroundColor(activity.backgroundColor)
+                    }
                     activity.setContentView(container)
                     fragment = AgentFragment()
                     activity.supportFragmentManager.beginTransaction().add(container.id, fragment).commitNow()
@@ -70,27 +74,39 @@ class AgentSupplierModelSelectionTest {
                     assertTrue(input.getGlobalVisibleRect(inputBounds))
                     assertTrue(labelBounds.bottom <= inputBounds.top)
                     label.performClick()
-                    val providers = dialog(fragment)
-                    val names = (0 until providers.listView.count).map { providers.listView.adapter.getItem(it).toString() }
-                    assertFalse(names.contains(disabled.name))
-                    choose(providers, first.name)
-                    val models = dialog(fragment)
-                    assertEquals(2, models.listView.count)
-                    assertEquals(0, models.listView.checkedItemPosition)
-                    choose(models, "model-b")
                 }
+                awaitMain { modelList(fragment).height > 0 }
+                instrumentation.runOnMainSync {
+                    val list = modelList(fragment)
+                    val adapter = list.adapter as AgentModelAdapter
+                    val rows = (0 until adapter.itemCount).map { adapter.getItem(it) }
+                    assertFalse(rows.filterIsInstance<AgentModelItem.Supplier>().any { it.source.id == disabled.id })
+                    val firstIndex = rows.indexOfFirst { it is AgentModelItem.Supplier && it.source.id == first.id }
+                    assertEquals("model-a", (rows[firstIndex + 1] as AgentModelItem.Model).name)
+                    assertEquals("model-b", (rows[firstIndex + 2] as AgentModelItem.Model).name)
+                    assertEquals(2, rows.filterIsInstance<AgentModelItem.Model>().count { it.source.id == first.id })
+                    assertTrue(rows.any { it is AgentModelItem.Hint && it.text == context.getString(R.string.ai_source_no_models) })
+                    val panelBounds = android.graphics.Rect()
+                    val labelBounds = android.graphics.Rect()
+                    assertTrue(list.getGlobalVisibleRect(panelBounds))
+                    assertTrue(label.getGlobalVisibleRect(labelBounds))
+                    assertTrue(panelBounds.bottom <= labelBounds.top)
+                    assertTrue(list.height <= (320 * context.resources.displayMetrics.density).toInt())
+                }
+                choose(fragment, first.id, "model-b")
                 awaitMain { label.text.toString() == "供应商甲 · model-b" }
                 assertEquals("model-b", appDb.aiSourceDao.get(first.id)!!.model)
                 assertEquals(first.id, context.getPrefLong(PreferKey.aiSupplierId))
                 instrumentation.runOnMainSync {
+                    assertFalse(modelList(fragment).isVisible)
                     label.performClick()
-                    choose(dialog(fragment), second.name)
-                    dialog(fragment).getButton(DialogInterface.BUTTON_NEGATIVE).performClick()
+                    assertTrue(modelList(fragment).isVisible)
+                    label.performClick()
+                    assertFalse(modelList(fragment).isVisible)
                     assertEquals("供应商甲 · model-b", label.text.toString())
                     label.performClick()
-                    choose(dialog(fragment), second.name)
-                    choose(dialog(fragment), "model-c")
                 }
+                choose(fragment, second.id, "model-c")
                 awaitMain { label.text.toString() == "供应商乙 · model-c" }
                 assertEquals(second.id, context.getPrefLong(PreferKey.aiSupplierId))
                 @Suppress("UNCHECKED_CAST")
@@ -100,15 +116,14 @@ class AgentSupplierModelSelectionTest {
                     label.performClick()
                     waiting.value = true
                 }
-                awaitMain { !label.isEnabled && !dialog(fragment).isShowing }
+                awaitMain { !label.isEnabled && !modelList(fragment).isVisible }
                 instrumentation.runOnMainSync { waiting.value = false }
                 awaitMain { label.isEnabled }
                 instrumentation.runOnMainSync {
                     label.performClick()
-                    choose(dialog(fragment), unconfigured.name)
-                    assertEquals(context.getString(R.string.ai_source_no_models),
-                        dialog(fragment).findViewById<TextView>(android.R.id.message)!!.text.toString())
-                    dialog(fragment).getButton(DialogInterface.BUTTON_NEGATIVE).performClick()
+                    assertTrue(modelList(fragment).isVisible)
+                    fragment.requireActivity().onBackPressedDispatcher.onBackPressed()
+                    assertFalse(modelList(fragment).isVisible)
                     assertEquals(second.id, agent.currentSupplierId.value)
                     // 历史对话恢复供应商时，仅 ID 变化也必须刷新显示。
                     agent.selectSupplier(first.id, first.name)
@@ -129,6 +144,10 @@ class AgentSupplierModelSelectionTest {
                 }
                 awaitMain { label.text.toString() == "供应商乙 · model-c" }
                 instrumentation.runOnMainSync {
+                    label.performClick()
+                }
+                awaitMain { modelList(fragment).height > 0 }
+                instrumentation.runOnMainSync {
                     File(context.cacheDir, "agent_supplier_model_preview.png").outputStream().use {
                         fragment.requireView().drawToBitmap().compress(Bitmap.CompressFormat.PNG, 100, it)
                     }
@@ -141,14 +160,25 @@ class AgentSupplierModelSelectionTest {
         }
     }
 
-    private fun dialog(fragment: AgentFragment): AlertDialog =
-        AgentFragment::class.java.getDeclaredField("supplierDialog")
-            .apply { isAccessible = true }.get(fragment) as AlertDialog
+    private fun modelList(fragment: AgentFragment): RecyclerView =
+        fragment.requireView().findViewById(R.id.model_list)
 
-    private fun choose(dialog: AlertDialog, text: String) {
-        val list = dialog.listView
-        val index = (0 until list.count).first { list.adapter.getItem(it).toString() == text }
-        list.performItemClick(list.adapter.getView(index, null, list), index, list.adapter.getItemId(index))
+    private fun choose(fragment: AgentFragment, supplierId: Long, model: String) {
+        var position = -1
+        instrumentation.runOnMainSync {
+            val list = modelList(fragment)
+            val adapter = list.adapter as AgentModelAdapter
+            position = (0 until adapter.itemCount).first {
+                val item = adapter.getItem(it)
+                item is AgentModelItem.Model && item.source.id == supplierId && item.name == model
+            }
+            list.scrollToPosition(position)
+        }
+        awaitMain { modelList(fragment).findViewHolderForAdapterPosition(position) != null }
+        instrumentation.runOnMainSync {
+            val row = modelList(fragment).findViewHolderForAdapterPosition(position)!!.itemView
+            assertTrue(row.performClick())
+        }
     }
 
     private fun awaitMain(condition: () -> Boolean) {

@@ -11,13 +11,14 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updateLayoutParams
 import androidx.appcompat.widget.PopupMenu
-import androidx.appcompat.app.AlertDialog
+import androidx.core.view.isVisible
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
@@ -29,7 +30,6 @@ import io.legado.app.constant.AppLog
 import io.legado.app.constant.AppConst
 import io.legado.app.base.BaseFragment
 import io.legado.app.data.appDb
-import io.legado.app.data.entities.AiSource
 import io.legado.app.data.entities.SearchBook
 import io.legado.app.databinding.FragmentAgentBinding
 import io.legado.app.databinding.ItemAgentAttachmentBinding
@@ -74,8 +74,18 @@ class AgentFragment() : BaseFragment(R.layout.fragment_agent), MainFragmentInter
     private val binding by viewBinding(FragmentAgentBinding::bind)
     private val viewModel by viewModels<AgentViewModel>()
     private val supplierViewModel by viewModels<AiSourceManageViewModel>()
-    private var enabledSuppliers = emptyList<AiSource>()
-    private var supplierDialog: AlertDialog? = null
+    private var modelListBackCallback: OnBackPressedCallback? = null
+    private val modelAdapter by lazy {
+        AgentModelAdapter(requireContext(), select = { source, model ->
+            if (binding.tvSupplierModel.isEnabled) {
+                supplierViewModel.select(source, model)
+                setModelListExpanded(false)
+            }
+        }, manage = {
+            setModelListExpanded(false)
+            startActivity<AiSourceManageActivity>()
+        })
+    }
     private var autoScroll: AgentAutoScroll? = null
     private var pendingCameraPath: String? = null
     private val selectPhoto = registerForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
@@ -153,7 +163,21 @@ class AgentFragment() : BaseFragment(R.layout.fragment_agent), MainFragmentInter
             sendInput()
         }
         binding.btnUpload.setOnClickListener { showUploadOptions() }
-        binding.tvSupplierModel.setOnClickListener { showSupplierSelector() }
+        binding.modelList.layoutManager = LinearLayoutManager(requireContext())
+        binding.modelList.adapter = modelAdapter
+        modelListBackCallback = object : OnBackPressedCallback(false) {
+            override fun handleOnBackPressed() = setModelListExpanded(false)
+        }.also { requireActivity().onBackPressedDispatcher.addCallback(viewLifecycleOwner, it) }
+        binding.tvSupplierModel.setOnClickListener {
+            if (binding.tvSupplierModel.isEnabled) setModelListExpanded(!binding.modelList.isVisible)
+        }
+        binding.recyclerView.setOnTouchListener { _, _ ->
+            if (binding.modelList.isVisible) setModelListExpanded(false)
+            false
+        }
+        binding.etInput.setOnFocusChangeListener { _, hasFocus ->
+            if (hasFocus) setModelListExpanded(false)
+        }
         binding.etInput.setOnEditorActionListener { _, actionId, _ ->
             if (actionId == android.view.inputmethod.EditorInfo.IME_ACTION_SEND) {
                 sendInput()
@@ -255,8 +279,8 @@ class AgentFragment() : BaseFragment(R.layout.fragment_agent), MainFragmentInter
                     }.flowOn(Dispatchers.IO),
                     viewModel.currentSupplierId
                 ) { sources, _ -> sources.filter { it.enabled } }.collect { sources ->
-                    enabledSuppliers = sources
                     viewModel.restoreSupplier(sources)
+                    modelAdapter.update(sources, viewModel.currentSupplierId.value)
                     val source = sources.firstOrNull { it.id == viewModel.currentSupplierId.value }
                     binding.tvSupplierModel.text = if (source == null) {
                         getString(R.string.ai_source_select_use)
@@ -275,42 +299,13 @@ class AgentFragment() : BaseFragment(R.layout.fragment_agent), MainFragmentInter
         }
     }
 
-    private fun showSupplierSelector() {
-        if (!binding.tvSupplierModel.isEnabled) return
-        val sources = enabledSuppliers
-        supplierDialog = alert(R.string.ai_source_select_use) {
-            if (sources.isEmpty()) {
-                setMessage(R.string.agent_no_supplier)
-            } else {
-                singleChoiceItems(
-                    sources.map { it.name.ifBlank { getString(R.string.ai_source_supplier) } }.toTypedArray(),
-                    sources.indexOfFirst { it.id == viewModel.currentSupplierId.value }
-                ) { dialog, index ->
-                    dialog.dismiss()
-                    showModelSelector(sources[index])
-                }
-            }
-            neutralButton(R.string.ai_source_manage) { startActivity<AiSourceManageActivity>() }
-            cancelButton()
-        }
-    }
-
-    private fun showModelSelector(source: AiSource) {
-        val models = (listOf(source.model) + source.getModelList()).filter { it.isNotBlank() }.distinct()
-        supplierDialog = alert(R.string.ai_source_select_model) {
-            if (models.isEmpty()) {
-                setMessage(R.string.ai_source_no_models)
-            } else {
-                singleChoiceItems(models.toTypedArray(), models.indexOf(source.model)) { dialog, index ->
-                    if (binding.tvSupplierModel.isEnabled) {
-                        supplierViewModel.select(source, models[index])
-                    }
-                    dialog.dismiss()
-                }
-            }
-            neutralButton(R.string.ai_source_manage) { startActivity<AiSourceManageActivity>() }
-            cancelButton()
-        }
+    private fun setModelListExpanded(expanded: Boolean) {
+        binding.modelList.isVisible = expanded
+        if (expanded) binding.modelList.scrollToPosition(modelAdapter.currentGroupPosition())
+        modelListBackCallback?.isEnabled = expanded
+        binding.tvSupplierModel.setCompoundDrawablesRelativeWithIntrinsicBounds(
+            0, 0, if (expanded) R.drawable.ic_arrow_drop_down else R.drawable.ic_arrow_drop_up, 0
+        )
     }
 
     private fun observePersonas() {
@@ -322,6 +317,7 @@ class AgentFragment() : BaseFragment(R.layout.fragment_agent), MainFragmentInter
     }
 
     private fun sendInput() {
+        setModelListExpanded(false)
         if (viewModel.waiting.value) {
             viewModel.cancel()
             return
@@ -350,7 +346,7 @@ class AgentFragment() : BaseFragment(R.layout.fragment_agent), MainFragmentInter
         binding.btnSend.isEnabled = !busy || viewModel.waiting.value
         binding.tvSupplierModel.isEnabled = !busy && !viewModel.waiting.value
         binding.tvSupplierModel.alpha = if (binding.tvSupplierModel.isEnabled) 1f else 0.4f
-        if (!binding.tvSupplierModel.isEnabled) supplierDialog?.dismiss()
+        if (!binding.tvSupplierModel.isEnabled) setModelListExpanded(false)
         for (index in 0 until binding.llAttachments.childCount) {
             binding.llAttachments.getChildAt(index).findViewById<View>(R.id.btn_remove).isEnabled = !busy
         }
@@ -407,8 +403,8 @@ class AgentFragment() : BaseFragment(R.layout.fragment_agent), MainFragmentInter
     }
 
     override fun onDestroyView() {
-        supplierDialog?.dismiss()
-        supplierDialog = null
+        modelListBackCallback = null
+        binding.modelList.adapter = null
         autoScroll?.dispose()
         autoScroll = null
         binding.recyclerView.adapter = null

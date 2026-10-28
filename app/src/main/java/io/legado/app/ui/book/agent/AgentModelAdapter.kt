@@ -1,0 +1,91 @@
+package io.legado.app.ui.book.agent
+
+import android.content.Context
+import android.graphics.Typeface
+import android.view.ViewGroup
+import androidx.core.view.isVisible
+import io.legado.app.R
+import io.legado.app.base.adapter.ItemViewHolder
+import io.legado.app.base.adapter.RecyclerAdapter
+import io.legado.app.data.entities.AiSource
+import io.legado.app.databinding.ItemAgentModelBinding
+import io.legado.app.lib.theme.accentColor
+import io.legado.app.lib.theme.primaryTextColor
+import io.legado.app.lib.theme.secondaryTextColor
+
+internal sealed interface AgentModelItem {
+    data class Supplier(val source: AiSource) : AgentModelItem
+    data class Model(val source: AiSource, val name: String) : AgentModelItem
+    data class Hint(val text: String) : AgentModelItem
+    data object Manage : AgentModelItem
+}
+
+/** 在输入栏上方按供应商分组显示模型，长列表由 RecyclerView 按需加载。 */
+internal class AgentModelAdapter(
+    context: Context,
+    private val select: (AiSource, String) -> Unit,
+    private val manage: () -> Unit
+) : RecyclerAdapter<AgentModelItem, ItemAgentModelBinding>(context) {
+
+    private var currentId = 0L
+
+    fun currentGroupPosition(): Int = (0 until itemCount).firstOrNull {
+        (getItem(it) as? AgentModelItem.Supplier)?.source?.id == currentId
+    } ?: 0
+
+    fun update(sources: List<AiSource>, selectedId: Long) {
+        currentId = selectedId
+        setItems(buildList {
+            if (sources.isEmpty()) add(AgentModelItem.Hint(context.getString(R.string.agent_no_supplier)))
+            sources.forEach { source ->
+                add(AgentModelItem.Supplier(source))
+                val models = (listOf(source.model) + source.getModelList()).filter { it.isNotBlank() }.distinct()
+                if (models.isEmpty()) add(AgentModelItem.Hint(context.getString(R.string.ai_source_no_models)))
+                models.forEach { add(AgentModelItem.Model(source, it)) }
+            }
+            add(AgentModelItem.Manage)
+        })
+    }
+
+    override fun getViewBinding(parent: ViewGroup) = ItemAgentModelBinding.inflate(inflater, parent, false)
+
+    override fun convert(
+        holder: ItemViewHolder,
+        binding: ItemAgentModelBinding,
+        item: AgentModelItem,
+        payloads: MutableList<Any>
+    ) {
+        val selected = item is AgentModelItem.Model && item.source.id == currentId && item.name == item.source.model
+        val heading = item is AgentModelItem.Supplier
+        binding.tvName.text = when (item) {
+            is AgentModelItem.Supplier -> item.source.name.ifBlank { context.getString(R.string.ai_source_supplier) }
+            is AgentModelItem.Model -> item.name
+            is AgentModelItem.Hint -> item.text
+            AgentModelItem.Manage -> context.getString(R.string.ai_source_manage)
+        }
+        binding.tvName.textSize = if (heading || item is AgentModelItem.Hint) 12f else 14f
+        binding.tvName.setTypeface(null, if (heading) Typeface.BOLD else Typeface.NORMAL)
+        binding.tvName.setTextColor(when {
+            selected || item == AgentModelItem.Manage -> context.accentColor
+            heading || item is AgentModelItem.Hint -> context.secondaryTextColor
+            else -> context.primaryTextColor
+        })
+        binding.ivSelected.isVisible = selected
+        binding.root.isSelected = selected
+        binding.root.isClickable = item is AgentModelItem.Model || item == AgentModelItem.Manage
+        binding.root.isFocusable = binding.root.isClickable
+        binding.root.contentDescription = if (selected) {
+            "${binding.tvName.text}, ${context.getString(R.string.ai_source_current)}"
+        } else null
+    }
+
+    override fun registerListener(holder: ItemViewHolder, binding: ItemAgentModelBinding) {
+        binding.root.setOnClickListener {
+            when (val item = getItem(holder.layoutPosition)) {
+                is AgentModelItem.Model -> select(item.source, item.name)
+                AgentModelItem.Manage -> manage()
+                else -> Unit
+            }
+        }
+    }
+}
