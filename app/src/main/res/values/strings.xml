@@ -728,6 +728,7 @@
     <string name="agent_steps_count">Execution steps (%1$d)</string>
     <string name="agent_expand_steps">Expand or collapse execution steps</string>
     <string name="agent_no_supplier">No enabled AI supplier</string>
+    <string name="agent_change_persona">%1$s. Tap to switch persona</string>
     <string name="agent_supplier_model">%1$s · %2$s</string>
     <string name="agent_model_not_selected">No model selected</string>
     <string name="agent_expand_model_group">Expand models for %1$s</string>

@@ -721,6 +721,7 @@
     <string name="agent_steps_count">执行过程（%1$d 步）</string>
     <string name="agent_expand_steps">展开或折叠执行过程</string>
     <string name="agent_no_supplier">没有可用的AI供应商</string>
+    <string name="agent_change_persona">%1$s，点击切换人格</string>
     <string name="agent_supplier_model">%1$s · %2$s</string>
     <string name="agent_model_not_selected">未选择模型</string>
     <string name="agent_expand_model_group">展开%1$s的模型</string>

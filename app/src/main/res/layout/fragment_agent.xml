@@ -205,4 +205,26 @@
 
     </androidx.core.widget.NestedScrollView>
 
+    <ListView
+        android:id="@+id/persona_list"
+        android:layout_width="240dp"
+        android:layout_height="0dp"
+        android:layout_marginTop="4dp"
+        android:layout_marginBottom="4dp"
+        android:background="@drawable/bg_input_bar"
+        android:choiceMode="singleChoice"
+        android:divider="@null"
+        android:elevation="8dp"
+        android:paddingTop="8dp"
+        android:paddingBottom="8dp"
+        android:visibility="gone"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/title_bar"
+        app:layout_constraintBottom_toTopOf="@id/ll_input"
+        app:layout_constraintHeight_default="wrap"
+        app:layout_constraintHeight_max="320dp"
+        app:layout_constraintVertical_bias="0"
+        tools:listitem="@layout/item_agent_persona_option" />
+
 </androidx.constraintlayout.widget.ConstraintLayout>

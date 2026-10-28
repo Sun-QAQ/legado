@@ -10,6 +10,7 @@ import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
+import android.widget.ArrayAdapter
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.contract.ActivityResultContracts
@@ -32,6 +33,7 @@ import io.legado.app.base.BaseFragment
 import io.legado.app.data.appDb
 import io.legado.app.data.entities.AiSource
 import io.legado.app.data.entities.AiModelThinking
+import io.legado.app.data.entities.AiPersona
 import io.legado.app.data.entities.SearchBook
 import io.legado.app.databinding.FragmentAgentBinding
 import io.legado.app.databinding.ItemAgentAttachmentBinding
@@ -79,6 +81,7 @@ class AgentFragment() : BaseFragment(R.layout.fragment_agent), MainFragmentInter
     private val supplierViewModel by viewModels<AiSourceManageViewModel>()
     private val thinkingViewModel by viewModels<AiSourceEditViewModel>()
     private var currentThinkingSource: AiSource? = null
+    private var personaOptions = emptyList<AiPersona>()
     private val thinkingEfforts = listOf("", "minimal", "low", "medium", "high", "xhigh", "max")
     private var modelListBackCallback: OnBackPressedCallback? = null
     private val modelAdapter by lazy {
@@ -153,6 +156,18 @@ class AgentFragment() : BaseFragment(R.layout.fragment_agent), MainFragmentInter
         pendingCameraPath = savedInstanceState?.getString("agentCameraPath")
         setSupportToolbar(binding.titleBar.toolbar)
         val personaTitleView = binding.titleBar.toolbar.findViewById<TextView>(R.id.tv_agent_persona)
+        val personaAdapter = ArrayAdapter<String>(requireContext(), R.layout.item_agent_persona_option)
+        binding.personaList.adapter = personaAdapter
+        personaTitleView?.setOnClickListener {
+            if (it.isEnabled && personaOptions.isNotEmpty()) setPersonaListExpanded(!binding.personaList.isVisible)
+        }
+        binding.personaList.setOnItemClickListener { _, _, index, _ ->
+            if (personaTitleView?.isEnabled != true) return@setOnItemClickListener
+            val persona = personaOptions.getOrNull(index) ?: return@setOnItemClickListener
+            if (persona.id == 0L) viewModel.selectDefaultPersona()
+            else viewModel.selectPersona(persona.id, persona.name, persona.prompt)
+            closeInputPanels()
+        }
         viewModel.startConversationHistory()
         binding.btnSend.backgroundTintList = ColorStateList.valueOf(requireContext().accentColor)
         binding.llInput.applyAgentInputInsets()
@@ -266,18 +281,12 @@ class AgentFragment() : BaseFragment(R.layout.fragment_agent), MainFragmentInter
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.RESUMED) {
                 viewModel.currentPersonaName.collect { name ->
                     personaTitleView?.text = name
+                    personaTitleView?.contentDescription = getString(R.string.agent_change_persona, name)
                 }
             }
         }
         observeSuppliers()
-        observePersonas()
-    }
-
-    override fun onResume() {
-        super.onResume()
-        viewLifecycleOwner.lifecycleScope.launch {
-            viewModel.restorePersona(appDb.aiPersonaDao.all)
-        }
+        observePersonas(personaAdapter)
     }
 
     private fun observeSuppliers() {
@@ -316,7 +325,10 @@ class AgentFragment() : BaseFragment(R.layout.fragment_agent), MainFragmentInter
     }
 
     private fun setModelListExpanded(expanded: Boolean) {
-        if (expanded) setThinkingExpanded(false)
+        if (expanded) {
+            setThinkingExpanded(false)
+            setPersonaListExpanded(false)
+        }
         binding.modelList.isVisible = expanded
         if (expanded) binding.modelList.scrollToPosition(modelAdapter.currentGroupPosition())
         updatePanelBackCallback()
@@ -325,6 +337,7 @@ class AgentFragment() : BaseFragment(R.layout.fragment_agent), MainFragmentInter
     private fun setThinkingExpanded(expanded: Boolean) {
         if (expanded) {
             setModelListExpanded(false)
+            setPersonaListExpanded(false)
             renderThinkingOptions()
             binding.thinkingPanel.scrollTo(0, 0)
         }
@@ -338,10 +351,21 @@ class AgentFragment() : BaseFragment(R.layout.fragment_agent), MainFragmentInter
     private fun closeInputPanels() {
         if (binding.modelList.isVisible) setModelListExpanded(false)
         if (binding.thinkingPanel.isVisible) setThinkingExpanded(false)
+        if (binding.personaList.isVisible) setPersonaListExpanded(false)
+    }
+
+    private fun setPersonaListExpanded(expanded: Boolean) {
+        if (expanded) {
+            setModelListExpanded(false)
+            setThinkingExpanded(false)
+        }
+        binding.personaList.isVisible = expanded
+        if (expanded) binding.personaList.setSelection(binding.personaList.checkedItemPosition.coerceAtLeast(0))
+        updatePanelBackCallback()
     }
 
     private fun updatePanelBackCallback() {
-        modelListBackCallback?.isEnabled = binding.modelList.isVisible || binding.thinkingPanel.isVisible
+        modelListBackCallback?.isEnabled = binding.modelList.isVisible || binding.thinkingPanel.isVisible || binding.personaList.isVisible
     }
 
     private fun thinkingLabel(config: AiModelThinking): String = when (config.mode) {
@@ -397,11 +421,27 @@ class AgentFragment() : BaseFragment(R.layout.fragment_agent), MainFragmentInter
         }
     }
 
-    private fun observePersonas() {
+    private fun observePersonas(adapter: ArrayAdapter<String>) {
         viewLifecycleOwner.lifecycleScope.launch {
-            appDb.aiPersonaDao.observeAll().catch {
-                AppLog.put("获取AI人格列表失败", it)
-            }.flowOn(Dispatchers.IO).collect(viewModel::restorePersona)
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+                combine(
+                    appDb.aiPersonaDao.observeAll().catch {
+                        AppLog.put("获取AI人格列表失败", it)
+                    }.flowOn(Dispatchers.IO),
+                    viewModel.currentPersonaId
+                ) { personas, _ -> personas }.collect { personas ->
+                    viewModel.restorePersona(personas)
+                    personaOptions = listOf(AiPersona(id = 0L, name = getString(R.string.agent_persona_default))) + personas
+                    adapter.setNotifyOnChange(false)
+                    adapter.clear()
+                    adapter.addAll(personaOptions.map { it.name })
+                    adapter.notifyDataSetChanged()
+                    binding.personaList.clearChoices()
+                    binding.personaList.setItemChecked(
+                        personaOptions.indexOfFirst { it.id == viewModel.currentPersonaId.value }.coerceAtLeast(0), true
+                    )
+                }
+            }
         }
     }
 
@@ -435,6 +475,10 @@ class AgentFragment() : BaseFragment(R.layout.fragment_agent), MainFragmentInter
         binding.btnSend.isEnabled = !busy || viewModel.waiting.value
         binding.tvSupplierModel.isEnabled = !busy && !viewModel.waiting.value
         binding.tvSupplierModel.alpha = if (binding.tvSupplierModel.isEnabled) 1f else 0.4f
+        binding.titleBar.toolbar.findViewById<TextView>(R.id.tv_agent_persona)?.apply {
+            isEnabled = binding.tvSupplierModel.isEnabled
+            alpha = if (isEnabled) 1f else 0.4f
+        }
         binding.btnThinking.isEnabled = binding.tvSupplierModel.isEnabled && !currentThinkingSource?.model.isNullOrBlank()
         binding.btnThinking.alpha = if (binding.btnThinking.isEnabled) 1f else 0.4f
         if (!binding.tvSupplierModel.isEnabled) closeInputPanels()
@@ -495,6 +539,8 @@ class AgentFragment() : BaseFragment(R.layout.fragment_agent), MainFragmentInter
     }
 
     override fun onDestroyView() {
+        personaOptions = emptyList()
+        binding.personaList.adapter = null
         currentThinkingSource = null
         modelListBackCallback = null
         binding.modelList.adapter = null
