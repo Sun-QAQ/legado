@@ -25,7 +25,6 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.bumptech.glide.Glide
-import com.google.android.material.chip.Chip
 import io.legado.app.R
 import io.legado.app.constant.AppLog
 import io.legado.app.constant.AppConst
@@ -36,6 +35,7 @@ import io.legado.app.data.entities.AiModelThinking
 import io.legado.app.data.entities.SearchBook
 import io.legado.app.databinding.FragmentAgentBinding
 import io.legado.app.databinding.ItemAgentAttachmentBinding
+import io.legado.app.databinding.ItemAgentThinkingOptionBinding
 import io.legado.app.lib.dialogs.alert
 import io.legado.app.lib.theme.accentColor
 import io.legado.app.ui.about.AppLogDialog
@@ -326,6 +326,7 @@ class AgentFragment() : BaseFragment(R.layout.fragment_agent), MainFragmentInter
         if (expanded) {
             setModelListExpanded(false)
             renderThinkingOptions()
+            binding.thinkingPanel.scrollTo(0, 0)
         }
         binding.thinkingPanel.isVisible = expanded
         binding.btnThinking.setCompoundDrawablesRelativeWithIntrinsicBounds(
@@ -348,7 +349,7 @@ class AgentFragment() : BaseFragment(R.layout.fragment_agent), MainFragmentInter
         "enabled" -> {
             val index = thinkingEfforts.indexOf(config.effort)
             if (index > 0) resources.getStringArray(R.array.ai_thinking_efforts)[index]
-            else resources.getStringArray(R.array.ai_thinking_modes)[1]
+            else getString(R.string.ai_thinking_default_short)
         }
         else -> getString(R.string.ai_thinking_default_short)
     }
@@ -367,18 +368,21 @@ class AgentFragment() : BaseFragment(R.layout.fragment_agent), MainFragmentInter
         binding.thinkingOptions.removeAllViews()
         val source = currentThinkingSource ?: return
         val config = source.getModelThinking()
-        val options = listOf(config.copy(mode = "default"), config.copy(mode = "disabled")) +
-            thinkingEfforts.map { config.copy(mode = "enabled", effort = it) }
+        val options = listOf(config.copy(mode = "disabled"), config.copy(mode = "default")) +
+            thinkingEfforts.drop(1).map { config.copy(mode = "enabled", effort = it) }
         options.forEach { option ->
-            binding.thinkingOptions.addView(Chip(requireContext()).apply {
+            binding.thinkingOptions.addView(ItemAgentThinkingOptionBinding.inflate(
+                layoutInflater, binding.thinkingOptions, false
+            ).root.apply {
                 id = View.generateViewId()
                 text = thinkingLabel(option)
-                textSize = 12f
-                isCheckable = true
-                setCheckedIconResource(R.drawable.ic_check)
-                isCheckedIconVisible = true
-                isChecked = option.mode == config.mode &&
-                    (option.mode != "enabled" || option.effort == config.effort)
+                // 旧配置中仅开启、未指定等级的情况，显示为默认，不改写已保存设置。
+                isChecked = if (config.mode == "enabled" && config.effort.isBlank()) {
+                    option.mode == "default"
+                } else {
+                    option.mode == config.mode &&
+                        (option.mode != "enabled" || option.effort == config.effort)
+                }
                 setOnClickListener {
                     if (binding.btnThinking.isEnabled && currentThinkingSource?.id == source.id &&
                         currentThinkingSource?.model == source.model) {

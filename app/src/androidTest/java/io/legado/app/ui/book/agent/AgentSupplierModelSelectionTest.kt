@@ -5,11 +5,12 @@ import android.os.SystemClock
 import android.view.View
 import android.widget.FrameLayout
 import android.widget.TextView
+import android.widget.RadioButton
+import android.widget.RadioGroup
 import androidx.core.view.drawToBitmap
 import androidx.core.view.isVisible
 import androidx.core.view.children
-import com.google.android.material.chip.Chip
-import com.google.android.material.chip.ChipGroup
+import androidx.core.widget.NestedScrollView
 import androidx.recyclerview.widget.RecyclerView
 import androidx.lifecycle.ViewModelProvider
 import androidx.test.core.app.ActivityScenario
@@ -90,7 +91,7 @@ class AgentSupplierModelSelectionTest {
         val first = AiSource(id = now, name = "供应商甲", model = "model-a",
             models = GSON.toJson(listOf("model-a", "model-b", "model-b", "")), lastUpdateTime = now,
             modelThinking = GSON.toJson(mapOf(
-                "model-a" to AiModelThinking(format = "thinking"),
+                "model-a" to AiModelThinking("enabled", "", "thinking"),
                 "model-b" to AiModelThinking("enabled", "low", "qwen")
             )))
         val second = AiSource(id = now + 1, name = "供应商乙", model = "model-c", lastUpdateTime = now + 1)
@@ -339,17 +340,41 @@ class AgentSupplierModelSelectionTest {
     }
 
     private fun chooseThinking(fragment: AgentFragment, supplierId: Long, model: String, label: String) {
+        lateinit var options: RadioGroup
+        lateinit var panel: NestedScrollView
+        lateinit var target: RadioButton
         instrumentation.runOnMainSync {
             assertEquals(supplierId, ViewModelProvider(fragment)[AgentViewModel::class.java].currentSupplierId.value)
             val button = fragment.requireView().findViewById<View>(R.id.btn_thinking)
             assertTrue(button.contentDescription.toString().contains(model))
             button.performClick()
             assertFalse(modelList(fragment).isVisible)
-            val panel = fragment.requireView().findViewById<View>(R.id.thinking_panel)
+            panel = fragment.requireView().findViewById(R.id.thinking_panel)
             assertTrue(panel.isVisible)
-            val options = fragment.requireView().findViewById<ChipGroup>(R.id.thinking_options)
-            assertTrue(options.children.filterIsInstance<Chip>().count { it.isChecked } == 1)
-            assertTrue(options.children.filterIsInstance<Chip>().first { it.text.toString() == label }.performClick())
+            options = fragment.requireView().findViewById(R.id.thinking_options)
+            val buttons = options.children.filterIsInstance<RadioButton>().toList()
+            assertEquals(RadioGroup.VERTICAL, options.orientation)
+            assertEquals(listOf(
+                fragment.resources.getStringArray(R.array.ai_thinking_modes)[2],
+                fragment.getString(R.string.ai_thinking_default_short)
+            ) + fragment.resources.getStringArray(R.array.ai_thinking_efforts).drop(1), buttons.map { it.text.toString() })
+            assertEquals(1, buttons.count { it.isChecked })
+            target = buttons.first { it.text.toString() == label }
+        }
+        awaitMain { options.children.all { it.width > 0 && it.height > 0 } }
+        instrumentation.runOnMainSync {
+            val buttons = options.children.toList()
+            assertTrue(buttons.zipWithNext().all { (first, next) ->
+                first.left == next.left && first.right == next.right && first.bottom <= next.top
+            })
+            panel.scrollTo(0, target.top)
+        }
+        awaitMain {
+            val bounds = android.graphics.Rect()
+            target.getGlobalVisibleRect(bounds) && bounds.height() == target.height
+        }
+        instrumentation.runOnMainSync {
+            assertTrue(target.performClick())
             assertFalse(panel.isVisible)
             assertEquals(supplierId, ViewModelProvider(fragment)[AgentViewModel::class.java].currentSupplierId.value)
         }

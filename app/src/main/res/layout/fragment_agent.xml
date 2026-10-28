@@ -196,15 +196,14 @@
         app:layout_constraintTop_toBottomOf="@id/title_bar"
         app:layout_constraintBottom_toTopOf="@id/ll_input"
         app:layout_constraintHeight_default="wrap"
-        app:layout_constraintHeight_max="240dp"
+        app:layout_constraintHeight_max="420dp"
         app:layout_constraintVertical_bias="1">
 
-        <com.google.android.material.chip.ChipGroup
+        <RadioGroup
             android:id="@+id/thinking_options"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            app:singleSelection="true"
-            app:chipSpacingHorizontal="4dp" />
+            android:orientation="vertical" />
 
     </androidx.core.widget.NestedScrollView>
 
