@@ -47,13 +47,15 @@ class AiSourceEditViewModel(app: Application) : BaseViewModel(app) {
         error: (Throwable) -> Unit
     ) {
         executeLazy {
-            val source = appDb.aiSourceDao.get(sourceId) ?: throw IllegalStateException("供应商不存在")
-            val configs = source.getModelThinkingMap().toMutableMap()
-            configs[model] = config
-            appDb.aiSourceDao.update(source.copy(
-                modelThinking = GSON.toJson(configs),
-                lastUpdateTime = System.currentTimeMillis()
-            ))
+            appDb.runInTransaction {
+                val source = appDb.aiSourceDao.get(sourceId) ?: throw IllegalStateException("供应商不存在")
+                val configs = source.getModelThinkingMap().toMutableMap()
+                configs[model] = config
+                appDb.aiSourceDao.update(source.copy(
+                    modelThinking = GSON.toJson(configs),
+                    lastUpdateTime = System.currentTimeMillis()
+                ))
+            }
         }.onSuccess { success() }.onError { error(it) }.start()
     }
 

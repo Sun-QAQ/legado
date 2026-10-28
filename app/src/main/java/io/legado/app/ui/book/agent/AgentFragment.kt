@@ -74,12 +74,20 @@ class AgentFragment() : BaseFragment(R.layout.fragment_agent), MainFragmentInter
     private val binding by viewBinding(FragmentAgentBinding::bind)
     private val viewModel by viewModels<AgentViewModel>()
     private val supplierViewModel by viewModels<AiSourceManageViewModel>()
+    private val thinkingViewModel by viewModels<AiSourceEditViewModel>()
     private var modelListBackCallback: OnBackPressedCallback? = null
     private val modelAdapter by lazy {
         AgentModelAdapter(requireContext(), select = { source, model ->
             if (binding.tvSupplierModel.isEnabled) {
                 supplierViewModel.select(source, model)
                 setModelListExpanded(false)
+            }
+        }, configureThinking = { source, model, config ->
+            if (binding.tvSupplierModel.isEnabled) {
+                thinkingViewModel.saveModelThinking(source.id, model, config,
+                    success = {},
+                    error = { toastOnUi(it.localizedMessage ?: getString(R.string.ai_thinking_save_failed)) }
+                )
             }
         }, manage = {
             setModelListExpanded(false)

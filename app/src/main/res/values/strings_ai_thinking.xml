@@ -1,6 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="ai_model_thinking">Model thinking settings</string>
+    <string name="ai_thinking_default_short">Default</string>
+    <string name="ai_thinking_level_short">Thinking: %1$s</string>
+    <string name="ai_thinking_for_model">Thinking level for %1$s: %2$s. Tap to configure</string>
     <string name="ai_thinking_mode">Thinking</string>
     <string name="ai_thinking_effort">Thinking effort</string>
     <string name="ai_thinking_format">Provider compatibility</string>

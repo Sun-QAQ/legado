@@ -28,12 +28,14 @@ class AiSourceManageViewModel(application: Application) : BaseViewModel(applicat
         if (!source.enabled || model.isBlank()) return
         selection.select(source.id)
         execute {
-            appDb.aiSourceDao.update(
-                source.copy(
+            appDb.runInTransaction {
+                val current = appDb.aiSourceDao.get(source.id) ?: return@runInTransaction
+                if (!current.enabled) return@runInTransaction
+                appDb.aiSourceDao.update(current.copy(
                     model = model,
                     lastUpdateTime = System.currentTimeMillis()
-                )
-            )
+                ))
+            }
         }
     }
 

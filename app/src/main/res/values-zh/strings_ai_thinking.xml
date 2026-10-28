@@ -1,6 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="ai_model_thinking">模型思考设置</string>
+    <string name="ai_thinking_default_short">默认</string>
+    <string name="ai_thinking_level_short">思考：%1$s</string>
+    <string name="ai_thinking_for_model">%1$s的思考等级：%2$s，点击配置</string>
     <string name="ai_thinking_mode">是否开启思考</string>
     <string name="ai_thinking_effort">思考强度</string>
     <string name="ai_thinking_format">供应商兼容格式</string>

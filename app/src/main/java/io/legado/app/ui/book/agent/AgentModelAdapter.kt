@@ -2,6 +2,7 @@ package io.legado.app.ui.book.agent
 
 import android.content.Context
 import android.graphics.Typeface
+import android.view.View
 import android.view.ViewGroup
 import androidx.core.view.ViewCompat
 import androidx.core.view.isVisible
@@ -9,6 +10,8 @@ import io.legado.app.R
 import io.legado.app.base.adapter.ItemViewHolder
 import io.legado.app.base.adapter.RecyclerAdapter
 import io.legado.app.data.entities.AiSource
+import io.legado.app.data.entities.AiModelThinking
+import com.google.android.material.chip.Chip
 import io.legado.app.databinding.ItemAgentModelBinding
 import io.legado.app.lib.theme.accentColor
 import io.legado.app.lib.theme.primaryTextColor
@@ -26,12 +29,15 @@ internal sealed interface AgentModelItem {
 internal class AgentModelAdapter(
     context: Context,
     private val select: (AiSource, String) -> Unit,
+    private val configureThinking: (AiSource, String, AiModelThinking) -> Unit,
     private val manage: () -> Unit
 ) : RecyclerAdapter<AgentModelItem, ItemAgentModelBinding>(context) {
 
     private var currentId = 0L
     private var sources = emptyList<AiSource>()
     private val collapsedSupplierIds = mutableSetOf<Long>()
+    private var editingThinking: Pair<Long, String>? = null
+    private val efforts = listOf("", "minimal", "low", "medium", "high", "xhigh", "max")
 
     fun currentGroupPosition(): Int = (0 until itemCount).firstOrNull {
         (getItem(it) as? AgentModelItem.Supplier)?.source?.id == currentId
@@ -87,6 +93,7 @@ internal class AgentModelAdapter(
             else -> context.primaryTextColor
         })
         binding.ivSelected.isVisible = selected
+        bindThinking(binding, item)
         binding.ivExpand.isVisible = heading
         if (item is AgentModelItem.Supplier) {
             binding.ivExpand.setImageResource(
@@ -107,17 +114,65 @@ internal class AgentModelAdapter(
         }
     }
 
+    private fun thinkingLabel(config: AiModelThinking): String = when (config.mode) {
+        "disabled" -> context.resources.getStringArray(R.array.ai_thinking_modes)[2]
+        "enabled" -> {
+            val index = efforts.indexOf(config.effort)
+            if (index > 0) context.resources.getStringArray(R.array.ai_thinking_efforts)[index]
+            else context.resources.getStringArray(R.array.ai_thinking_modes)[1]
+        }
+        else -> context.getString(R.string.ai_thinking_default_short)
+    }
+
+    private fun bindThinking(binding: ItemAgentModelBinding, item: AgentModelItem) {
+        binding.btnThinking.isVisible = item is AgentModelItem.Model
+        binding.thinkingOptions.isVisible = item is AgentModelItem.Model && editingThinking == (item.source.id to item.name)
+        binding.thinkingOptions.removeAllViews()
+        if (item !is AgentModelItem.Model) return
+        val config = item.source.getModelThinking(item.name)
+        val label = thinkingLabel(config)
+        binding.btnThinking.text = context.getString(R.string.ai_thinking_level_short, label)
+        binding.btnThinking.contentDescription = context.getString(R.string.ai_thinking_for_model, item.name, label)
+        binding.btnThinking.setTextColor(context.accentColor)
+        if (!binding.thinkingOptions.isVisible) return
+        binding.thinkingOptions.setPaddingRelative(binding.tvName.paddingStart, 0, 0, 0)
+        val options = listOf(config.copy(mode = "default"), config.copy(mode = "disabled")) +
+            efforts.map { config.copy(mode = "enabled", effort = it) }
+        options.forEach { option ->
+            binding.thinkingOptions.addView(Chip(context).apply {
+                id = View.generateViewId()
+                text = thinkingLabel(option)
+                textSize = 12f
+                isCheckable = true
+                isChecked = option.mode == config.mode &&
+                    (option.mode != "enabled" || option.effort == config.effort)
+                setOnClickListener {
+                    configureThinking(item.source, item.name, option)
+                    editingThinking = null
+                    renderGroups()
+                }
+            })
+        }
+    }
+
     override fun registerListener(holder: ItemViewHolder, binding: ItemAgentModelBinding) {
         binding.root.setOnClickListener {
             when (val item = getItem(holder.layoutPosition)) {
                 is AgentModelItem.Supplier -> {
                     if (!collapsedSupplierIds.add(item.source.id)) collapsedSupplierIds.remove(item.source.id)
+                    if (item.source.id in collapsedSupplierIds && editingThinking?.first == item.source.id) editingThinking = null
                     renderGroups()
                 }
                 is AgentModelItem.Model -> select(item.source, item.name)
                 AgentModelItem.Manage -> manage()
                 else -> Unit
             }
+        }
+        binding.btnThinking.setOnClickListener {
+            val item = getItem(holder.layoutPosition) as? AgentModelItem.Model ?: return@setOnClickListener
+            val key = item.source.id to item.name
+            editingThinking = if (editingThinking == key) null else key
+            renderGroups()
         }
     }
 }
