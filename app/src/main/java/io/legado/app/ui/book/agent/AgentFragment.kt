@@ -25,11 +25,14 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.bumptech.glide.Glide
+import com.google.android.material.chip.Chip
 import io.legado.app.R
 import io.legado.app.constant.AppLog
 import io.legado.app.constant.AppConst
 import io.legado.app.base.BaseFragment
 import io.legado.app.data.appDb
+import io.legado.app.data.entities.AiSource
+import io.legado.app.data.entities.AiModelThinking
 import io.legado.app.data.entities.SearchBook
 import io.legado.app.databinding.FragmentAgentBinding
 import io.legado.app.databinding.ItemAgentAttachmentBinding
@@ -75,19 +78,14 @@ class AgentFragment() : BaseFragment(R.layout.fragment_agent), MainFragmentInter
     private val viewModel by viewModels<AgentViewModel>()
     private val supplierViewModel by viewModels<AiSourceManageViewModel>()
     private val thinkingViewModel by viewModels<AiSourceEditViewModel>()
+    private var currentThinkingSource: AiSource? = null
+    private val thinkingEfforts = listOf("", "minimal", "low", "medium", "high", "xhigh", "max")
     private var modelListBackCallback: OnBackPressedCallback? = null
     private val modelAdapter by lazy {
         AgentModelAdapter(requireContext(), select = { source, model ->
             if (binding.tvSupplierModel.isEnabled) {
                 supplierViewModel.select(source, model)
                 setModelListExpanded(false)
-            }
-        }, configureThinking = { source, model, config ->
-            if (binding.tvSupplierModel.isEnabled) {
-                thinkingViewModel.saveModelThinking(source.id, model, config,
-                    success = {},
-                    error = { toastOnUi(it.localizedMessage ?: getString(R.string.ai_thinking_save_failed)) }
-                )
             }
         }, manage = {
             setModelListExpanded(false)
@@ -174,17 +172,20 @@ class AgentFragment() : BaseFragment(R.layout.fragment_agent), MainFragmentInter
         binding.modelList.layoutManager = LinearLayoutManager(requireContext())
         binding.modelList.adapter = modelAdapter
         modelListBackCallback = object : OnBackPressedCallback(false) {
-            override fun handleOnBackPressed() = setModelListExpanded(false)
+            override fun handleOnBackPressed() = closeInputPanels()
         }.also { requireActivity().onBackPressedDispatcher.addCallback(viewLifecycleOwner, it) }
         binding.tvSupplierModel.setOnClickListener {
             if (binding.tvSupplierModel.isEnabled) setModelListExpanded(!binding.modelList.isVisible)
         }
+        binding.btnThinking.setOnClickListener {
+            if (binding.btnThinking.isEnabled) setThinkingExpanded(!binding.thinkingPanel.isVisible)
+        }
         binding.recyclerView.setOnTouchListener { _, _ ->
-            if (binding.modelList.isVisible) setModelListExpanded(false)
+            closeInputPanels()
             false
         }
         binding.etInput.setOnTouchListener { _, _ ->
-            if (binding.modelList.isVisible) setModelListExpanded(false)
+            closeInputPanels()
             false
         }
         binding.etInput.setOnEditorActionListener { _, actionId, _ ->
@@ -291,6 +292,10 @@ class AgentFragment() : BaseFragment(R.layout.fragment_agent), MainFragmentInter
                     viewModel.restoreSupplier(sources)
                     modelAdapter.update(sources, viewModel.currentSupplierId.value)
                     val source = sources.firstOrNull { it.id == viewModel.currentSupplierId.value }
+                    if (currentThinkingSource?.id != source?.id || currentThinkingSource?.model != source?.model) {
+                        setThinkingExpanded(false)
+                    }
+                    currentThinkingSource = source
                     binding.tvSupplierModel.text = if (source == null) {
                         getString(R.string.ai_source_select_use)
                     } else {
@@ -303,18 +308,89 @@ class AgentFragment() : BaseFragment(R.layout.fragment_agent), MainFragmentInter
                     binding.tvSupplierModel.contentDescription = getString(
                         R.string.agent_change_supplier_model, binding.tvSupplierModel.text
                     )
+                    updateThinkingControl()
+                    updateAttachmentControls()
                 }
             }
         }
     }
 
     private fun setModelListExpanded(expanded: Boolean) {
+        if (expanded) setThinkingExpanded(false)
         binding.modelList.isVisible = expanded
         if (expanded) binding.modelList.scrollToPosition(modelAdapter.currentGroupPosition())
-        modelListBackCallback?.isEnabled = expanded
-        binding.tvSupplierModel.setCompoundDrawablesRelativeWithIntrinsicBounds(
+        updatePanelBackCallback()
+    }
+
+    private fun setThinkingExpanded(expanded: Boolean) {
+        if (expanded) {
+            setModelListExpanded(false)
+            renderThinkingOptions()
+        }
+        binding.thinkingPanel.isVisible = expanded
+        binding.btnThinking.setCompoundDrawablesRelativeWithIntrinsicBounds(
             0, 0, if (expanded) R.drawable.ic_arrow_drop_down else R.drawable.ic_arrow_drop_up, 0
         )
+        updatePanelBackCallback()
+    }
+
+    private fun closeInputPanels() {
+        if (binding.modelList.isVisible) setModelListExpanded(false)
+        if (binding.thinkingPanel.isVisible) setThinkingExpanded(false)
+    }
+
+    private fun updatePanelBackCallback() {
+        modelListBackCallback?.isEnabled = binding.modelList.isVisible || binding.thinkingPanel.isVisible
+    }
+
+    private fun thinkingLabel(config: AiModelThinking): String = when (config.mode) {
+        "disabled" -> resources.getStringArray(R.array.ai_thinking_modes)[2]
+        "enabled" -> {
+            val index = thinkingEfforts.indexOf(config.effort)
+            if (index > 0) resources.getStringArray(R.array.ai_thinking_efforts)[index]
+            else resources.getStringArray(R.array.ai_thinking_modes)[1]
+        }
+        else -> getString(R.string.ai_thinking_default_short)
+    }
+
+    private fun updateThinkingControl() {
+        val source = currentThinkingSource
+        val label = thinkingLabel(source?.getModelThinking() ?: AiModelThinking())
+        binding.btnThinking.text = getString(R.string.ai_thinking_level_short, label)
+        binding.btnThinking.setTextColor(requireContext().accentColor)
+        binding.btnThinking.contentDescription = if (source == null) getString(R.string.ai_model_thinking)
+            else getString(R.string.ai_thinking_for_model, source.model, label)
+        if (binding.thinkingPanel.isVisible) renderThinkingOptions()
+    }
+
+    private fun renderThinkingOptions() {
+        binding.thinkingOptions.removeAllViews()
+        val source = currentThinkingSource ?: return
+        val config = source.getModelThinking()
+        val options = listOf(config.copy(mode = "default"), config.copy(mode = "disabled")) +
+            thinkingEfforts.map { config.copy(mode = "enabled", effort = it) }
+        options.forEach { option ->
+            binding.thinkingOptions.addView(Chip(requireContext()).apply {
+                id = View.generateViewId()
+                text = thinkingLabel(option)
+                textSize = 12f
+                isCheckable = true
+                setCheckedIconResource(R.drawable.ic_check)
+                isCheckedIconVisible = true
+                isChecked = option.mode == config.mode &&
+                    (option.mode != "enabled" || option.effort == config.effort)
+                setOnClickListener {
+                    if (binding.btnThinking.isEnabled && currentThinkingSource?.id == source.id &&
+                        currentThinkingSource?.model == source.model) {
+                        thinkingViewModel.saveModelThinking(source.id, source.model, option,
+                            success = {},
+                            error = { toastOnUi(it.localizedMessage ?: getString(R.string.ai_thinking_save_failed)) }
+                        )
+                    }
+                    setThinkingExpanded(false)
+                }
+            })
+        }
     }
 
     private fun observePersonas() {
@@ -326,7 +402,7 @@ class AgentFragment() : BaseFragment(R.layout.fragment_agent), MainFragmentInter
     }
 
     private fun sendInput() {
-        setModelListExpanded(false)
+        closeInputPanels()
         if (viewModel.waiting.value) {
             viewModel.cancel()
             return
@@ -355,7 +431,10 @@ class AgentFragment() : BaseFragment(R.layout.fragment_agent), MainFragmentInter
         binding.btnSend.isEnabled = !busy || viewModel.waiting.value
         binding.tvSupplierModel.isEnabled = !busy && !viewModel.waiting.value
         binding.tvSupplierModel.alpha = if (binding.tvSupplierModel.isEnabled) 1f else 0.4f
-        if (!binding.tvSupplierModel.isEnabled) setModelListExpanded(false)
+        binding.btnThinking.isEnabled = binding.tvSupplierModel.isEnabled && !currentThinkingSource?.model.isNullOrBlank()
+        binding.btnThinking.alpha = if (binding.btnThinking.isEnabled) 1f else 0.4f
+        if (!binding.tvSupplierModel.isEnabled) closeInputPanels()
+        else if (!binding.btnThinking.isEnabled) setThinkingExpanded(false)
         for (index in 0 until binding.llAttachments.childCount) {
             binding.llAttachments.getChildAt(index).findViewById<View>(R.id.btn_remove).isEnabled = !busy
         }
@@ -412,6 +491,7 @@ class AgentFragment() : BaseFragment(R.layout.fragment_agent), MainFragmentInter
     }
 
     override fun onDestroyView() {
+        currentThinkingSource = null
         modelListBackCallback = null
         binding.modelList.adapter = null
         autoScroll?.dispose()

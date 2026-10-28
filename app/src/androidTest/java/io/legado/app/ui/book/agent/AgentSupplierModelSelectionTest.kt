@@ -158,13 +158,14 @@ class AgentSupplierModelSelectionTest {
                     assertEquals(name.paint.measureText("\u3000\u3000").roundToInt(), name.paddingStart)
                     assertEquals("model-a", name.text.toString())
                     assertTrue(model.findViewById<View>(R.id.iv_selected).isVisible)
-                    val button = model.findViewById<TextView>(R.id.btn_thinking)
+                    assertNull(model.findViewById<View>(R.id.btn_thinking))
+                    val button = fragment.requireView().findViewById<TextView>(R.id.btn_thinking)
                     assertTrue(button.isVisible)
                     assertEquals(context.getString(R.string.ai_thinking_level_short,
                         context.getString(R.string.ai_thinking_default_short)), button.text.toString())
                     val nameBounds = android.graphics.Rect()
                     val buttonBounds = android.graphics.Rect()
-                    name.getGlobalVisibleRect(nameBounds)
+                    label.getGlobalVisibleRect(nameBounds)
                     button.getGlobalVisibleRect(buttonBounds)
                     assertTrue(nameBounds.right <= buttonBounds.left)
                 }
@@ -181,13 +182,18 @@ class AgentSupplierModelSelectionTest {
                 awaitMain { rows(fragment).filterIsInstance<AgentModelItem.Model>().any {
                     it.source.id == first.id && it.name == "model-a" && it.source.getModelThinking(it.name).mode == "enabled"
                 } }
+                selectModel(fragment, second.id, "model-c")
                 chooseThinking(fragment, second.id, "model-c", context.resources.getStringArray(R.array.ai_thinking_efforts)[6])
                 awaitMain { appDb.aiSourceDao.get(second.id)!!.getModelThinking("model-c").effort == "max" }
                 assertEquals("high", appDb.aiSourceDao.get(first.id)!!.getModelThinking("model-a").effort)
                 assertEquals("model-a", appDb.aiSourceDao.get(first.id)!!.model)
+                selectModel(fragment, first.id, "model-a")
                 instrumentation.runOnMainSync {
-                    assertTrue(modelList(fragment).isVisible)
+                    val button = fragment.requireView().findViewById<TextView>(R.id.btn_thinking)
+                    assertEquals(context.getString(R.string.ai_thinking_level_short, highLabel), button.text.toString())
+                    assertFalse(modelList(fragment).isVisible)
                     assertEquals(first.id, agent.currentSupplierId.value)
+                    label.performClick()
                 }
                 toggleGroup(fragment, first.id)
                 awaitMain { rows(fragment).none { it is AgentModelItem.Model && it.source.id == first.id } }
@@ -220,6 +226,10 @@ class AgentSupplierModelSelectionTest {
                 awaitMain { label.text.toString() == "供应商甲 · model-b" }
                 assertEquals("model-b", appDb.aiSourceDao.get(first.id)!!.model)
                 assertEquals(first.id, context.getPrefLong(PreferKey.aiSupplierId))
+                awaitMain {
+                    fragment.requireView().findViewById<TextView>(R.id.btn_thinking).text.toString() ==
+                        context.getString(R.string.ai_thinking_level_short, context.resources.getStringArray(R.array.ai_thinking_efforts)[2])
+                }
                 instrumentation.runOnMainSync {
                     assertFalse(modelList(fragment).isVisible)
                     label.performClick()
@@ -240,6 +250,18 @@ class AgentSupplierModelSelectionTest {
                     waiting.value = true
                 }
                 awaitMain { !label.isEnabled && !modelList(fragment).isVisible }
+                instrumentation.runOnMainSync {
+                    assertFalse(fragment.requireView().findViewById<View>(R.id.btn_thinking).isEnabled)
+                }
+                instrumentation.runOnMainSync { waiting.value = false }
+                awaitMain { label.isEnabled }
+                instrumentation.runOnMainSync {
+                    fragment.requireView().findViewById<View>(R.id.btn_thinking).performClick()
+                    assertTrue(fragment.requireView().findViewById<View>(R.id.thinking_panel).isVisible)
+                    assertFalse(modelList(fragment).isVisible)
+                    waiting.value = true
+                }
+                awaitMain { !fragment.requireView().findViewById<View>(R.id.thinking_panel).isVisible }
                 instrumentation.runOnMainSync { waiting.value = false }
                 awaitMain { label.isEnabled }
                 instrumentation.runOnMainSync {
@@ -279,6 +301,8 @@ class AgentSupplierModelSelectionTest {
                     "list=${list.visibility}/${list.width}x${list.height}, root=${fragment.requireView().width}x${fragment.requireView().height}, label=${label.isEnabled}/${label.width}x${label.height}, rows=${list.adapter?.itemCount}"
                 }) { modelList(fragment).height > 0 }
                 instrumentation.runOnMainSync {
+                    label.performClick()
+                    assertFalse(modelList(fragment).isVisible)
                     File(context.cacheDir, "agent_supplier_model_preview.png").outputStream().use {
                         fragment.requireActivity().window.decorView.drawToBitmap().compress(Bitmap.CompressFormat.PNG, 100, it)
                     }
@@ -301,17 +325,33 @@ class AgentSupplierModelSelectionTest {
         instrumentation.runOnMainSync { assertTrue(row.performClick()) }
     }
 
-    private fun chooseThinking(fragment: AgentFragment, supplierId: Long, model: String, label: String) {
-        val matches: (AgentModelItem?) -> Boolean = {
-            it is AgentModelItem.Model && it.source.id == supplierId && it.name == model
-        }
-        val row = showItem(fragment, matches)
-        instrumentation.runOnMainSync { row.findViewById<View>(R.id.btn_thinking).performClick() }
-        val expandedRow = showItem(fragment, matches)
+    private fun selectModel(fragment: AgentFragment, supplierId: Long, model: String) {
         instrumentation.runOnMainSync {
-            val options = expandedRow.findViewById<ChipGroup>(R.id.thinking_options)
-            assertTrue(options.isVisible)
+            if (!modelList(fragment).isVisible) fragment.requireView().findViewById<View>(R.id.tv_supplier_model).performClick()
+        }
+        choose(fragment, supplierId, model)
+        awaitMain {
+            val agent = ViewModelProvider(fragment)[AgentViewModel::class.java]
+            val source = appDb.aiSourceDao.get(supplierId)!!
+            agent.currentSupplierId.value == supplierId && source.model == model &&
+                fragment.requireView().findViewById<TextView>(R.id.tv_supplier_model).text.toString() == "${source.name} · $model"
+        }
+    }
+
+    private fun chooseThinking(fragment: AgentFragment, supplierId: Long, model: String, label: String) {
+        instrumentation.runOnMainSync {
+            assertEquals(supplierId, ViewModelProvider(fragment)[AgentViewModel::class.java].currentSupplierId.value)
+            val button = fragment.requireView().findViewById<View>(R.id.btn_thinking)
+            assertTrue(button.contentDescription.toString().contains(model))
+            button.performClick()
+            assertFalse(modelList(fragment).isVisible)
+            val panel = fragment.requireView().findViewById<View>(R.id.thinking_panel)
+            assertTrue(panel.isVisible)
+            val options = fragment.requireView().findViewById<ChipGroup>(R.id.thinking_options)
+            assertTrue(options.children.filterIsInstance<Chip>().count { it.isChecked } == 1)
             assertTrue(options.children.filterIsInstance<Chip>().first { it.text.toString() == label }.performClick())
+            assertFalse(panel.isVisible)
+            assertEquals(supplierId, ViewModelProvider(fragment)[AgentViewModel::class.java].currentSupplierId.value)
         }
     }
 
