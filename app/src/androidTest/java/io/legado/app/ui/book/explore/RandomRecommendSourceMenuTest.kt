@@ -5,9 +5,10 @@ import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import androidx.test.core.app.ActivityScenario
 import androidx.test.espresso.Espresso.onView
-import androidx.test.espresso.action.ViewActions.click
+import androidx.test.espresso.Espresso.pressBack
 import androidx.test.espresso.assertion.ViewAssertions.doesNotExist
 import androidx.test.espresso.assertion.ViewAssertions.matches
+import androidx.test.espresso.matcher.RootMatchers.isPlatformPopup
 import androidx.test.espresso.matcher.ViewMatchers.isDisplayed
 import androidx.test.espresso.matcher.ViewMatchers.withText
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -26,16 +27,15 @@ class RandomRecommendSourceMenuTest {
         ActivityScenario.launch(RandomRecommendConfigActivity::class.java).use { scenario ->
             awaitActivity(scenario) { it.findViewById<TabLayout>(R.id.tab_group).tabCount > 0 }
             showMenu(scenario, BookSourcePart("first", "测试登录书源", hasLoginUrl = true))
-            onView(withText("测试登录书源")).check(matches(isDisplayed()))
-            onView(withText(R.string.login)).check(matches(isDisplayed()))
-            onView(withText(R.string.edit)).check(matches(isDisplayed()))
-            onView(withText(android.R.string.cancel)).perform(click())
+            onView(withText(R.string.login)).inRoot(isPlatformPopup()).check(matches(isDisplayed()))
+            onView(withText(R.string.edit)).inRoot(isPlatformPopup()).check(matches(isDisplayed()))
+            onView(withText(android.R.string.cancel)).inRoot(isPlatformPopup()).check(doesNotExist())
+            pressBack()
 
             showMenu(scenario, BookSourcePart("second", "测试普通书源"))
-            onView(withText("测试普通书源")).check(matches(isDisplayed()))
-            onView(withText(R.string.login)).check(doesNotExist())
-            onView(withText(R.string.edit)).check(matches(isDisplayed()))
-            onView(withText(android.R.string.cancel)).perform(click())
+            onView(withText(R.string.login)).inRoot(isPlatformPopup()).check(doesNotExist())
+            onView(withText(R.string.edit)).inRoot(isPlatformPopup()).check(matches(isDisplayed()))
+            pressBack()
         }
     }
 

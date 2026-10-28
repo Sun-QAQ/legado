@@ -3,7 +3,9 @@ package io.legado.app.ui.book.explore
 import android.os.Bundle
 import android.view.Menu
 import android.view.MenuItem
+import android.view.View
 import android.view.ViewGroup
+import androidx.appcompat.widget.PopupMenu
 import androidx.appcompat.widget.SearchView
 import androidx.core.view.isVisible
 import androidx.lifecycle.lifecycleScope
@@ -184,24 +186,24 @@ class RandomRecommendConfigActivity : BaseActivity<ActivityRandomRecommendConfig
         })
     }
 
-    private fun showSourceMenu(source: BookSourcePart) {
-        val actions = buildList {
-            if (source.hasLoginUrl) add(R.string.login)
-            add(R.string.edit)
-        }
-        alert(source.bookSourceName) {
-            items(actions.map { getString(it) }) { _, index ->
-                when (actions[index]) {
-                    R.string.login -> startActivity<SourceLoginActivity> {
+    private fun showSourceMenu(anchor: View, source: BookSourcePart) {
+        PopupMenu(this, anchor).apply {
+            inflate(R.menu.random_recommend_source)
+            menu.findItem(R.id.menu_login).isVisible = source.hasLoginUrl
+            setOnMenuItemClickListener { item ->
+                when (item.itemId) {
+                    R.id.menu_login -> startActivity<SourceLoginActivity> {
                         putExtra("type", "bookSource")
                         putExtra("key", source.bookSourceUrl)
                     }
-                    R.string.edit -> startActivity<BookSourceEditActivity> {
+                    R.id.menu_edit -> startActivity<BookSourceEditActivity> {
                         putExtra("sourceUrl", source.bookSourceUrl)
                     }
+                    else -> return@setOnMenuItemClickListener false
                 }
+                true
             }
-            cancelButton()
+            show()
         }
     }
 
@@ -286,7 +288,7 @@ class RandomRecommendConfigActivity : BaseActivity<ActivityRandomRecommendConfig
             }
             binding.root.setOnLongClickListener {
                 val source = getItem(holder.layoutPosition) ?: return@setOnLongClickListener false
-                showSourceMenu(source)
+                showSourceMenu(binding.tvName, source)
                 true
             }
         }
