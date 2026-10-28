@@ -175,8 +175,9 @@ class AgentFragment() : BaseFragment(R.layout.fragment_agent), MainFragmentInter
             if (binding.modelList.isVisible) setModelListExpanded(false)
             false
         }
-        binding.etInput.setOnFocusChangeListener { _, hasFocus ->
-            if (hasFocus) setModelListExpanded(false)
+        binding.etInput.setOnTouchListener { _, _ ->
+            if (binding.modelList.isVisible) setModelListExpanded(false)
+            false
         }
         binding.etInput.setOnEditorActionListener { _, actionId, _ ->
             if (actionId == android.view.inputmethod.EditorInfo.IME_ACTION_SEND) {
