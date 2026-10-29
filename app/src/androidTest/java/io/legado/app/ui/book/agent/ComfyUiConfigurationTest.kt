@@ -47,6 +47,22 @@ class ComfyUiConfigurationTest {
     fun savingFullRequestWorkflowPersistsAndCanBeReopened() =
         saveAndReopen("""{"prompt":$WORKFLOW,"extra_data":{}}""")
 
+    @Test
+    fun savingUnquotedNumericPlaceholdersPersistsAndCanGenerateRequest() {
+        val workflow = WORKFLOW.replace("\"{{width}}\"", "{{width}}")
+            .replace("\"{{height}}\"", "{{height}}")
+            .replace("\"{{seed}}\"", "{{seed}}")
+        saveAndReopen(workflow)
+        val request = ComfyUiImageGenerationHelper.buildRequest(
+            AiImageSource(customBody = workflow), "猫", "768x512", 123
+        )
+        val inputs = request.getAsJsonObject("prompt")["1"].asJsonObject.getAsJsonObject("inputs")
+        assertEquals(123L, inputs["seed"].asLong)
+        assertTrue(inputs["seed"].asJsonPrimitive.isNumber)
+        assertEquals(768, inputs["width"].asInt)
+        assertEquals(512, inputs["height"].asInt)
+    }
+
     private fun saveAndReopen(workflow: String) {
         val instrumentation = InstrumentationRegistry.getInstrumentation()
         val name = "comfy-save-test-${UUID.randomUUID()}"

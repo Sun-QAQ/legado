@@ -53,6 +53,54 @@ class ComfyUiImageGenerationHelperTest {
     }
 
     @Test
+    fun `未加引号的数字占位符可以校验并展开为数值`() {
+        val unquoted = source.customBody!!
+            .replace("\"{{width}}\"", "{{width}}")
+            .replace("\"{{height}}\"", "{{height}}")
+            .replace("\"{{seed}}\"", "{{seed}}")
+        listOf(unquoted, """{"prompt":$unquoted,"extra_data":{}}""").forEach { workflow ->
+            ComfyUiImageGenerationHelper.validateWorkflow(workflow)
+            val request = ComfyUiImageGenerationHelper.buildRequest(
+                source.copy(customBody = workflow), "猫", "768x512", 123
+            )
+            val graph = request.getAsJsonObject("prompt")
+            val dimensions = graph["5"].asJsonObject.getAsJsonObject("inputs")
+            val seed = graph["3"].asJsonObject.getAsJsonObject("inputs")["seed"]
+            assertEquals(768, dimensions["width"].asInt)
+            assertEquals(512, dimensions["height"].asInt)
+            assertEquals(123L, seed.asLong)
+            assertTrue(seed.asJsonPrimitive.isNumber)
+        }
+    }
+
+    @Test
+    fun `兼容未加引号的数字占位符时不改写字符串和转义字符`() {
+        val text = "引号\"和反斜杠\\，{{seed}}，{{width}}，{{height}}，{{prompt}}"
+        val workflow = """{"1":{"class_type":"TestNode","inputs":{
+            "text":${com.google.gson.JsonPrimitive(text)},"values":[{{seed}}, {"width": {{width}}}],
+            "quoted":"{{height}}","fixed":42,"unknown":"{{unknown}}"
+        }}}"""
+        val validated = ComfyUiImageGenerationHelper.validateWorkflow(workflow)
+        assertEquals(text, validated["1"].asJsonObject.getAsJsonObject("inputs")["text"].asString)
+        val request = ComfyUiImageGenerationHelper.buildRequest(source.copy(customBody = workflow), "猫", "768x512", 123)
+        val inputs = request.getAsJsonObject("prompt")["1"].asJsonObject.getAsJsonObject("inputs")
+        assertEquals("引号\"和反斜杠\\，123，768，512，猫", inputs["text"].asString)
+        assertEquals(123L, inputs["values"].asJsonArray[0].asLong)
+        assertEquals(768, inputs["values"].asJsonArray[1].asJsonObject["width"].asInt)
+        assertEquals(512, inputs["quoted"].asInt)
+        assertEquals(42, inputs["fixed"].asInt)
+        assertEquals("{{unknown}}", inputs["unknown"].asString)
+    }
+
+    @Test
+    fun `数字占位符兼容不会放行其他JSON语法错误`() {
+        listOf("{{unknown}}", "{{prompt}}", "{{seed}}0", "1{{seed}}", "{{ seed }}").forEach { value ->
+            val workflow = """{"1":{"class_type":"TestNode","inputs":{"text":"{{prompt}}","seed":$value}}}"""
+            assertThrows(Exception::class.java) { ComfyUiImageGenerationHelper.validateWorkflow(workflow) }
+        }
+    }
+
+    @Test
     fun `支持完整请求体保留扩展参数并清除旧任务ID`() {
         val template = source.copy(customBody = """{"prompt":${source.customBody},"extra_data":{"test":true},"prompt_id":"old"}""")
         val request = ComfyUiImageGenerationHelper.buildRequest(template, "猫", "", 1)

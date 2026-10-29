@@ -20,7 +20,7 @@ import kotlin.random.Random
 internal object ComfyUiImageGenerationHelper {
 
     fun validateWorkflow(value: String): JsonObject {
-        val root = JsonParser.parseString(value)
+        val root = JsonParser.parseString(quoteNumericPlaceholders(value))
         require(root.isJsonObject) { "请填写 ComfyUI API 格式工作流 JSON" }
         val workflow = root.asJsonObject.let {
             if (it.get("prompt")?.isJsonObject == true) it.getAsJsonObject("prompt") else it
@@ -35,6 +35,37 @@ internal object ComfyUiImageGenerationHelper {
             containsPrompt(node.asJsonObject.getAsJsonObject("inputs"))
         }) { "请将工作流中正向提示词的文本替换为 {{prompt}}" }
         return root.asJsonObject
+    }
+
+    /** 数字占位符可直接写在 JSON 值的位置，字符串内的内容保持原样。 */
+    private fun quoteNumericPlaceholders(value: String): String = buildString(value.length) {
+        var inString = false
+        var escaped = false
+        var index = 0
+        while (index < value.length) {
+            val char = value[index]
+            if (inString) {
+                append(char)
+                when {
+                    escaped -> escaped = false
+                    char == '\\' -> escaped = true
+                    char == '"' -> inString = false
+                }
+                index++
+                continue
+            }
+            val placeholder = if (char == '{') {
+                NUMERIC_PLACEHOLDERS.firstOrNull { value.startsWith(it, index) }
+            } else null
+            if (placeholder != null) {
+                append('"').append(placeholder).append('"')
+                index += placeholder.length
+            } else {
+                append(char)
+                if (char == '"') inString = true
+                index++
+            }
+        }
     }
 
     private fun containsPrompt(element: JsonElement): Boolean = when {
@@ -177,5 +208,6 @@ internal object ComfyUiImageGenerationHelper {
 
     // Android 使用 ICU 正则引擎，左右花括号都必须转义为字面量。
     private val PLACEHOLDER = Regex("\\{\\{(?:prompt|width|height|seed)\\}\\}")
+    private val NUMERIC_PLACEHOLDERS = listOf("{{width}}", "{{height}}", "{{seed}}")
     private val JSON_MEDIA_TYPE = "application/json; charset=utf-8".toMediaType()
 }
