@@ -97,7 +97,7 @@ class RssFragment() : VMBaseFragment<RssViewModel>(R.layout.fragment_rss),
             val action = ActionRssWebTabsBinding.bind(view)
             view.contentDescription = getString(R.string.rss_web_tabs_count, count)
             action.webTabsIcon.setColorFilter(primaryTextColor)
-            action.webTabsCount.isHideOnNull = false
+            action.webTabsCount.isHideOnNull = true
             action.webTabsCount.setBadgeCount(count)
         }
     }
