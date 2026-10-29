@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="rss_web_tabs">网页标签</string>
+    <string name="rss_web_tabs_count">网页 · %1$d</string>
+    <string name="rss_minimize">最小化</string>
+    <string name="rss_close_tab">关闭标签</string>
+    <string name="rss_close_named_tab">关闭标签：%1$s</string>
+    <string name="rss_no_web_tabs">暂无打开的网页</string>
+</resources>

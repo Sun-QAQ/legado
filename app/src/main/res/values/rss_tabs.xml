@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="rss_web_tabs">Web tabs</string>
+    <string name="rss_web_tabs_count">Web · %1$d</string>
+    <string name="rss_minimize">Minimize</string>
+    <string name="rss_close_tab">Close tab</string>
+    <string name="rss_close_named_tab">Close tab: %1$s</string>
+    <string name="rss_no_web_tabs">No open web tabs</string>
+</resources>

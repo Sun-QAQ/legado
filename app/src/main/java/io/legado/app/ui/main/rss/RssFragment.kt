@@ -17,12 +17,13 @@ import io.legado.app.data.appDb
 import io.legado.app.data.entities.RssSource
 import io.legado.app.databinding.FragmentRssBinding
 import io.legado.app.databinding.ItemRssBinding
+import io.legado.app.databinding.ActionRssWebTabsBinding
 import io.legado.app.lib.dialogs.alert
 import io.legado.app.lib.theme.primaryTextColor
 import io.legado.app.ui.main.MainFragmentInterface
+import io.legado.app.ui.main.MainActivity
 import io.legado.app.ui.rss.article.RssSortActivity
 import io.legado.app.ui.rss.favorites.RssFavoritesActivity
-import io.legado.app.ui.rss.read.ReadRssActivity
 import io.legado.app.ui.rss.source.edit.RssSourceEditActivity
 import io.legado.app.ui.rss.source.manage.RssSourceActivity
 import io.legado.app.ui.rss.subscription.RuleSubActivity
@@ -67,6 +68,7 @@ class RssFragment() : VMBaseFragment<RssViewModel>(R.layout.fragment_rss),
     private var rssFlowJob: Job? = null
     private val groups = linkedSetOf<String>()
     private var groupsMenu: SubMenu? = null
+    private var tabsMenuItem: MenuItem? = null
 
     override fun onFragmentCreated(view: View, savedInstanceState: Bundle?) {
         setSupportToolbar(binding.titleBar.toolbar)
@@ -74,17 +76,36 @@ class RssFragment() : VMBaseFragment<RssViewModel>(R.layout.fragment_rss),
         initRecyclerView()
         initGroupData()
         upRssFlowJob()
+        (activity as? MainActivity)?.rssTabs?.count?.observe(viewLifecycleOwner) { count ->
+            updateTabsCount(count)
+        }
     }
 
     override fun onCompatCreateOptionsMenu(menu: Menu) {
         menuInflater.inflate(R.menu.main_rss, menu)
         groupsMenu = menu.findItem(R.id.menu_group)?.subMenu
+        tabsMenuItem = menu.findItem(R.id.menu_rss_tabs)?.apply {
+            actionView?.setOnClickListener { (activity as? MainActivity)?.showRssTabs() }
+        }
+        updateTabsCount((activity as? MainActivity)?.rssTabs?.tabs?.size ?: 0)
         upGroupsMenu()
+    }
+
+    private fun updateTabsCount(count: Int) {
+        tabsMenuItem?.title = getString(R.string.rss_web_tabs_count, count)
+        tabsMenuItem?.actionView?.let { view ->
+            val action = ActionRssWebTabsBinding.bind(view)
+            view.contentDescription = getString(R.string.rss_web_tabs_count, count)
+            action.webTabsIcon.setColorFilter(primaryTextColor)
+            action.webTabsCount.isHideOnNull = false
+            action.webTabsCount.setBadgeCount(count)
+        }
     }
 
     override fun onCompatOptionsItemSelected(item: MenuItem) {
         super.onCompatOptionsItemSelected(item)
         when (item.itemId) {
+            R.id.menu_rss_tabs -> (activity as? MainActivity)?.showRssTabs()
             R.id.menu_rss_config -> startActivity<RssSourceActivity>()
             R.id.menu_rss_star -> startActivity<RssFavoritesActivity>()
             else -> if (item.groupId == R.id.menu_group_text) {
@@ -96,6 +117,11 @@ class RssFragment() : VMBaseFragment<RssViewModel>(R.layout.fragment_rss),
     override fun onPause() {
         super.onPause()
         searchView.clearFocus()
+    }
+
+    override fun onDestroyView() {
+        tabsMenuItem = null
+        super.onDestroyView()
     }
 
     private fun upGroupsMenu() = groupsMenu?.transaction { subMenu ->
@@ -176,12 +202,12 @@ class RssFragment() : VMBaseFragment<RssViewModel>(R.layout.fragment_rss),
 
     override fun openRss(rssSource: RssSource) {
         if (rssSource.singleUrl) {
+            val host = activity as? MainActivity ?: return
+            if (host.rssTabs.resume(rssSource.sourceUrl)) return
             viewModel.getSingleUrl(rssSource) { url ->
+                if (!isAdded || host.isFinishing || host.isDestroyed) return@getSingleUrl
                 if (url.startsWith("http", true)) {
-                    startActivity<ReadRssActivity> {
-                        putExtra("title", rssSource.sourceName)
-                        putExtra("origin", url)
-                    }
+                    host.rssTabs.open(rssSource.sourceUrl, rssSource.sourceName, url)
                 } else {
                     context?.openUrl(url)
                 }

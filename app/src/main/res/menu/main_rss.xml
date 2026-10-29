@@ -2,6 +2,12 @@
 <menu xmlns:tools="http://schemas.android.com/tools"
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto">
+    <item
+        android:id="@+id/menu_rss_tabs"
+        android:title="@string/rss_web_tabs"
+        android:icon="@drawable/ic_web_tabs"
+        app:actionLayout="@layout/action_rss_web_tabs"
+        app:showAsAction="always" />
 
     <item
         android:id="@+id/menu_rss_star"

@@ -2,6 +2,23 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto">
     <item
+        android:id="@+id/menu_rss_minimize"
+        android:title="@string/rss_minimize"
+        android:icon="@drawable/ic_minimize"
+        android:visible="false"
+        app:showAsAction="always" />
+    <item
+        android:id="@+id/menu_rss_tabs"
+        android:title="@string/rss_web_tabs"
+        android:icon="@drawable/ic_web_tabs"
+        android:visible="false"
+        app:showAsAction="always" />
+    <item
+        android:id="@+id/menu_rss_close_tab"
+        android:title="@string/rss_close_tab"
+        android:visible="false"
+        app:showAsAction="never" />
+    <item
         android:id="@+id/menu_rss_refresh"
         android:title="@string/refresh"
         android:icon="@drawable/ic_refresh_black_24dp"

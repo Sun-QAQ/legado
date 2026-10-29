@@ -42,18 +42,27 @@ class ReadRssViewModel(application: Application) : BaseViewModel(application) {
     val upStarMenuData = MutableLiveData<Boolean>()
     var headerMap: Map<String, String> = emptyMap()
 
-    fun initData(intent: Intent) {
+    fun initData(intent: Intent, loadPage: Boolean = true) {
         execute {
-            val origin = intent.getStringExtra("origin") ?: return@execute
+            val origin = intent.getStringExtra("sourceKey")
+                ?: intent.getStringExtra("origin") ?: return@execute
+            val pageUrl = intent.getStringExtra("origin") ?: origin
             val link = intent.getStringExtra("link")
             rssSource = appDb.rssSourceDao.getByKey(origin)
             headerMap = runScriptWithContext {
-                rssSource?.getHeaderMap() ?: emptyMap()
+                if (loadPage) {
+                    rssSource?.getHeaderMap() ?: emptyMap()
+                } else {
+                    val defaultUserAgent = WebSettings.getDefaultUserAgent(context)
+                    rssSource?.getHeaderMap(hasLoginHeader = false, defaultUserAgent = defaultUserAgent)
+                        ?: mapOf(AppConst.UA_NAME to defaultUserAgent)
+                }
             }
             if (link != null) {
                 rssStar = appDb.rssStarDao.get(origin, link)
                 rssArticle = rssStar?.toRssArticle() ?: appDb.rssArticleDao.get(origin, link)
                 val rssArticle = rssArticle ?: return@execute
+                if (!loadPage) return@execute
                 if (!rssArticle.description.isNullOrBlank()) {
                     contentLiveData.postValue(rssArticle.description!!)
                 } else {
@@ -67,14 +76,16 @@ class ReadRssViewModel(application: Application) : BaseViewModel(application) {
                     } ?: loadUrl(rssArticle.link, rssArticle.origin)
                 }
             } else {
+                if (!loadPage) return@execute
                 val ruleContent = rssSource?.ruleContent
                 if (ruleContent.isNullOrBlank()) {
-                    loadUrl(origin, origin)
+                    loadUrl(pageUrl, origin)
                 } else {
                     val rssArticle = RssArticle()
                     rssArticle.origin = origin
-                    rssArticle.link = origin
+                    rssArticle.link = pageUrl
                     rssArticle.title = rssSource!!.sourceName
+                    this@ReadRssViewModel.rssArticle = rssArticle
                     loadContent(rssArticle, ruleContent)
                 }
             }

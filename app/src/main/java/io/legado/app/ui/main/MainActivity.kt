@@ -10,6 +10,7 @@ import android.view.ViewGroup
 import androidx.activity.addCallback
 import androidx.activity.viewModels
 import androidx.core.view.get
+import androidx.core.view.isVisible
 import androidx.core.view.postDelayed
 import androidx.core.view.updateLayoutParams
 import androidx.fragment.app.Fragment
@@ -45,6 +46,9 @@ import io.legado.app.ui.main.bookshelf.style2.BookshelfFragment2
 import io.legado.app.ui.main.explore.ExploreFragment
 import io.legado.app.ui.main.my.MyFragment
 import io.legado.app.ui.main.rss.RssFragment
+import io.legado.app.ui.rss.read.ReadRssFragment
+import io.legado.app.ui.rss.read.RssTabManager
+import io.legado.app.ui.rss.read.RssTabsDialog
 import io.legado.app.ui.widget.dialog.TextDialog
 import io.legado.app.ui.widget.text.BadgeView
 import io.legado.app.utils.isCreated
@@ -68,7 +72,7 @@ import kotlin.coroutines.resume
 @Suppress("PrivatePropertyName")
 class MainActivity : VMBaseActivity<ActivityMainBinding, MainViewModel>(),
     BottomNavigationView.OnNavigationItemSelectedListener,
-    BottomNavigationView.OnNavigationItemReselectedListener {
+    BottomNavigationView.OnNavigationItemReselectedListener, ReadRssFragment.TabHost {
 
     override val binding by viewBinding(ActivityMainBinding::inflate)
     override val viewModel by viewModels<MainViewModel>()
@@ -92,12 +96,34 @@ class MainActivity : VMBaseActivity<ActivityMainBinding, MainViewModel>(),
     }
     private var onUpBooksBadgeView: BadgeView? = null
     private var startupReady = false
+    val rssTabs by lazy {
+        RssTabManager(this, binding.rssTabContainer) { visible ->
+            binding.bottomNavigationContainer.isVisible = !visible
+        }
+    }
+
+    override fun minimizeRssTab() = rssTabs.minimize()
+
+    override fun closeRssTab(sourceKey: String) = rssTabs.close(sourceKey)
+
+    override fun showRssTabs() {
+        if (!supportFragmentManager.isStateSaved &&
+            supportFragmentManager.findFragmentByTag("rss_tabs_dialog") == null
+        ) {
+            RssTabsDialog().show(supportFragmentManager, "rss_tabs_dialog")
+        }
+    }
 
     override fun onActivityCreated(savedInstanceState: Bundle?) {
         upBottomMenu()
         initView()
         upHomePage()
+        rssTabs.restore(savedInstanceState)
         onBackPressedDispatcher.addCallback(this) {
+            rssTabs.activeTab?.let {
+                it.back()
+                return@addCallback
+            }
             if (pagePosition != 0) {
                 binding.viewPagerMain.currentItem = 0
                 return@addCallback
@@ -341,6 +367,7 @@ class MainActivity : VMBaseActivity<ActivityMainBinding, MainViewModel>(),
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
+        rssTabs.saveState(outState)
         super.onSaveInstanceState(outState)
         if (AppConfig.autoRefreshBook) {
             outState.putBoolean("isAutoRefreshedBook", true)

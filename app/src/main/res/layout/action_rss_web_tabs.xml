@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="48dp"
+    android:layout_height="48dp"
+    android:background="?attr/selectableItemBackgroundBorderless"
+    android:contentDescription="@string/rss_web_tabs"
+    android:focusable="true"
+    android:clickable="true">
+
+    <ImageView
+        android:id="@+id/web_tabs_icon"
+        android:layout_width="24dp"
+        android:layout_height="24dp"
+        android:layout_gravity="center"
+        android:importantForAccessibility="no"
+        android:src="@drawable/ic_web_tabs" />
+
+    <io.legado.app.ui.widget.text.BadgeView
+        android:id="@+id/web_tabs_count"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top|end"
+        android:layout_marginTop="3dp"
+        android:layout_marginEnd="2dp"
+        android:importantForAccessibility="no" />
+</FrameLayout>

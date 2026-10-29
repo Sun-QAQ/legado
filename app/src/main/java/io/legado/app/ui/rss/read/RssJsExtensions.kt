@@ -7,18 +7,18 @@ import io.legado.app.ui.book.search.SearchActivity
 import io.legado.app.utils.showDialogFragment
 
 @Suppress("unused")
-class RssJsExtensions(private val activity: ReadRssActivity) : JsExtensions {
+class RssJsExtensions(private val fragment: ReadRssFragment) : JsExtensions {
 
     override fun getSource(): BaseSource? {
-        return activity.getSource()
+        return fragment.getSource()
     }
 
     fun searchBook(key: String) {
-        SearchActivity.start(activity, key)
+        SearchActivity.start(fragment.requireContext(), key)
     }
 
     fun addBook(bookUrl: String) {
-        activity.showDialogFragment(AddToBookshelfDialog(bookUrl))
+        fragment.showDialogFragment(AddToBookshelfDialog(bookUrl))
     }
 
 }
