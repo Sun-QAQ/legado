@@ -11,9 +11,15 @@ import io.legado.app.R
 import io.legado.app.databinding.ItemRssWebTabBinding
 import io.legado.app.lib.theme.primaryTextColor
 import io.legado.app.ui.main.MainActivity
+import io.legado.app.utils.applyTint
 import io.legado.app.utils.dpToPx
 
 class RssTabsDialog : DialogFragment() {
+    override fun onStart() {
+        super.onStart()
+        (dialog as? AlertDialog)?.applyTint()
+    }
+
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
         val host = requireActivity() as MainActivity
         val rows = LinearLayout(requireContext()).apply { orientation = LinearLayout.VERTICAL }
