@@ -13,6 +13,10 @@ class RssTabManager(
     private val container: FrameLayout,
     private val onVisibilityChanged: (Boolean) -> Unit = {}
 ) {
+    private companion object {
+        const val MAX_TABS = 5
+    }
+
     private val fragments get() = activity.supportFragmentManager
     val tabs: List<ReadRssFragment>
         get() = fragments.fragments.filterIsInstance<ReadRssFragment>()
@@ -23,6 +27,8 @@ class RssTabManager(
 
     fun restore(state: Bundle?) {
         val activeKey = state?.getString("activeRssTab")
+        // 兼容旧版本保存的标签，FragmentManager 的添加顺序即首次打开顺序。
+        trimTo(MAX_TABS)
         select(tabs.firstOrNull { it.sourceKey == activeKey })
     }
 
@@ -40,6 +46,7 @@ class RssTabManager(
     fun open(sourceKey: String, title: String, url: String) {
         if (fragments.isStateSaved || activity.isFinishing) return
         if (resume(sourceKey)) return
+        trimTo(MAX_TABS - 1)
         val tab = ReadRssFragment().apply {
             arguments = Bundle().apply {
                 putString("tabSource", sourceKey)
@@ -64,6 +71,10 @@ class RssTabManager(
         if (activeTab == tab) select(null)
         fragments.beginTransaction().remove(tab).commitNow()
         count.value = tabs.size
+    }
+
+    private fun trimTo(limit: Int) {
+        tabs.dropLast(limit).forEach { close(it.sourceKey!!) }
     }
 
     private fun select(selected: ReadRssFragment?) {

@@ -1,9 +1,11 @@
 package io.legado.app.ui.rss.read
 
+import android.os.Bundle
 import android.os.SystemClock
 import android.view.View
 import android.webkit.WebView
 import androidx.test.core.app.ActivityScenario
+import androidx.lifecycle.Lifecycle
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import fi.iki.elonen.NanoHTTPD
@@ -96,6 +98,97 @@ class RssWebTabsFeatureTest {
                 it.rssTabs.close("tab-two")
                 assertEquals(0, it.rssTabs.tabs.size)
                 assertNull(it.rssTabs.activeTab)
+            }
+        }
+    }
+
+    @Test fun sixthTabClosesOldestEvenAfterRevisitingIt() {
+        ActivityScenario.launch(MainActivity::class.java).use { scenario ->
+            lateinit var oldest: ReadRssFragment
+            for (index in 1..5) {
+                scenario.onActivity {
+                    it.rssTabs.open("tab-$index", "Page $index", "$url?$index")
+                    if (index == 1) oldest = it.rssTabs.activeTab!!
+                    assertEquals(index, it.rssTabs.tabs.size)
+                }
+                awaitPage(scenario, "Test page")
+            }
+            scenario.onActivity {
+                // 已有标签的复用不触发淘汰，也不改变首次打开的顺序。
+                it.rssTabs.open("tab-1", "Revisited", "$url?changed")
+                assertSame(oldest, it.rssTabs.activeTab)
+                assertEquals((1..5).map { index -> "tab-$index" },
+                    it.rssTabs.tabs.map { tab -> tab.sourceKey })
+                it.rssTabs.open("tab-6", "Page 6", "$url?6")
+                assertNull(oldest.view)
+                assertEquals((2..6).map { index -> "tab-$index" },
+                    it.rssTabs.tabs.map { tab -> tab.sourceKey })
+                assertEquals(5, it.rssTabs.count.value)
+                assertEquals("tab-6", it.rssTabs.activeTab?.sourceKey)
+            }
+            awaitPage(scenario, "Test page")
+            scenario.onActivity {
+                it.rssTabs.open("tab-7", "Page 7", "$url?7")
+                assertEquals((3..7).map { index -> "tab-$index" },
+                    it.rssTabs.tabs.map { tab -> tab.sourceKey })
+                assertEquals(5, it.rssTabs.count.value)
+                assertEquals("tab-7", it.rssTabs.activeTab?.sourceKey)
+            }
+        }
+    }
+
+    @Test fun recreationKeepsOpeningOrderForOldestTabEviction() {
+        ActivityScenario.launch(MainActivity::class.java).use { scenario ->
+            for (index in 1..5) {
+                scenario.onActivity { it.rssTabs.open("tab-$index", "Page $index", "$url?$index") }
+                awaitPage(scenario, "Test page")
+            }
+            scenario.onActivity { it.rssTabs.resume("tab-1") }
+            scenario.recreate()
+            awaitPage(scenario, "Test page")
+            scenario.onActivity {
+                val oldest = it.rssTabs.activeTab!!
+                assertEquals("tab-1", oldest.sourceKey)
+                it.rssTabs.open("tab-6", "Page 6", "$url?6")
+                assertNull(oldest.view)
+                assertEquals((2..6).map { index -> "tab-$index" },
+                    it.rssTabs.tabs.map { tab -> tab.sourceKey })
+                assertEquals("tab-6", it.rssTabs.activeTab?.sourceKey)
+                assertEquals(View.VISIBLE, it.findViewById<View>(R.id.rss_tab_container).visibility)
+            }
+        }
+    }
+
+    @Test fun restoringLegacySessionKeepsOnlyNewestFiveTabs() {
+        ActivityScenario.launch(MainActivity::class.java).use { scenario ->
+            for (index in 1..5) {
+                scenario.onActivity { it.rssTabs.open("tab-$index", "Page $index", "$url?$index") }
+                awaitPage(scenario, "Test page")
+            }
+            scenario.onActivity {
+                // 模拟旧版未限制数量时保存的第六个标签。
+                val legacy = ReadRssFragment().apply {
+                    arguments = Bundle().apply {
+                        putString("tabSource", "tab-6")
+                        putString("sourceKey", "tab-6")
+                        putString("origin", "$url?6")
+                        putString("title", "Page 6")
+                    }
+                }
+                it.supportFragmentManager.beginTransaction()
+                    .add(R.id.rss_tab_container, legacy, "rss_tab:tab-6")
+                    .hide(legacy)
+                    .setMaxLifecycle(legacy, Lifecycle.State.STARTED)
+                    .commitNow()
+                assertEquals(6, it.rssTabs.tabs.size)
+            }
+            scenario.recreate()
+            awaitPage(scenario, "Test page")
+            scenario.onActivity {
+                assertEquals((2..6).map { index -> "tab-$index" },
+                    it.rssTabs.tabs.map { tab -> tab.sourceKey })
+                assertEquals(5, it.rssTabs.count.value)
+                assertEquals("tab-5", it.rssTabs.activeTab?.sourceKey)
             }
         }
     }
