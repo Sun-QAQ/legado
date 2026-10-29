@@ -175,6 +175,7 @@ internal object ComfyUiImageGenerationHelper {
         text
     }
 
-    private val PLACEHOLDER = Regex("\\{\\{(?:prompt|width|height|seed)}}")
+    // Android 使用 ICU 正则引擎，左右花括号都必须转义为字面量。
+    private val PLACEHOLDER = Regex("\\{\\{(?:prompt|width|height|seed)\\}\\}")
     private val JSON_MEDIA_TYPE = "application/json; charset=utf-8".toMediaType()
 }
