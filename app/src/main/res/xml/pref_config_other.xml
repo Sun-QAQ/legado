@@ -65,6 +65,28 @@
         app:iconSpaceReserved="false"
         app:layout="@layout/view_preference_category">
 
+        <io.legado.app.lib.prefs.SwitchPreference
+            android:key="voiceAssistantEnabled"
+            android:defaultValue="false"
+            android:title="@string/voice_assistant"
+            android:summary="@string/voice_assistant_summary"
+            app:iconSpaceReserved="false" />
+
+        <io.legado.app.lib.prefs.Preference
+            android:key="voiceAssistantListen"
+            android:dependency="voiceAssistantEnabled"
+            android:persistent="false"
+            android:title="@string/voice_assistant_listen"
+            android:summary="@string/voice_assistant_commands"
+            app:iconSpaceReserved="false" />
+
+        <io.legado.app.lib.prefs.SwitchPreference
+            android:key="voiceAssistantAiEnabled"
+            android:defaultValue="false"
+            android:title="@string/voice_assistant_ai"
+            android:summary="@string/voice_assistant_ai_summary"
+            app:iconSpaceReserved="false" />
+
         <io.legado.app.lib.prefs.Preference
             android:key="localPassword"
             android:summary="@string/set_local_password_summary"

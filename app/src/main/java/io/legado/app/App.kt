@@ -83,6 +83,7 @@ class App : Application() {
         oldConfig = Configuration(resources.configuration)
         applyDayNightInit(this)
         registerActivityLifecycleCallbacks(LifecycleHelp)
+        io.legado.app.help.voice.VoiceAssistant.install(this)
         defaultSharedPreferences.registerOnSharedPreferenceChangeListener(AppConfig)
         //必须在主线程同步配置,否则配置完成前发布的事件会被默认 autoClear 丢弃
         LiveEventBus.config()

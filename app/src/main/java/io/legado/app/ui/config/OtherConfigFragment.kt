@@ -1,12 +1,16 @@
 package io.legado.app.ui.config
 
 import android.annotation.SuppressLint
+import android.Manifest
 import android.content.ComponentName
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.view.View
 import androidx.core.view.postDelayed
+import androidx.core.content.ContextCompat
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.preference.SwitchPreferenceCompat
 import androidx.fragment.app.activityViewModels
 import androidx.preference.ListPreference
 import androidx.preference.Preference
@@ -17,6 +21,7 @@ import io.legado.app.constant.PreferKey
 import io.legado.app.databinding.DialogEditTextBinding
 import io.legado.app.help.AppFreezeMonitor
 import io.legado.app.help.DispatchersMonitor
+import io.legado.app.help.voice.VoiceAssistant
 import io.legado.app.help.config.AppConfig
 import io.legado.app.help.config.LocalConfig
 import io.legado.app.help.config.ReadBookConfig
@@ -46,6 +51,10 @@ class OtherConfigFragment : PreferenceFragment(),
     SharedPreferences.OnSharedPreferenceChangeListener {
 
     private val viewModel by activityViewModels<ConfigViewModel>()
+    private val voicePermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        findPreference<SwitchPreferenceCompat>(VoiceAssistant.ENABLED)?.isChecked = granted
+        if (!granted) appCtx.toastOnUi(R.string.voice_assistant_permission)
+    }
     private val packageManager = appCtx.packageManager
     private val componentName = ComponentName(
         appCtx,
@@ -60,6 +69,13 @@ class OtherConfigFragment : PreferenceFragment(),
     override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
         putPrefBoolean(PreferKey.processText, isProcessTextEnabled())
         addPreferencesFromResource(R.xml.pref_config_other)
+        findPreference<SwitchPreferenceCompat>(VoiceAssistant.ENABLED)?.setOnPreferenceChangeListener { _, value ->
+            if (value == true && ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.RECORD_AUDIO) !=
+                PackageManager.PERMISSION_GRANTED) {
+                voicePermission.launch(Manifest.permission.RECORD_AUDIO)
+                false
+            } else true
+        }
         upPreferenceSummary(PreferKey.userAgent, AppConfig.userAgent)
         upPreferenceSummary(PreferKey.preDownloadNum, AppConfig.preDownloadNum.toString())
         upPreferenceSummary(PreferKey.threadCount, AppConfig.threadCount.toString())
@@ -86,6 +102,7 @@ class OtherConfigFragment : PreferenceFragment(),
 
     override fun onPreferenceTreeClick(preference: Preference): Boolean {
         when (preference.key) {
+            "voiceAssistantListen" -> { VoiceAssistant.listenNow(); return true }
             PreferKey.userAgent -> showUserAgentDialog()
             PreferKey.defaultBookTreeUri -> localBookTreeSelect.launch {
                 title = getString(R.string.select_book_folder)

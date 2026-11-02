@@ -96,6 +96,19 @@ class MainActivity : VMBaseActivity<ActivityMainBinding, MainViewModel>(),
     }
     private var onUpBooksBadgeView: BadgeView? = null
     private var startupReady = false
+    val voiceAssistantReady: Boolean get() = startupReady
+
+    fun navigateByVoice(discovery: Boolean): Boolean {
+        if (!startupReady || (discovery && !AppConfig.showDiscovery)) return false
+        rssTabs.minimize()
+        binding.viewPagerMain.setCurrentItem(
+            if (discovery) realPositions.take(bottomMenuCount).indexOf(idExplore) else 0, false
+        )
+        return true
+    }
+
+    fun voiceBookshelf(): BaseBookshelfFragment? =
+        (fragmentMap[getFragmentId(0)] as? BaseBookshelfFragment)?.takeIf { it.view != null }
     val rssTabs by lazy {
         RssTabManager(this, binding.rssTabContainer) { visible ->
             binding.bottomNavigationContainer.isVisible = !visible
@@ -166,6 +179,7 @@ class MainActivity : VMBaseActivity<ActivityMainBinding, MainViewModel>(),
             //设置本地密码
             setLocalPassword()
             startupReady = true
+            io.legado.app.help.voice.VoiceAssistant.refresh()
             AnnualReadReportPrompt.showIfNeeded(this@MainActivity)
             notifyAppCrash()
             //备份同步

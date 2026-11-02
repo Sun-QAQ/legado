@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="voice_assistant">语音助手</string>
+    <string name="voice_assistant_summary">开启后，在 App 前台说“你好小悦”唤醒，再说出请求。唤醒和语音识别均离线运行，音频不保存、不上传；后台或锁屏时暂停。内置“我在听”等提示，缺少离线中文语音时使用简短语音和文字反馈。</string>
+    <string name="voice_assistant_listen">立即说话</string>
+    <string name="voice_assistant_commands">支持打开书名、打开发现、返回书架、切换到漫画分组、打开第4本书、上一页、下一页、开启或关闭眼动翻页。序号按当前分组显示的书籍顺序计算，不包含分组文件夹。</string>
+    <string name="voice_assistant_permission">语音助手需要麦克风权限，请允许后重新开启</string>
+    <string name="voice_assistant_ai">使用 AI 理解复杂指令</string>
+    <string name="voice_assistant_ai_summary">可选，需联网并配置 AI 供应商。仅在本地无法匹配时，将识别文字及最多100本书的书名、作者、阅读时间和分组名发给当前供应商；不上传音频。关闭时基础操作仍可离线使用。</string>
+</resources>

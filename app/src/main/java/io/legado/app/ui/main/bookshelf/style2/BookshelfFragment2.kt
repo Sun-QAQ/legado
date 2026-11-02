@@ -123,6 +123,13 @@ class BookshelfFragment2() : BaseBookshelfFragment(R.layout.fragment_bookshelf2)
         initBooksData()
     }
 
+    override fun selectVoiceGroup(groupId: Long): Boolean {
+        if (bookGroups.none { it.groupId == groupId }) return false
+        this.groupId = groupId
+        initBooksData()
+        return true
+    }
+
     private fun initBooksData() {
         if (groupId == BookGroup.IdRoot) {
             if (isAdded) {

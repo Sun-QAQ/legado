@@ -1033,6 +1033,38 @@ class ReadBookActivity : BaseReadBookActivity(),
         binding.readView.pageDelegate?.keyTurnPage(direction)
     }
 
+    suspend fun turnPageByVoice(next: Boolean): String {
+        if (!readerResumed || !window.decorView.hasWindowFocus() || menuLayoutIsVisible ||
+            eyePageTurner?.isCalibrating == true || binding.readView.pageDelegate == null) {
+            return "请先关闭菜单或完成校准，再翻页"
+        }
+        val chapter = ReadBook.durChapterIndex
+        val page = ReadBook.durPageIndex
+        keyPage(if (next) PageDirection.NEXT else PageDirection.PREV)
+        repeat(20) {
+            kotlinx.coroutines.delay(75)
+            if (chapter != ReadBook.durChapterIndex || page != ReadBook.durPageIndex) {
+                return if (next) "已翻到下一页" else "已翻到上一页"
+            }
+        }
+        return "暂未翻页，可能已到边界或章节仍在加载"
+    }
+
+    fun setEyePageByVoice(enabled: Boolean): String {
+        if (enabled == eyePageTurnEnabled) {
+            return if (enabled) "眼动翻页已经开启" else "眼动翻页已经关闭"
+        }
+        if (!enabled) {
+            setEyePageTurnEnabled(false)
+            return "已关闭眼动翻页"
+        }
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) return getString(R.string.eye_page_unsupported)
+        toggleEyePageTurn()
+        return if (!eyePageTurnEnabled) "请按屏幕提示完成眼动翻页设置" else if (
+            eyePageTurner?.isCalibrating == true
+        ) "请按屏幕提示完成眼动校准" else "已开启眼动翻页"
+    }
+
     private fun toggleEyePageTurn() {
         if (eyePageTurnEnabled) {
             setEyePageTurnEnabled(false)

@@ -77,6 +77,9 @@ abstract class BaseBookshelfFragment(layoutId: Int) : VMBaseFragment<BookshelfVi
     }
     abstract val groupId: Long
     abstract val books: List<Book>
+
+    /** Select only groups already exposed by this bookshelf layout. */
+    abstract fun selectVoiceGroup(groupId: Long): Boolean
     private var groupsLiveData: LiveData<List<BookGroup>>? = null
     private val waitDialog by lazy {
         WaitDialog(requireContext()).apply {

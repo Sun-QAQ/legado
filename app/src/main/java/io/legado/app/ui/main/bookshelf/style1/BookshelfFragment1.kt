@@ -65,6 +65,13 @@ class BookshelfFragment1() : BaseBookshelfFragment(R.layout.fragment_bookshelf1)
     private val selectedGroup: BookGroup?
         get() = bookGroups.getOrNull(tabLayout.selectedTabPosition)
 
+    override fun selectVoiceGroup(groupId: Long): Boolean {
+        val index = bookGroups.indexOfFirst { it.groupId == groupId }
+        if (index < 0) return false
+        binding.viewPagerBookshelf.setCurrentItem(index, false)
+        return true
+    }
+
     private fun initView() {
         tabLayout.isTabIndicatorFullWidth = false
         tabLayout.tabMode = TabLayout.MODE_SCROLLABLE
