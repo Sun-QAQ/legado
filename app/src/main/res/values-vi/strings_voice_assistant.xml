@@ -6,5 +6,8 @@
     <string name="voice_assistant_commands">Lệnh tiếng Trung: 打开遮天 (mở sách), 打开发现 (khám phá), 返回书架 (giá sách), 切换到漫画分组 (đổi nhóm), 打开第4本书 (mở sách thứ 4), 上一页 / 下一页 (trang trước / sau), 开启 / 关闭眼动翻页 (lật trang bằng mắt). Số thứ tự theo nhóm đang hiển thị, không tính thư mục nhóm.</string>
     <string name="voice_assistant_permission">Trợ lý cần quyền truy cập micrô. Hãy cấp quyền rồi bật lại.</string>
     <string name="voice_assistant_ai">Dùng AI để hiểu yêu cầu phức tạp</string>
-    <string name="voice_assistant_ai_summary">Tùy chọn, cần mạng và nhà cung cấp AI đã cấu hình. Chỉ khi không khớp lệnh cục bộ, văn bản nhận dạng cùng tên, tác giả, thời gian đọc của tối đa 100 sách và tên nhóm được gửi đến nhà cung cấp đã chọn. Không tải âm thanh lên. Các lệnh cơ bản vẫn dùng ngoại tuyến khi tắt tùy chọn này.</string>
+    <string name="voice_assistant_ai_summary">Tùy chọn, cần mạng. Dùng tác giả, sách đọc gần đây và trang hiện tại để lập tối đa 4 bước. Yêu cầu lựa chọn nếu chưa rõ. Gửi văn bản nhận dạng, trang và sách hiện tại, tên, tác giả, thời gian đọc của tối đa 100 sách và tối đa 50 nhóm. Không gửi âm thanh, nội dung sách hoặc URL nguồn. Các lệnh cơ bản vẫn dùng ngoại tuyến.</string>
+    <string name="voice_assistant_ai_model">Mô hình AI cho trợ lý</string>
+    <string name="voice_assistant_ai_follow">Theo nhà cung cấp AI hiện tại</string>
+    <string name="voice_assistant_ai_configure">Hãy cấu hình nhà cung cấp và mô hình AI trước</string>
 </resources>

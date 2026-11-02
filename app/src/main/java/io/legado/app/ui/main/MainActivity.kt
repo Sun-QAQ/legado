@@ -98,6 +98,12 @@ class MainActivity : VMBaseActivity<ActivityMainBinding, MainViewModel>(),
     private var startupReady = false
     val voiceAssistantReady: Boolean get() = startupReady
 
+    fun voicePageName(): String = when (getFragmentId(binding.viewPagerMain.currentItem)) {
+        idBookshelf1, idBookshelf2 -> "bookshelf"
+        idExplore -> "discovery"
+        else -> "other"
+    }
+
     fun navigateByVoice(discovery: Boolean): Boolean {
         if (!startupReady || (discovery && !AppConfig.showDiscovery)) return false
         rssTabs.minimize()

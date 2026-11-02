@@ -6,5 +6,8 @@
     <string name="voice_assistant_commands">Comandos em chinês: 打开遮天 (abrir livro), 打开发现 (descobrir), 返回书架 (estante), 切换到漫画分组 (mudar grupo), 打开第4本书 (abrir o quarto livro), 上一页 / 下一页 (página anterior / seguinte), 开启 / 关闭眼动翻页 (controle ocular). A numeração segue a ordem do grupo e exclui pastas.</string>
     <string name="voice_assistant_permission">O assistente precisa de permissão para o microfone. Permita o acesso e ative novamente.</string>
     <string name="voice_assistant_ai">Usar IA para entender pedidos complexos</string>
-    <string name="voice_assistant_ai_summary">Opcional. Requer Internet e um provedor de IA configurado. Se a correspondência local falhar, o texto reconhecido, nomes, autores e horários de leitura de até 100 livros, além dos nomes dos grupos, são enviados ao provedor selecionado. O áudio nunca é enviado. Os comandos básicos funcionam offline com esta opção desativada.</string>
+    <string name="voice_assistant_ai_summary">Opcional, requer Internet. Usa autores, leituras recentes e a página atual para planejar até 4 etapas. Pede uma escolha em caso de dúvida. Envia o texto reconhecido, a página e o livro atuais, nomes, autores e horários de leitura de até 100 livros e até 50 grupos. Não envia áudio, conteúdo ou URLs de fontes. Os comandos básicos continuam disponíveis offline.</string>
+    <string name="voice_assistant_ai_model">Modelo de IA do assistente</string>
+    <string name="voice_assistant_ai_follow">Usar o provedor de IA atual</string>
+    <string name="voice_assistant_ai_configure">Configure primeiro um provedor e um modelo de IA</string>
 </resources>

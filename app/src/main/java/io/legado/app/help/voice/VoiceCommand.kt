@@ -6,6 +6,7 @@ sealed interface VoiceCommand {
     data class OpenShelfBook(val bookUrl: String) : VoiceCommand
     data class OpenOrdinal(val number: Int) : VoiceCommand
     data class SwitchGroup(val name: String) : VoiceCommand
+    data class SwitchShelfGroup(val groupId: Long) : VoiceCommand
     data class OpenPage(val discovery: Boolean) : VoiceCommand
     data class TurnPage(val next: Boolean) : VoiceCommand
     data class EyePage(val enabled: Boolean) : VoiceCommand
@@ -27,6 +28,8 @@ object VoiceCommandParser {
             if (value.startsWith(prefix)) { value = value.removePrefix(prefix); break }
         }
         value = value.removeSuffix("谢谢").removeSuffix("一下")
+        // Compound requests and references need context; do not consume them as literal titles.
+        if (Regex("然后|接着|[再并](?:打开|开启|关闭|切换|翻|进入)|(?:上次|昨天|刚才|正在)(?:看|读)|这本|那本").containsMatchIn(value)) return null
         return when (value) {
             "取消", "算了", "停止监听", "退出助手" -> VoiceCommand.Cancel
             "下一页", "往后翻", "翻到下一页", "向后翻页", "翻页" -> VoiceCommand.TurnPage(true)

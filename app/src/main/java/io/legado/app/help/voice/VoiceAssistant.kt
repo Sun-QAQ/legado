@@ -15,11 +15,13 @@ import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
 import android.os.PowerManager
 import android.view.Gravity
+import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
 import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.TextView
+import android.widget.ScrollView
 import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
@@ -67,11 +69,12 @@ object VoiceAssistant : Application.ActivityLifecycleCallbacks,
     private var execution: Job? = null
     private var cleanup: Job? = null
     private var speaker: VoiceSpeaker? = null
-    private var overlay = WeakReference<LinearLayout>(null)
+    private var overlay = WeakReference<View>(null)
     private var status: String? = null
     private var statusView = WeakReference<TextView>(null)
-    private var renderedChoices = emptyList<Pair<String, VoiceCommand>>()
-    private var choices = emptyList<Pair<String, VoiceCommand>>()
+    private var renderedChoices = emptyList<VoicePlanChoice>()
+    private var choices = emptyList<VoicePlanChoice>()
+    private var interpreting = false
     private var pausedBookUrl: String? = null
     private var installed = false
     private var turnSerial = 0L
@@ -104,6 +107,9 @@ object VoiceAssistant : Application.ActivityLifecycleCallbacks,
     }
 
     override fun onSharedPreferenceChanged(sharedPreferences: SharedPreferences?, key: String?) {
+        if (interpreting && key in setOf(AI_ENABLED, VoiceAiInterpreter.SOURCE_ID, VoiceAiInterpreter.MODEL)) {
+            cancel()
+        }
         if (key == ENABLED) {
             if (appCtx.getPrefBoolean(ENABLED)) startSession() else stopAll()
         }
@@ -142,6 +148,7 @@ object VoiceAssistant : Application.ActivityLifecycleCallbacks,
 
     private fun stopAll() {
         turnSerial++
+        interpreting = false
         stopSession()
         execution?.cancel()
         execution = null
@@ -163,6 +170,7 @@ object VoiceAssistant : Application.ActivityLifecycleCallbacks,
 
     fun cancel() {
         turnSerial++
+        interpreting = false
         stopSession()
         execution?.cancel()
         execution = null
@@ -206,7 +214,7 @@ object VoiceAssistant : Application.ActivityLifecycleCallbacks,
                     }
                 }
                 if (!available() || activity !== current) return@launch
-                executeText(text)
+                acceptRecognizedText(text)
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Throwable) {
@@ -217,34 +225,31 @@ object VoiceAssistant : Application.ActivityLifecycleCallbacks,
         }
     }
 
-    private fun executeText(text: String, chosen: VoiceCommand? = null) {
+    internal fun acceptRecognizedText(text: String) {
+        if (!available() || execution?.isActive == true) return
+        stopSession()
+        executeText(text)
+    }
+
+    private fun executeText(text: String, chosen: List<VoiceCommand>? = null) {
         val serial = ++turnSerial
         execution = scope.launch {
             try {
                 show(if (text.isBlank()) "没有听清，请再说一次" else "正在处理：$text")
-                val pending = choices
-                var command = VoiceCommandParser.parse(text)
-                val selected = if (pending.isNotEmpty()) VoiceCommandParser.choice(text)?.minus(1) else null
-                var result = (chosen ?: selected?.let { pending.getOrNull(it)?.second })
-                    ?.let { VoiceActions.execute(it) }
-                if (result == null) {
-                    choices = emptyList()
-                    if (command == null && text.isNotBlank() && !VoiceCommandParser.isNegated(text) &&
-                        appCtx.getPrefBoolean(AI_ENABLED)) {
-                        command = VoiceAiInterpreter.interpret(text)
+                var outcome = if (chosen != null) executePlan(chosen) else resolveRequest(text)
+                repeat(3) { round ->
+                    choices = outcome.choices
+                    show(outcome.message)
+                    speak(outcome.message + if (choices.isEmpty()) "" else choices.mapIndexed { index, choice ->
+                        "第${index + 1}个，${choice.label.take(60)}"
+                    }.joinToString("。", prefix = "。"))
+                    if (choices.isEmpty() || !available()) return@launch
+                    if (round == 2) {
+                        choices = emptyList()
+                        show("请补充更完整的书名后重新唤醒")
+                        speak("请补充更完整的书名后重新唤醒")
+                        return@launch
                     }
-                    result = if (command != null) VoiceActions.execute(command) else VoiceActionResult(
-                        if (text.isBlank()) "没有听清，请唤醒后再说一次"
-                        else "暂不支持这句话。可以说打开书名、打开发现、切换分组或下一页"
-                    )
-                }
-                choices = result.choices
-                show(result.message)
-                speak(result.message + if (choices.isEmpty()) "" else choices.mapIndexed { index, pair ->
-                    "第${index + 1}个，${pair.first.take(60)}"
-                }.joinToString("。", prefix = "。"))
-                if (choices.isNotEmpty() && available()) {
-                    // One follow-up utterance, without requiring another wake word.
                     val job = coroutineContext[Job]!!
                     val names = shelfHotwords()
                     show("请说第几个，或点击选择")
@@ -254,20 +259,21 @@ object VoiceAssistant : Application.ActivityLifecycleCallbacks,
                         }
                     }
                     val number = VoiceCommandParser.choice(answer)
-                    val selectedCommand = number?.let { choices.getOrNull(it - 1)?.second }
-                    val picked = selectedCommand?.let { VoiceActions.execute(it) }
-                    show(picked?.message ?: "已取消选择，请重新唤醒")
-                    speak(picked?.message ?: "已取消选择")
+                    val selected = number?.let { choices.getOrNull(it - 1) }
+                    choices = emptyList()
+                    outcome = if (selected == null) VoicePlanOutcome("已取消选择，请重新唤醒")
+                        else executePlan(selected.commands)
                 }
-                delay(500)
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                show("操作未完成，请重试")
-                AppLog.put("语音指令执行失败", e)
-                speak("操作未完成，请重试")
+                val message = (e as? VoiceAiException)?.message ?: "操作未完成，请重试"
+                show(message)
+                if (e !is VoiceAiException) AppLog.put("语音指令执行失败", e)
+                speak(message)
             } finally {
                 if (serial == turnSerial) {
+                    interpreting = false
                     choices = emptyList()
                     finishTurn()
                     execution = null
@@ -275,6 +281,48 @@ object VoiceAssistant : Application.ActivityLifecycleCallbacks,
                     startSession()
                 }
             }
+        }
+    }
+
+    private suspend fun executePlan(commands: List<VoiceCommand>): VoicePlanOutcome =
+        VoicePlanRunner.run(commands, VoiceActions::execute) { index, total ->
+            show("正在执行第${index}步，共${total}步")
+        }
+
+    private suspend fun resolveRequest(text: String): VoicePlanOutcome {
+        if (text.isBlank()) return VoicePlanOutcome("没有听清，请唤醒后再说一次")
+        if (VoiceCommandParser.isNegated(text)) return VoicePlanOutcome("未执行被否定的操作，请重新说出需要的操作")
+        val local = VoiceCommandParser.parse(text)
+        if (local != null) {
+            val result = VoiceActions.execute(local)
+            // Literal-looking requests such as “打开辰东写的小说” may still need semantic matching.
+            if (result.status != VoiceActionStatus.FAILED || !appCtx.getPrefBoolean(AI_ENABLED) ||
+                (local !is VoiceCommand.OpenBook && local !is VoiceCommand.SwitchGroup)) {
+                return VoicePlanRunner.run(listOf(local), { result })
+            }
+        }
+        if (!appCtx.getPrefBoolean(AI_ENABLED)) return VoicePlanOutcome(
+            "暂不支持这句话。可在设置中开启 AI 理解复杂指令，或说打开书名、切换分组、下一页"
+        )
+        val origin = activity
+        val bookUrl = if (origin is ReadBookActivity) ReadBook.book?.bookUrl else null
+        val groupId = (origin as? MainActivity)?.voiceBookshelf()?.groupId
+        val page = (origin as? MainActivity)?.voicePageName()
+        val serial = turnSerial
+        interpreting = true
+        show("正在联网理解请求，可点击取消")
+        val decision = try { VoiceAiInterpreter.interpret(text) } finally {
+            if (serial == turnSerial) interpreting = false
+        }
+        if (!available() || origin !== activity ||
+            (origin is ReadBookActivity && bookUrl != ReadBook.book?.bookUrl) ||
+            (origin is MainActivity && (groupId != origin.voiceBookshelf()?.groupId || page != origin.voicePageName()))) {
+            return VoicePlanOutcome("页面已变化，请重新发起语音请求")
+        }
+        return when (decision) {
+            is VoiceAiDecision.Execute -> executePlan(decision.commands)
+            is VoiceAiDecision.Clarify -> VoicePlanOutcome("请确认：${decision.question}", decision.options)
+            is VoiceAiDecision.Unsupported -> VoicePlanOutcome("暂不能完成：${decision.message}")
         }
     }
 
@@ -335,9 +383,9 @@ object VoiceAssistant : Application.ActivityLifecycleCallbacks,
             accessibilityLiveRegion = android.view.View.ACCESSIBILITY_LIVE_REGION_POLITE
             statusView = WeakReference(this)
         })
-        choices.forEach { (label, command) ->
+        choices.forEach { choice ->
             card.addView(Button(current).apply {
-                this.text = label
+                this.text = choice.label
                 maxWidth = dp(260)
                 setOnClickListener {
                     turnSerial++
@@ -345,7 +393,7 @@ object VoiceAssistant : Application.ActivityLifecycleCallbacks,
                     execution?.cancel()
                     speaker?.close()
                     speaker = null
-                    executeText("", command)
+                    executeText("", choice.commands)
                 }
             })
         }
@@ -358,11 +406,12 @@ object VoiceAssistant : Application.ActivityLifecycleCallbacks,
         val bottomInset = ViewCompat.getRootWindowInsets(root)?.getInsets(
             WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.ime()
         )?.bottom ?: 0
-        root.addView(card, FrameLayout.LayoutParams(
+        val scroll = ScrollView(current).apply { addView(card) }
+        root.addView(scroll, FrameLayout.LayoutParams(
             ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT,
             Gravity.BOTTOM or Gravity.END
         ).apply { bottomMargin = dp(80) + bottomInset; marginEnd = dp(12) })
-        overlay = WeakReference(card)
+        overlay = WeakReference(scroll)
         renderedChoices = choices
     }
 

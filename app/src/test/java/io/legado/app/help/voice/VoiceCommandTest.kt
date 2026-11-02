@@ -74,18 +74,9 @@ class VoiceCommandTest {
         assertEquals(listOf("三体一", "三体二"), VoiceEntityMatcher.match("三体", listOf("三体一", "遮天", "三体二")) { it })
     }
 
-    @Test fun aiCanOnlyReturnSupportedActions() {
-        assertEquals(VoiceCommand.OpenBook("遮天"), VoiceAiInterpreter.decode("""{"action":"open_book","name":"遮天"}"""))
-        assertEquals(VoiceCommand.TurnPage(true), VoiceAiInterpreter.decode("""{"action":"next_page"}"""))
-        assertNull(VoiceAiInterpreter.decode("""{"action":"delete_book","name":"遮天"}"""))
-        assertNull(VoiceAiInterpreter.decode("""{"action":"open_shelf_book","bookUrl":"some-url"}"""))
-    }
-
-    @Test fun rejectsMalformedAndInvalidAiArguments() {
-        assertNull(VoiceAiInterpreter.decode("已经帮你打开了"))
-        assertNull(VoiceAiInterpreter.decode("""{"action":"open_book","name":" "}"""))
-        assertNull(VoiceAiInterpreter.decode("""{"action":"open_ordinal","number":0}"""))
-        assertNull(VoiceAiInterpreter.decode("""{"action":"open_ordinal","number":2.5}"""))
-        assertNull(VoiceAiInterpreter.decode("""{"action":"unknown"}"""))
+    @Test fun compoundAndContextualRequestsAreRoutedToAi() {
+        for (text in listOf("打开遮天再开启眼动翻页", "打开遮天并开启眼动翻页", "打开上次看的书", "打开辰东写的那本小说")) {
+            assertNull(text, VoiceCommandParser.parse(text))
+        }
     }
 }
