@@ -7,6 +7,10 @@ import android.os.Bundle
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
+import android.view.ViewGroup
+import androidx.core.widget.NestedScrollView
+import androidx.recyclerview.widget.RecyclerView
+import androidx.viewpager2.widget.ViewPager2
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.core.view.isVisible
@@ -39,9 +43,32 @@ class AnnualReadReportActivity : BaseActivity<ActivityAnnualReadReportBinding>()
     private var selectedYear = 0
     private var loading = false
     private var reportJob: Job? = null
+    internal val pages = mutableListOf<NestedScrollView>()
+    private var restoredPage = 0
+
+    private val pageCallback = object : ViewPager2.OnPageChangeCallback() {
+        override fun onPageSelected(position: Int) {
+            updateNavigation(position)
+        }
+    }
+
+    private fun updateNavigation(position: Int) {
+        binding.pageIndicator.text = getString(R.string.annual_report_page, position + 1, pages.size)
+        binding.previousPage.isEnabled = position > 0
+        binding.nextPage.isEnabled = position < pages.lastIndex
+    }
 
     override fun onActivityCreated(savedInstanceState: Bundle?) {
+        binding.pageNavigation.applyNavigationBarPadding()
         binding.scrollView.applyNavigationBarPadding()
+        restoredPage = savedInstanceState?.getInt("page") ?: 0
+        binding.reportPager.registerOnPageChangeCallback(pageCallback)
+        binding.previousPage.setOnClickListener {
+            binding.reportPager.currentItem = binding.reportPager.currentItem - 1
+        }
+        binding.nextPage.setOnClickListener {
+            binding.reportPager.currentItem = binding.reportPager.currentItem + 1
+        }
         selectedYear = savedInstanceState?.getInt("year") ?: intent.getIntExtra("year", 0)
         loadReport()
     }
@@ -62,6 +89,7 @@ class AnnualReadReportActivity : BaseActivity<ActivityAnnualReadReportBinding>()
             R.id.menu_report_year -> {
                 alert(R.string.annual_report_choose_year) {
                     items(years.map { getString(R.string.annual_report_year, it) }) { _, index ->
+                        restoredPage = 0
                         selectedYear = years[index]
                         loadReport()
                     }
@@ -85,6 +113,9 @@ class AnnualReadReportActivity : BaseActivity<ActivityAnnualReadReportBinding>()
             loading = true
             binding.progress.isVisible = true
             binding.content.removeAllViews()
+            binding.reportPager.isVisible = false
+            binding.scrollView.isVisible = false
+            binding.pageNavigation.isVisible = false
             invalidateOptionsMenu()
             try {
                 val today = LocalDate.now()
@@ -119,12 +150,18 @@ class AnnualReadReportActivity : BaseActivity<ActivityAnnualReadReportBinding>()
     }
 
     private fun showMessage(message: Int) {
+        binding.reportPager.isVisible = false
+        binding.pageNavigation.isVisible = false
+        binding.scrollView.isVisible = true
         binding.content.removeAllViews()
         addText(binding.content, getString(message), 17, palette.text)
     }
 
     internal fun renderReport(report: AnnualReadReport) {
+        binding.reportPager.adapter = null
+        pages.clear()
         binding.content.removeAllViews()
+        binding.scrollView.isVisible = false
         binding.titleBar.subtitle = getString(R.string.annual_report_year, report.year)
         val heroText = if (ColorUtils.isColorLight(palette.accent)) Color.BLACK else Color.WHITE
         card(palette.accent).apply {
@@ -204,7 +241,34 @@ class AnnualReadReportActivity : BaseActivity<ActivityAnnualReadReportBinding>()
                 }
             }
         }
-        addText(binding.content, getString(R.string.annual_report_data_note), 13, palette.secondaryText)
+        val lastPage = pages.last().getChildAt(0) as LinearLayout
+        addText(lastPage, getString(R.string.annual_report_data_note), 13, palette.secondaryText)
+        binding.reportPager.adapter = object : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
+            override fun getItemCount() = pages.size
+
+            override fun onCreateViewHolder(parent: ViewGroup, viewType: Int) =
+                object : RecyclerView.ViewHolder(android.widget.FrameLayout(parent.context).apply {
+                    layoutParams = ViewGroup.LayoutParams(-1, -1)
+                }) {}
+
+            override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
+                val container = holder.itemView as ViewGroup
+                container.removeAllViews()
+                val page = pages[position]
+                (page.parent as? ViewGroup)?.removeView(page)
+                container.addView(page, ViewGroup.LayoutParams(-1, -1))
+            }
+
+            override fun onViewRecycled(holder: RecyclerView.ViewHolder) {
+                (holder.itemView as ViewGroup).removeAllViews()
+            }
+        }
+        binding.reportPager.isVisible = true
+        binding.pageNavigation.isVisible = true
+        val page = restoredPage.coerceIn(0, pages.lastIndex)
+        binding.reportPager.setCurrentItem(page, false)
+        updateNavigation(page)
+        restoredPage = 0
     }
 
     private fun card(color: Int = palette.surface): LinearLayout =
@@ -212,8 +276,17 @@ class AnnualReadReportActivity : BaseActivity<ActivityAnnualReadReportBinding>()
             orientation = LinearLayout.VERTICAL
             setPadding(20.dpToPx(), 18.dpToPx(), 20.dpToPx(), 18.dpToPx())
             background = rounded(color, 22)
-            binding.content.addView(this, LinearLayout.LayoutParams(-1, -2).apply {
-                bottomMargin = 18.dpToPx()
+            val reportCard = this
+            val content = LinearLayout(this@AnnualReadReportActivity).apply {
+                orientation = LinearLayout.VERTICAL
+                gravity = android.view.Gravity.CENTER_VERTICAL
+                setPadding(20.dpToPx(), 20.dpToPx(), 20.dpToPx(), 20.dpToPx())
+                addView(reportCard, LinearLayout.LayoutParams(-1, -2))
+            }
+            pages.add(NestedScrollView(this@AnnualReadReportActivity).apply {
+                isFillViewport = true
+                clipToPadding = false
+                addView(content, ViewGroup.LayoutParams(-1, -2))
             })
         }
 
@@ -242,6 +315,7 @@ class AnnualReadReportActivity : BaseActivity<ActivityAnnualReadReportBinding>()
 
     override fun onSaveInstanceState(outState: Bundle) {
         outState.putInt("year", selectedYear)
+        outState.putInt("page", binding.reportPager.currentItem)
         super.onSaveInstanceState(outState)
     }
 }

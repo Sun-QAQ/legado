@@ -125,7 +125,7 @@ class AnnualReadReportFeatureTest {
     fun readingRecordsToolbarOpensTheReportAndReturns() {
         ActivityScenario.launch(ReadRecordActivity::class.java).use {
             onView(withId(R.id.menu_annual_report)).perform(click())
-            onView(withId(R.id.content)).check(matches(isDisplayed()))
+            onView(withId(R.id.title_bar)).check(matches(isDisplayed()))
             pressBack()
             onView(withId(R.id.recycler_view)).check(matches(isDisplayed()))
         }
@@ -145,8 +145,14 @@ class AnnualReadReportFeatureTest {
                     scenario.onActivity { activity -> activity.renderReport(fixture()) }
                     instrumentation.waitForIdleSync()
                     scenario.onActivity { activity ->
-                        val content = activity.findViewById<ViewGroup>(R.id.content)
-                        val text = texts(content).joinToString("\n")
+                        val pager = activity.findViewById<androidx.viewpager2.widget.ViewPager2>(R.id.report_pager)
+                        assertEquals(4, pager.adapter?.itemCount)
+                        assertEquals(0, pager.currentItem)
+                        assertFalse(activity.findViewById<View>(R.id.previous_page).isEnabled)
+                        activity.findViewById<View>(R.id.next_page).performClick()
+                        assertEquals(1, pager.currentItem)
+                        val content = activity.pages.last()
+                        val text = activity.pages.flatMap { texts(it) }.joinToString("\n")
                         assertTrue(text.contains("山海之间"))
                         assertTrue(text.contains("长夜与星光"))
                         assertTrue(text.contains("${fixture().year}-12-15"))
@@ -161,17 +167,19 @@ class AnnualReadReportFeatureTest {
                         assertTrue("Book reading time remains readable in theme $night",
                             androidx.core.graphics.ColorUtils.calculateContrast(
                                 bookDuration.currentTextColor, surface) >= 4.5)
-                        assertTrue(content.height > 0)
-                        val image = Bitmap.createBitmap(content.width, content.height, Bitmap.Config.ARGB_8888)
+                        assertTrue(pager.height > 0)
+                        val image = Bitmap.createBitmap(pager.width, pager.height, Bitmap.Config.ARGB_8888)
                         val canvas = Canvas(image)
                         canvas.drawColor(ThemePalette(activity).background)
-                        content.draw(canvas)
+                        pager.draw(canvas)
                         File(activity.externalCacheDir, "annual-report-${if (night) "dark" else "light"}.png")
                             .outputStream().use { image.compress(Bitmap.CompressFormat.PNG, 100, it) }
                         image.recycle()
                         activity.renderReport(AnnualReadReport.create(fixture().year,
                             LocalDate.now(), emptyList()))
-                        assertTrue(texts(content).contains(activity.getString(R.string.annual_report_empty_title)))
+                        assertEquals(3, pager.adapter?.itemCount)
+                        assertTrue(activity.pages.flatMap { texts(it) }
+                            .contains(activity.getString(R.string.annual_report_empty_title)))
                     }
                 }
             }

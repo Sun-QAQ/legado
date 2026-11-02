@@ -29,4 +29,7 @@
     <string name="annual_report_empty_title">故事，等您翻开</string>
     <string name="annual_report_empty">这一年还没有可用的每日阅读记录。开启阅读记录后，您的阅读时光会在这里留下足迹。</string>
     <string name="annual_report_data_note">仅根据本机保留的每日阅读时长生成，记录启用前的数据无法补全；同名书籍合并统计，读过不代表读完。报告保存在本机，可通过右上角菜单更新。</string>
+    <string name="annual_report_previous">上一页</string>
+    <string name="annual_report_next">下一页</string>
+    <string name="annual_report_page">%1$d / %2$d\n左右滑动，翻阅年度</string>
 </resources>
