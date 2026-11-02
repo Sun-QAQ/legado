@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
+    <string name="about_app_name" translatable="false">阅读S</string>
     <string name="pk_bookshelf_px" translatable="false">bookshelf_px</string>
     <string name="legado_gzh" translatable="false">开源阅读</string>
     <string name="email" translatable="false">gekunfei@live.com</string>
