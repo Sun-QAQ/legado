@@ -17,7 +17,6 @@ import io.legado.app.utils.putPrefBoolean
 import io.legado.app.utils.putPrefLong
 import io.legado.app.utils.putPrefString
 import io.legado.app.utils.defaultSharedPreferences
-import io.legado.app.utils.removePref
 import kotlinx.coroutines.*
 import org.junit.Assert.*
 import org.junit.Assume.assumeTrue
@@ -91,11 +90,14 @@ class VoiceAiIntegrationTest {
         } finally {
             server.close()
             instrumentation.runOnMainSync {
-                context.putPrefBoolean(VoiceAssistant.ENABLED, false)
-                if (hadLegacyFlag) context.putPrefBoolean(legacyKey, legacyEnabled) else context.removePref(legacyKey)
-                context.putPrefLong(VoiceAiInterpreter.SOURCE_ID, selectedId)
-                context.putPrefString(VoiceAiInterpreter.MODEL, selectedModel)
-                context.putPrefBoolean(VoiceAssistant.ENABLED, enabled)
+                // Instrumentation can terminate the process immediately after the last test.
+                // Persist restoration synchronously so apply() cannot leave the fixture selected.
+                val editor = context.defaultSharedPreferences.edit()
+                    .putBoolean(VoiceAssistant.ENABLED, enabled)
+                    .putLong(VoiceAiInterpreter.SOURCE_ID, selectedId)
+                    .putString(VoiceAiInterpreter.MODEL, selectedModel)
+                if (hadLegacyFlag) editor.putBoolean(legacyKey, legacyEnabled) else editor.remove(legacyKey)
+                assertTrue("Failed to persist original voice settings", editor.commit())
             }
             appDb.aiSourceDao.delete(source)
         }
