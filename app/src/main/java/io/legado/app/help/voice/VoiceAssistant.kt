@@ -26,6 +26,8 @@ import androidx.core.view.WindowInsetsCompat
 import io.legado.app.R
 import io.legado.app.base.BaseActivity
 import io.legado.app.constant.AppLog
+import io.legado.app.data.appDb
+import io.legado.app.help.book.isNotShelf
 import io.legado.app.model.ReadAloud
 import io.legado.app.model.ReadBook
 import io.legado.app.service.BaseReadAloudService
@@ -65,9 +67,9 @@ object VoiceAssistant : Application.ActivityLifecycleCallbacks,
     private var execution: Job? = null
     private var cleanup: Job? = null
     private var speaker: VoiceSpeaker? = null
-    private var overlay: LinearLayout? = null
+    private var overlay = WeakReference<LinearLayout>(null)
     private var status: String? = null
-    private var statusView: TextView? = null
+    private var statusView = WeakReference<TextView>(null)
     private var renderedChoices = emptyList<Pair<String, VoiceCommand>>()
     private var choices = emptyList<Pair<String, VoiceCommand>>()
     private var pausedBookUrl: String? = null
@@ -197,8 +199,9 @@ object VoiceAssistant : Application.ActivityLifecycleCallbacks,
                 show("我在听，请说出请求")
                 speak("我在听")
                 val job = coroutineContext[Job]!!
+                val names = shelfHotwords()
                 val text = withContext(worker) {
-                    engine!!.recognize({ job.isActive }) { partial ->
+                    engine!!.recognize({ job.isActive }, names) { partial ->
                         scope.launch { if (job.isActive) show("正在听：$partial") }
                     }
                 }
@@ -226,7 +229,8 @@ object VoiceAssistant : Application.ActivityLifecycleCallbacks,
                     ?.let { VoiceActions.execute(it) }
                 if (result == null) {
                     choices = emptyList()
-                    if (command == null && text.isNotBlank() && appCtx.getPrefBoolean(AI_ENABLED)) {
+                    if (command == null && text.isNotBlank() && !VoiceCommandParser.isNegated(text) &&
+                        appCtx.getPrefBoolean(AI_ENABLED)) {
                         command = VoiceAiInterpreter.interpret(text)
                     }
                     result = if (command != null) VoiceActions.execute(command) else VoiceActionResult(
@@ -242,9 +246,10 @@ object VoiceAssistant : Application.ActivityLifecycleCallbacks,
                 if (choices.isNotEmpty() && available()) {
                     // One follow-up utterance, without requiring another wake word.
                     val job = coroutineContext[Job]!!
+                    val names = shelfHotwords()
                     show("请说第几个，或点击选择")
                     val answer = withContext(worker) {
-                        engine!!.recognize({ job.isActive }) { partial ->
+                        engine!!.recognize({ job.isActive }, names) { partial ->
                             scope.launch { if (job.isActive) show("正在听：$partial") }
                         }
                     }
@@ -279,6 +284,11 @@ object VoiceAssistant : Application.ActivityLifecycleCallbacks,
         delay(180) // Avoid recognizing the speaker's remaining playback tail.
     }
 
+    private suspend fun shelfHotwords(): List<String> = withContext(Dispatchers.IO) {
+        appDb.bookDao.all.filterNot { it.isNotShelf }.sortedByDescending { it.durChapterTime }
+            .take(150).map { it.name } + appDb.bookGroupDao.all.take(50).map { it.groupName }
+    }
+
     private fun finishTurn() {
         status = null
         removeOverlay()
@@ -290,9 +300,9 @@ object VoiceAssistant : Application.ActivityLifecycleCallbacks,
     private fun show(message: String?) { status = message; render() }
 
     private fun removeOverlay() {
-        overlay?.let { (it.parent as? ViewGroup)?.removeView(it) }
-        overlay = null
-        statusView = null
+        overlay.get()?.let { (it.parent as? ViewGroup)?.removeView(it) }
+        overlay.clear()
+        statusView.clear()
         renderedChoices = emptyList()
     }
 
@@ -300,8 +310,8 @@ object VoiceAssistant : Application.ActivityLifecycleCallbacks,
         val current = activity ?: return
         val text = status ?: run { removeOverlay(); return }
         val root = current.findViewById<FrameLayout>(android.R.id.content) ?: return
-        if (overlay?.parent === root && choices == renderedChoices) {
-            statusView?.text = text
+        if (overlay.get()?.parent === root && choices == renderedChoices) {
+            statusView.get()?.text = text
             return
         }
         removeOverlay()
@@ -323,7 +333,7 @@ object VoiceAssistant : Application.ActivityLifecycleCallbacks,
             textSize = 15f
             maxWidth = dp(260)
             accessibilityLiveRegion = android.view.View.ACCESSIBILITY_LIVE_REGION_POLITE
-            statusView = this
+            statusView = WeakReference(this)
         })
         choices.forEach { (label, command) ->
             card.addView(Button(current).apply {
@@ -352,7 +362,7 @@ object VoiceAssistant : Application.ActivityLifecycleCallbacks,
             ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT,
             Gravity.BOTTOM or Gravity.END
         ).apply { bottomMargin = dp(80) + bottomInset; marginEnd = dp(12) })
-        overlay = card
+        overlay = WeakReference(card)
         renderedChoices = choices
     }
 

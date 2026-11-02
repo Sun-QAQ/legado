@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="voice_assistant">音声アシスタント</string>
+    <string name="voice_assistant_summary">アプリの使用中に「你好小悦」と呼びかけ、続けて中国語で操作を伝えます。呼びかけ検出と中国語音声認識はオフラインで動作し、音声は保存・送信しません。バックグラウンドや画面ロック中は停止します。案内音声を内蔵し、中国語のオフライン音声がない端末では短い案内音声とテキストで応答します。</string>
+    <string name="voice_assistant_listen">今すぐ話す</string>
+    <string name="voice_assistant_commands">中国語の操作例：打开遮天（本を開く）、打开发现（発見）、返回书架（本棚）、切换到漫画分组（グループ切替）、打开第4本书（4冊目）、上一页／下一页（前／次ページ）、开启／关闭眼动翻页（視線操作）。番号は現在のグループの表示順で、グループフォルダーを含みません。</string>
+    <string name="voice_assistant_permission">マイクの権限が必要です。許可してから再度有効にしてください。</string>
+    <string name="voice_assistant_ai">複雑な依頼を AI で理解する</string>
+    <string name="voice_assistant_ai_summary">任意設定です。インターネット接続と AI プロバイダーの設定が必要です。ローカルで一致しない場合のみ、認識したテキストと最大100冊の書名・著者・読書日時およびグループ名を選択中のプロバイダーに送信します。音声は送信しません。無効でも基本操作はオフラインで使えます。</string>
+</resources>

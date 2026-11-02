@@ -20,7 +20,7 @@ import java.util.concurrent.CancellationException
 /** Implementations own audio capture. A future network recognizer can implement this contract. */
 interface VoiceRecognitionEngine : Closeable {
     fun awaitWake(active: () -> Boolean)
-    fun recognize(active: () -> Boolean, partial: (String) -> Unit): String
+    fun recognize(active: () -> Boolean, hotwords: List<String> = emptyList(), partial: (String) -> Unit): String
     fun stopCapture()
 }
 
@@ -30,6 +30,11 @@ class OfflineVoiceEngine(context: Context) : VoiceRecognitionEngine {
     private var spotter: KeywordSpotter? = null
     private var recognizer: OnlineRecognizer? = null
     @Volatile private var recorder: AudioRecord? = null
+    private val vocabulary by lazy {
+        assets.open("voice_assistant/asr/tokens.txt").bufferedReader().useLines { lines ->
+            lines.map { it.substringBeforeLast(' ') }.toSet()
+        }
+    }
 
     private fun model(kind: String, suffix: String): OnlineModelConfig {
         val dir = "voice_assistant/$kind"
@@ -57,7 +62,9 @@ class OfflineVoiceEngine(context: Context) : VoiceRecognitionEngine {
 
     private fun speechRecognizer(): OnlineRecognizer = recognizer ?: OnlineRecognizer(
         assets, OnlineRecognizerConfig(
-            modelConfig = model("asr", "epoch-99-avg-1"),
+            modelConfig = model("asr", "epoch-99-avg-1").apply { modelingUnit = "cjkchar" },
+            decodingMethod = "modified_beam_search",
+            hotwordsFile = "voice_assistant/asr/hotwords.txt",
             endpointConfig = EndpointConfig(
                 rule1 = EndpointRule(false, 6f, 0f),
                 rule2 = EndpointRule(true, 0.9f, 0f),
@@ -82,9 +89,16 @@ class OfflineVoiceEngine(context: Context) : VoiceRecognitionEngine {
         }
     }
 
-    override fun recognize(active: () -> Boolean, partial: (String) -> Unit): String {
+    internal fun createSpeechStream(hotwords: List<String> = emptyList()) = speechRecognizer().createStream(
+        hotwords.asSequence().map(VoiceCommandParser::normalize)
+            .filter { word -> word.length in 2..40 && word.none { it in "/:#@" } &&
+                word.all { it.toString() in vocabulary } }
+            .distinct().take(200).joinToString("/")
+    )
+
+    override fun recognize(active: () -> Boolean, hotwords: List<String>, partial: (String) -> Unit): String {
         val asr = speechRecognizer()
-        val stream = asr.createStream()
+        val stream = createSpeechStream(hotwords)
         var text = ""
         val started = SystemClock.elapsedRealtime()
         try {

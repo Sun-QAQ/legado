@@ -33,6 +33,7 @@ class VoiceCommandTest {
     @Test fun negatedRequestsNeverMatch() {
         for (text in listOf("不要下一页", "不要打开遮天", "请不要开启眼动翻页", "不用切换到漫画分组")) {
             assertNull(VoiceCommandParser.parse(text))
+            assertTrue(VoiceCommandParser.isNegated(text))
         }
     }
 

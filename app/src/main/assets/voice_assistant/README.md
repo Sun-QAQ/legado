@@ -17,6 +17,7 @@
 关闭开关、离开前台或锁屏时停止录音；Activity 切换时立即停止旧录音，并在新页面恢复。
 支持书架书名、当前分组序号、两种书架布局的可见分组、书架/发现、上下页、眼动翻页。
 同名或同音书籍要求语音序号或点击确认；同音建议仅 Android 10+ 可用。
+识别使用 modified_beam_search，以固定命令及最多200条书名/分组名做本地热词增强。热词仅在内存中使用，不写入文件、不上传。
 语音反馈优先使用设备离线中文 TTS，无可用语音时播放内置简短反馈并显示完整文字。
 可选 AI 理解默认关闭。开启后仅将文字和受限书架摘要发送给已配置供应商，不发送音频。
 VoiceRecognitionEngine 接口保留联网识别的替换点；当前只实现离线引擎。
@@ -34,3 +35,4 @@ VoiceRecognitionEngine 接口保留联网识别的替换点；当前只实现离
 - `app/src/main/assets/voice_assistant/kws/keywords.txt`: `520a0549381c2ed24da434fe56a03314c9f14194c4198d57ed80797248b420f3`
 - `app/src/main/assets/voice_assistant/kws/tokens.txt`: `72316508d9119696145abc6f1f8cdc46287535c34e5ce7e595f845cb1499cf2e`
 - `app/src/main/assets/voice_assistant/LICENSE-sherpa-onnx.txt`: `cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30`
+- `app/src/main/assets/voice_assistant/asr/hotwords.txt`: `69cd28b5d646f688005a2de94eb95722ad85b3d72d6089aa80875e44d78e47c0`

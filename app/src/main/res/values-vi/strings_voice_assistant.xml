@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="voice_assistant">Trợ lý giọng nói</string>
+    <string name="voice_assistant_summary">Nói “你好小悦” khi đang dùng ứng dụng, rồi nói yêu cầu bằng tiếng Trung. Phát hiện từ đánh thức và nhận dạng tiếng Trung chạy ngoại tuyến. Âm thanh không được lưu hoặc tải lên. Tạm dừng khi ứng dụng ở nền hoặc màn hình bị khóa. Có sẵn lời nhắc; nếu thiếu giọng đọc tiếng Trung ngoại tuyến, dùng lời nhắc ngắn và văn bản đầy đủ.</string>
+    <string name="voice_assistant_listen">Nói ngay</string>
+    <string name="voice_assistant_commands">Lệnh tiếng Trung: 打开遮天 (mở sách), 打开发现 (khám phá), 返回书架 (giá sách), 切换到漫画分组 (đổi nhóm), 打开第4本书 (mở sách thứ 4), 上一页 / 下一页 (trang trước / sau), 开启 / 关闭眼动翻页 (lật trang bằng mắt). Số thứ tự theo nhóm đang hiển thị, không tính thư mục nhóm.</string>
+    <string name="voice_assistant_permission">Trợ lý cần quyền truy cập micrô. Hãy cấp quyền rồi bật lại.</string>
+    <string name="voice_assistant_ai">Dùng AI để hiểu yêu cầu phức tạp</string>
+    <string name="voice_assistant_ai_summary">Tùy chọn, cần mạng và nhà cung cấp AI đã cấu hình. Chỉ khi không khớp lệnh cục bộ, văn bản nhận dạng cùng tên, tác giả, thời gian đọc của tối đa 100 sách và tên nhóm được gửi đến nhà cung cấp đã chọn. Không tải âm thanh lên. Các lệnh cơ bản vẫn dùng ngoại tuyến khi tắt tùy chọn này.</string>
+</resources>

@@ -68,12 +68,13 @@ class OfflineVoiceEngineTest {
                 }
                 assertEquals("你好小悦", detected)
             } finally { stream.release() }
-            for ((file, expected) in listOf(
+            for ((file, expected) in listOf<Pair<String, VoiceCommand?>>(
                 "next_page.wav" to VoiceCommand.TurnPage(true),
                 "discovery.wav" to VoiceCommand.OpenPage(true),
-                "open_book.wav" to VoiceCommand.OpenBook("遮天")
+                "open_book.wav" to VoiceCommand.OpenBook("遮天"),
+                "negated.wav" to null
             )) {
-                val speech = asr.createStream()
+                val speech = engine.createSpeechStream(listOf("遮天"))
                 try {
                     for (chunk in samples(file).asList().chunked(1600)) {
                         speech.acceptWaveform(chunk.toFloatArray(), 16000)

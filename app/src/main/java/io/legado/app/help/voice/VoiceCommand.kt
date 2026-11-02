@@ -17,6 +17,10 @@ object VoiceCommandParser {
     fun normalize(text: String): String = text.lowercase()
         .replace(Regex("[\\s，。！？、,.!?《》“”\"：:]"), "")
 
+    fun isNegated(text: String): Boolean = Regex(
+        "^(?:你好小悦)?(?:请帮我|麻烦帮我|帮我|请)?(?:不要|别|不用|不需要|不想)"
+    ).containsMatchIn(normalize(text))
+
     fun parse(text: String): VoiceCommand? {
         var value = normalize(text).removePrefix("你好小悦")
         for (prefix in listOf("请帮我", "麻烦帮我", "帮我", "请")) {

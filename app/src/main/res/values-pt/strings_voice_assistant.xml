@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="voice_assistant">Assistente de voz</string>
+    <string name="voice_assistant_summary">Diga “你好小悦” com o app em primeiro plano e depois faça o pedido. A ativação e o reconhecimento de voz em chinês funcionam offline. O áudio não é salvo nem enviado. A escuta pausa em segundo plano ou com a tela bloqueada. Inclui avisos de voz; sem uma voz chinesa offline, usa avisos curtos e texto completo.</string>
+    <string name="voice_assistant_listen">Falar agora</string>
+    <string name="voice_assistant_commands">Comandos em chinês: 打开遮天 (abrir livro), 打开发现 (descobrir), 返回书架 (estante), 切换到漫画分组 (mudar grupo), 打开第4本书 (abrir o quarto livro), 上一页 / 下一页 (página anterior / seguinte), 开启 / 关闭眼动翻页 (controle ocular). A numeração segue a ordem do grupo e exclui pastas.</string>
+    <string name="voice_assistant_permission">O assistente precisa de permissão para o microfone. Permita o acesso e ative novamente.</string>
+    <string name="voice_assistant_ai">Usar IA para entender pedidos complexos</string>
+    <string name="voice_assistant_ai_summary">Opcional. Requer Internet e um provedor de IA configurado. Se a correspondência local falhar, o texto reconhecido, nomes, autores e horários de leitura de até 100 livros, além dos nomes dos grupos, são enviados ao provedor selecionado. O áudio nunca é enviado. Os comandos básicos funcionam offline com esta opção desativada.</string>
+</resources>

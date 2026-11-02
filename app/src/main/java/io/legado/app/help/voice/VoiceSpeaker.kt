@@ -1,6 +1,7 @@
 package io.legado.app.help.voice
 
 import android.content.Context
+import android.app.Application
 import android.media.AudioManager
 import android.media.MediaPlayer
 import android.media.ToneGenerator
@@ -16,14 +17,15 @@ import java.io.Closeable
 import java.util.Locale
 
 /** Never selects a network voice. Missing Chinese TTS uses bundled prompts plus visible text. */
-class VoiceSpeaker(private val context: Context) : Closeable {
+class VoiceSpeaker(context: Context) : Closeable {
+    private val application = context.applicationContext as Application
     private val handler = Handler(Looper.getMainLooper())
     private val initialized = CompletableDeferred<Boolean>()
     private var utterance: CompletableDeferred<Boolean>? = null
     private var serial = 0L
     private var closed = false
     private var player: MediaPlayer? = null
-    private val tts = TextToSpeech(context.applicationContext) { status ->
+    private val tts = TextToSpeech(application) { status ->
         handler.post { configure(status) }
     }
 
@@ -75,7 +77,7 @@ class VoiceSpeaker(private val context: Context) : Closeable {
 
     private suspend fun play(resource: Int) {
         if (closed) return
-        val media = runCatching { MediaPlayer.create(context.applicationContext, resource) }.getOrNull()
+        val media = runCatching { MediaPlayer.create(application, resource) }.getOrNull()
         if (media == null) { tone(); return }
         player = media
         val completion = CompletableDeferred<Unit>()

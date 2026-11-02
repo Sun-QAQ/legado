@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="voice_assistant">Asistente de voz</string>
+    <string name="voice_assistant_summary">Di “你好小悦” con la app en primer plano y luego tu petición. La activación y el reconocimiento de voz en chino funcionan sin conexión. El audio no se guarda ni se sube. La escucha se pausa en segundo plano o con la pantalla bloqueada. Incluye avisos de voz; sin una voz china sin conexión, usa avisos breves y texto completo.</string>
+    <string name="voice_assistant_listen">Hablar ahora</string>
+    <string name="voice_assistant_commands">Comandos en chino: 打开遮天 (abrir libro), 打开发现 (descubrir), 返回书架 (biblioteca), 切换到漫画分组 (cambiar grupo), 打开第4本书 (abrir el cuarto libro), 上一页 / 下一页 (página anterior / siguiente), 开启 / 关闭眼动翻页 (control ocular). La numeración sigue el orden del grupo y excluye las carpetas.</string>
+    <string name="voice_assistant_permission">El asistente necesita permiso para el micrófono. Permite el acceso y vuelve a activarlo.</string>
+    <string name="voice_assistant_ai">Usar IA para entender peticiones complejas</string>
+    <string name="voice_assistant_ai_summary">Opcional. Requiere Internet y un proveedor de IA configurado. Si falla la coincidencia local, se envían el texto reconocido, los nombres, autores y horas de lectura de hasta 100 libros, y los nombres de grupos al proveedor seleccionado. El audio nunca se sube. Los comandos básicos funcionan sin conexión con esta opción desactivada.</string>
+</resources>
