@@ -25,14 +25,16 @@ class OfflineVoiceEngineTest {
             val asr = asrField.get(engine) as OnlineRecognizer
             val wakeStream = kws.createStream()
             val speechStream = asr.createStream()
+            val gate = SpeechActivityGate(engine.speechDetector())
             try {
                 repeat(30) {
                     wakeStream.acceptWaveform(FloatArray(1600), 16000)
-                    speechStream.acceptWaveform(FloatArray(1600), 16000)
+                    gate.accept(FloatArray(1600)) { speechStream.acceptWaveform(it, 16000) }
                     while (kws.isReady(wakeStream)) kws.decode(wakeStream)
                     while (asr.isReady(speechStream)) asr.decode(speechStream)
                 }
                 assertEquals("", kws.getResult(wakeStream).keyword)
+                assertFalse(gate.hasSpeech)
                 assertEquals("", asr.getResult(speechStream).text.trim())
             } finally {
                 wakeStream.release()
@@ -75,13 +77,15 @@ class OfflineVoiceEngineTest {
                 "negated.wav" to null
             )) {
                 val speech = engine.createSpeechStream(listOf("遮天"))
+                val gate = SpeechActivityGate(engine.speechDetector())
                 try {
                     for (chunk in samples(file).asList().chunked(1600)) {
-                        speech.acceptWaveform(chunk.toFloatArray(), 16000)
+                        gate.accept(chunk.toFloatArray()) { speech.acceptWaveform(it, 16000) }
                         while (asr.isReady(speech)) asr.decode(speech)
                     }
                     speech.inputFinished()
                     while (asr.isReady(speech)) asr.decode(speech)
+                    assertTrue("No speech detected in $file", gate.hasSpeech)
                     val text = asr.getResult(speech).text
                     assertEquals("$file -> $text", expected, VoiceCommandParser.parse(text))
                 } finally { speech.release() }

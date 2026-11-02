@@ -14,7 +14,11 @@ import com.k2fsa.sherpa.onnx.OnlineModelConfig
 import com.k2fsa.sherpa.onnx.OnlineRecognizer
 import com.k2fsa.sherpa.onnx.OnlineRecognizerConfig
 import com.k2fsa.sherpa.onnx.OnlineTransducerModelConfig
+import com.k2fsa.sherpa.onnx.SileroVadModelConfig
+import com.k2fsa.sherpa.onnx.Vad
+import com.k2fsa.sherpa.onnx.VadModelConfig
 import java.io.Closeable
+import java.util.ArrayDeque
 import java.util.concurrent.CancellationException
 
 /** Implementations own audio capture. A future network recognizer can implement this contract. */
@@ -29,6 +33,7 @@ class OfflineVoiceEngine(context: Context) : VoiceRecognitionEngine {
     private val assets = context.applicationContext.assets
     private var spotter: KeywordSpotter? = null
     private var recognizer: OnlineRecognizer? = null
+    private var vad: Vad? = null
     @Volatile private var recorder: AudioRecord? = null
     private val vocabulary by lazy {
         assets.open("voice_assistant/asr/tokens.txt").bufferedReader().useLines { lines ->
@@ -73,7 +78,16 @@ class OfflineVoiceEngine(context: Context) : VoiceRecognitionEngine {
         )
     ).also { recognizer = it }
 
-    fun prepare() { keywordSpotter(); speechRecognizer() }
+    internal fun speechDetector(): Vad = vad ?: Vad(assets, VadModelConfig(
+        sileroVadModelConfig = SileroVadModelConfig(
+            model = "voice_assistant/silero_vad.onnx",
+            minSilenceDuration = 0.7f,
+            minSpeechDuration = 0.25f,
+            maxSpeechDuration = 15f
+        )
+    )).also { vad = it }
+
+    fun prepare() { keywordSpotter(); speechRecognizer(); speechDetector() }
 
     override fun awaitWake(active: () -> Boolean) {
         val kws = keywordSpotter()
@@ -99,16 +113,19 @@ class OfflineVoiceEngine(context: Context) : VoiceRecognitionEngine {
     override fun recognize(active: () -> Boolean, hotwords: List<String>, partial: (String) -> Unit): String {
         val asr = speechRecognizer()
         val stream = createSpeechStream(hotwords)
+        val gate = SpeechActivityGate(speechDetector())
         var text = ""
         val started = SystemClock.elapsedRealtime()
         try {
             capture(active) { samples ->
-                stream.acceptWaveform(samples, SAMPLE_RATE)
+                gate.accept(samples) { stream.acceptWaveform(it, SAMPLE_RATE) }
                 while (asr.isReady(stream) && active()) asr.decode(stream)
                 val next = asr.getResult(stream).text.trim()
                 if (next != text) { text = next; partial(text) }
-                asr.isEndpoint(stream) || SystemClock.elapsedRealtime() - started >= 15_000
+                val elapsed = SystemClock.elapsedRealtime() - started
+                gate.hasEnded || (!gate.hasSpeech && elapsed >= 6000) || elapsed >= 15_000
             }
+            if (!gate.hasSpeech) return ""
             // Flush the last chunk so the last syllable is not discarded on timeout.
             stream.acceptWaveform(FloatArray(SAMPLE_RATE / 2), SAMPLE_RATE)
             stream.inputFinished()
@@ -116,6 +133,7 @@ class OfflineVoiceEngine(context: Context) : VoiceRecognitionEngine {
             return asr.getResult(stream).text.trim()
         } finally {
             stream.release()
+            vad?.reset()
         }
     }
 
@@ -163,7 +181,31 @@ class OfflineVoiceEngine(context: Context) : VoiceRecognitionEngine {
         recognizer = null
         spotter?.release()
         spotter = null
+        vad?.release()
+        vad = null
     }
 
     companion object { const val SAMPLE_RATE = 16000 }
+}
+
+/** Prevent silent decoder hallucinations, retaining 500 ms so initial syllables are not clipped. */
+internal class SpeechActivityGate(private val vad: Vad) {
+    private val preRoll = ArrayDeque<FloatArray>()
+    var hasSpeech = false
+        private set
+    val hasEnded: Boolean get() = hasSpeech && !vad.empty()
+
+    init { vad.reset() }
+
+    fun accept(samples: FloatArray, consume: (FloatArray) -> Unit) {
+        vad.acceptWaveform(samples)
+        if (hasSpeech) { consume(samples); return }
+        preRoll.addLast(samples)
+        while (preRoll.size > 5) preRoll.removeFirst()
+        if (vad.isSpeechDetected() || !vad.empty()) {
+            hasSpeech = true
+            preRoll.forEach(consume)
+            preRoll.clear()
+        }
+    }
 }

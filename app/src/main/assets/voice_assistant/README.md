@@ -8,6 +8,7 @@
 - 唤醒模型：https://github.com/k2-fsa/sherpa-onnx/releases/download/kws-models/sherpa-onnx-kws-zipformer-wenetspeech-3.3M-2024-01-01.tar.bz2
 - 使用归档中的 int8 模型；KWS 选 epoch-12-avg-2，ASR 选 epoch-99-avg-1。仅复制 encoder/decoder/joiner 和 tokens，不包含上游测试音频。
 - 关键词：你好小悦，拼音 token 为 `n ǐ h ǎo x iǎo y uè`。阈值需通过真机真人语音继续评估。
+- 语音活动检测：https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/silero_vad.onnx；Silero VAD 原项目 MIT 许可见 LICENSE-silero-vad.txt。
 - 引擎 Apache-2.0 许可见 LICENSE-sherpa-onnx.txt；上游项目：https://github.com/k2-fsa/sherpa-onnx
 - res/raw/voice_*.wav 及 androidTest/assets/voice/*.wav 为本机离线中文语音合成生成的提示和测试素材，16 kHz、16 bit、单声道；测试素材不进入正式 APK。
 
@@ -18,6 +19,7 @@
 支持书架书名、当前分组序号、两种书架布局的可见分组、书架/发现、上下页、眼动翻页。
 同名或同音书籍要求语音序号或点击确认；同音建议仅 Android 10+ 可用。
 识别使用 modified_beam_search，以固定命令及最多200条书名/分组名做本地热词增强。热词仅在内存中使用，不写入文件、不上传。
+只将 VAD 检测到的语音（含500毫秒前置缓存）送入识别器，6秒无语音退出，单次最长15秒。
 语音反馈优先使用设备离线中文 TTS，无可用语音时播放内置简短反馈并显示完整文字。
 可选 AI 理解默认关闭。开启后仅将文字和受限书架摘要发送给已配置供应商，不发送音频。
 VoiceRecognitionEngine 接口保留联网识别的替换点；当前只实现离线引擎。
@@ -36,3 +38,5 @@ VoiceRecognitionEngine 接口保留联网识别的替换点；当前只实现离
 - `app/src/main/assets/voice_assistant/kws/tokens.txt`: `72316508d9119696145abc6f1f8cdc46287535c34e5ce7e595f845cb1499cf2e`
 - `app/src/main/assets/voice_assistant/LICENSE-sherpa-onnx.txt`: `cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30`
 - `app/src/main/assets/voice_assistant/asr/hotwords.txt`: `69cd28b5d646f688005a2de94eb95722ad85b3d72d6089aa80875e44d78e47c0`
+- `app/src/main/assets/voice_assistant/silero_vad.onnx`: `9e2449e1087496d8d4caba907f23e0bd3f78d91fa552479bb9c23ac09cbb1fd6`
+- `app/src/main/assets/voice_assistant/LICENSE-silero-vad.txt`: `2e63e9a38b6e8fc0c7bc37ce174caca1862870856c6daf5697cfb785e925520b`
