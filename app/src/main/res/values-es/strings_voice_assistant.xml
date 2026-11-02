@@ -5,8 +5,7 @@
     <string name="voice_assistant_listen">Hablar ahora</string>
     <string name="voice_assistant_commands">Comandos en chino: 打开遮天 (abrir libro), 打开发现 (descubrir), 返回书架 (biblioteca), 切换到漫画分组 (cambiar grupo), 打开第4本书 (abrir el cuarto libro), 上一页 / 下一页 (página anterior / siguiente), 开启 / 关闭眼动翻页 (control ocular). La numeración sigue el orden del grupo y excluye las carpetas.</string>
     <string name="voice_assistant_permission">El asistente necesita permiso para el micrófono. Permite el acceso y vuelve a activarlo.</string>
-    <string name="voice_assistant_ai">Usar IA para entender peticiones complejas</string>
-    <string name="voice_assistant_ai_summary">Opcional, requiere Internet. Usa autores, lecturas recientes y la página actual para planificar hasta 4 pasos. Pide elegir si hay dudas. Envía el texto reconocido, la página y el libro actuales, nombres, autores y fechas de lectura de hasta 100 libros y hasta 50 grupos. No sube audio, contenido ni direcciones de fuentes. Los comandos básicos siguen disponibles sin conexión.</string>
+    <string name="voice_assistant_ai_summary">Al activar el asistente, las peticiones complejas se interpretan en línea automáticamente; los comandos básicos se procesan primero de forma local. Usa autores, lecturas recientes y la página actual, con hasta 4 pasos y selección en caso de duda. Envía texto reconocido, página y libro actuales, nombres, autores y fechas de lectura de hasta 100 libros y hasta 50 grupos. No sube audio, contenido ni direcciones de fuentes.</string>
     <string name="voice_assistant_ai_model">Modelo de IA del asistente</string>
     <string name="voice_assistant_ai_follow">Usar el proveedor de IA actual</string>
     <string name="voice_assistant_ai_configure">Configura primero un proveedor y un modelo de IA</string>

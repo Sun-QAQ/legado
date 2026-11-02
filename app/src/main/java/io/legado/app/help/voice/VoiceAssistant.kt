@@ -58,7 +58,6 @@ import java.util.concurrent.Executors
 object VoiceAssistant : Application.ActivityLifecycleCallbacks,
     SharedPreferences.OnSharedPreferenceChangeListener {
     const val ENABLED = "voiceAssistantEnabled"
-    const val AI_ENABLED = "voiceAssistantAiEnabled"
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private val worker = Executors.newSingleThreadExecutor { r -> Thread(r, "voice-assistant") }
         .asCoroutineDispatcher()
@@ -107,7 +106,7 @@ object VoiceAssistant : Application.ActivityLifecycleCallbacks,
     }
 
     override fun onSharedPreferenceChanged(sharedPreferences: SharedPreferences?, key: String?) {
-        if (interpreting && key in setOf(AI_ENABLED, VoiceAiInterpreter.SOURCE_ID, VoiceAiInterpreter.MODEL)) {
+        if (interpreting && key in setOf(VoiceAiInterpreter.SOURCE_ID, VoiceAiInterpreter.MODEL)) {
             cancel()
         }
         if (key == ENABLED) {
@@ -296,14 +295,11 @@ object VoiceAssistant : Application.ActivityLifecycleCallbacks,
         if (local != null) {
             val result = VoiceActions.execute(local)
             // Literal-looking requests such as “打开辰东写的小说” may still need semantic matching.
-            if (result.status != VoiceActionStatus.FAILED || !appCtx.getPrefBoolean(AI_ENABLED) ||
+            if (result.status != VoiceActionStatus.FAILED ||
                 (local !is VoiceCommand.OpenBook && local !is VoiceCommand.SwitchGroup)) {
                 return VoicePlanRunner.run(listOf(local), { result })
             }
         }
-        if (!appCtx.getPrefBoolean(AI_ENABLED)) return VoicePlanOutcome(
-            "暂不支持这句话。可在设置中开启 AI 理解复杂指令，或说打开书名、切换分组、下一页"
-        )
         val origin = activity
         val bookUrl = if (origin is ReadBookActivity) ReadBook.book?.bookUrl else null
         val groupId = (origin as? MainActivity)?.voiceBookshelf()?.groupId

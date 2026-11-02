@@ -5,8 +5,7 @@
     <string name="voice_assistant_listen">立即说话</string>
     <string name="voice_assistant_commands">支持打开书名、打开发现、返回书架、切换到漫画分组、打开第4本书、上一页、下一页、开启或关闭眼动翻页。序号按当前分组显示的书籍顺序计算，不包含分组文件夹。</string>
     <string name="voice_assistant_permission">语音助手需要麦克风权限，请允许后重新开启</string>
-    <string name="voice_assistant_ai">使用 AI 理解复杂指令</string>
-    <string name="voice_assistant_ai_summary">可选，需联网。支持按作者、最近阅读和当前页面理解请求，以及最多4步组合操作；歧义时先询问。发送识别文字、当前页面、当前书籍、最多100本书的书名、作者、阅读时间及最多50个分组名；不上传音频、正文或书源网址。关闭时基础指令仍可离线使用。</string>
+    <string name="voice_assistant_ai_summary">开启语音助手后，复杂指令自动联网理解，基础指令优先离线匹配。支持按作者、最近阅读和当前页面理解请求，以及最多4步组合操作；歧义时先询问。发送识别文字、当前页面、当前书籍、最多100本书的书名、作者、阅读时间及最多50个分组名；不上传音频、正文或书源网址。</string>
     <string name="voice_assistant_ai_model">语音助手 AI 模型</string>
     <string name="voice_assistant_ai_follow">跟随当前 AI 供应商</string>
     <string name="voice_assistant_ai_configure">请先配置 AI 供应商和模型</string>

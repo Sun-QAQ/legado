@@ -5,8 +5,7 @@
     <string name="voice_assistant_listen">今すぐ話す</string>
     <string name="voice_assistant_commands">中国語の操作例：打开遮天（本を開く）、打开发现（発見）、返回书架（本棚）、切换到漫画分组（グループ切替）、打开第4本书（4冊目）、上一页／下一页（前／次ページ）、开启／关闭眼动翻页（視線操作）。番号は現在のグループの表示順で、グループフォルダーを含みません。</string>
     <string name="voice_assistant_permission">マイクの権限が必要です。許可してから再度有効にしてください。</string>
-    <string name="voice_assistant_ai">複雑な依頼を AI で理解する</string>
-    <string name="voice_assistant_ai_summary">任意設定でネット接続が必要です。著者、最近の読書、現在の画面を参照し、最大4段階の操作を計画します。曖昧な場合は選択を求めます。認識テキスト、現在の画面と本、最大100冊の書名・著者・読書日時、最大50個のグループ名を送信します。音声、本文、書籍ソースの URL は送信しません。無効でも基本操作はオフラインで使えます。</string>
+    <string name="voice_assistant_ai_summary">音声アシスタントを有効にすると、複雑な依頼を自動でオンライン処理します。基本操作はローカル照合を優先します。著者、最近の読書、現在の画面から最大4段階の操作を計画し、曖昧な場合は選択を求めます。認識テキスト、現在の画面と本、最大100冊の書名・著者・読書日時、最大50個のグループ名を送信します。音声、本文、書籍ソースの URL は送信しません。</string>
     <string name="voice_assistant_ai_model">音声アシスタントの AI モデル</string>
     <string name="voice_assistant_ai_follow">現在の AI プロバイダーを使用</string>
     <string name="voice_assistant_ai_configure">先に AI プロバイダーとモデルを設定してください</string>

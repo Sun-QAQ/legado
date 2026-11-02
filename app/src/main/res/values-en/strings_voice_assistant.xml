@@ -5,8 +5,7 @@
     <string name="voice_assistant_listen">Speak now</string>
     <string name="voice_assistant_commands">Chinese commands: 打开遮天 (open a shelf book), 打开发现 (discovery), 返回书架 (bookshelf), 切换到漫画分组 (switch group), 打开第4本书 (open book 4), 上一页 / 下一页 (previous / next page), 开启 / 关闭眼动翻页 (eye page turning). Book numbers follow the displayed group order and exclude group folders.</string>
     <string name="voice_assistant_permission">The voice assistant needs microphone permission. Allow access, then enable it again.</string>
-    <string name="voice_assistant_ai">Use AI to understand complex requests</string>
-    <string name="voice_assistant_ai_summary">Optional, requires Internet. Understands authors, recent reading and current page context, and plans up to 4 steps. Ambiguous requests require a choice. Sends recognized text, current page and book, names, authors and reading times of up to 100 books, and up to 50 group names. Audio, book content and source URLs are never uploaded. Basic commands remain available offline when disabled.</string>
+    <string name="voice_assistant_ai_summary">When the voice assistant is enabled, complex requests are understood online automatically; basic commands use local matching first. Uses authors, recent reading and current page context, with up to 4 steps and choices for ambiguity. Sends recognized text, current page and book, names, authors and reading times of up to 100 books, and up to 50 group names. Audio, book content and source URLs are never uploaded.</string>
     <string name="voice_assistant_ai_model">Voice assistant AI model</string>
     <string name="voice_assistant_ai_follow">Follow current AI provider</string>
     <string name="voice_assistant_ai_configure">Configure an AI provider and model first</string>

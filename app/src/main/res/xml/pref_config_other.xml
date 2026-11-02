@@ -80,13 +80,6 @@
             android:summary="@string/voice_assistant_commands"
             app:iconSpaceReserved="false" />
 
-        <io.legado.app.lib.prefs.SwitchPreference
-            android:key="voiceAssistantAiEnabled"
-            android:defaultValue="false"
-            android:title="@string/voice_assistant_ai"
-            android:summary="@string/voice_assistant_ai_summary"
-            app:iconSpaceReserved="false" />
-
         <io.legado.app.lib.prefs.Preference
             android:key="voiceAssistantAiModel"
             android:title="@string/voice_assistant_ai_model"

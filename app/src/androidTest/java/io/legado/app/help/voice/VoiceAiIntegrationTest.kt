@@ -16,6 +16,8 @@ import io.legado.app.utils.getPrefString
 import io.legado.app.utils.putPrefBoolean
 import io.legado.app.utils.putPrefLong
 import io.legado.app.utils.putPrefString
+import io.legado.app.utils.defaultSharedPreferences
+import io.legado.app.utils.removePref
 import kotlinx.coroutines.*
 import org.junit.Assert.*
 import org.junit.Assume.assumeTrue
@@ -30,9 +32,12 @@ class VoiceAiIntegrationTest {
     private val instrumentation = InstrumentationRegistry.getInstrumentation()
     private val context = instrumentation.targetContext
 
-    @Test fun disablingAiDuringRequestClosesConnectionAndPreventsLateNavigation() {
+    @Test fun legacyDisabledAiFlagDoesNotBlockRequestsAndDisablingAssistantCancelsThem() {
         val enabled = context.getPrefBoolean(VoiceAssistant.ENABLED)
-        val aiEnabled = context.getPrefBoolean(VoiceAssistant.AI_ENABLED)
+        // An upgrade must ignore an old explicit false value, not just change the new-install default.
+        val legacyKey = "voiceAssistantAiEnabled"
+        val hadLegacyFlag = context.defaultSharedPreferences.contains(legacyKey)
+        val legacyEnabled = context.getPrefBoolean(legacyKey)
         val selectedId = context.getPrefLong(VoiceAiInterpreter.SOURCE_ID)
         val selectedModel = context.getPrefString(VoiceAiInterpreter.MODEL).orEmpty()
         val received = AtomicBoolean()
@@ -69,7 +74,7 @@ class VoiceAiIntegrationTest {
                 context.putPrefBoolean(VoiceAssistant.ENABLED, false)
                 context.putPrefLong(VoiceAiInterpreter.SOURCE_ID, source.id)
                 context.putPrefString(VoiceAiInterpreter.MODEL, source.model)
-                context.putPrefBoolean(VoiceAssistant.AI_ENABLED, true)
+                context.putPrefBoolean(legacyKey, false)
             }
             ActivityScenario.launch(MainActivity::class.java).use { scenario ->
                 await { (VoiceAssistant.activity as? MainActivity)?.voiceAssistantReady == true }
@@ -79,7 +84,7 @@ class VoiceAiIntegrationTest {
                     VoiceAssistant.acceptRecognizedText("请带我去发现新书的那个页面")
                 }
                 await { received.get() }
-                scenario.onActivity { context.putPrefBoolean(VoiceAssistant.AI_ENABLED, false) }
+                scenario.onActivity { context.putPrefBoolean(VoiceAssistant.ENABLED, false) }
                 await { disconnected.get() }
                 scenario.onActivity { assertEquals(0, it.findViewById<ViewPager>(R.id.view_pager_main).currentItem) }
             }
@@ -87,7 +92,7 @@ class VoiceAiIntegrationTest {
             server.close()
             instrumentation.runOnMainSync {
                 context.putPrefBoolean(VoiceAssistant.ENABLED, false)
-                context.putPrefBoolean(VoiceAssistant.AI_ENABLED, aiEnabled)
+                if (hadLegacyFlag) context.putPrefBoolean(legacyKey, legacyEnabled) else context.removePref(legacyKey)
                 context.putPrefLong(VoiceAiInterpreter.SOURCE_ID, selectedId)
                 context.putPrefString(VoiceAiInterpreter.MODEL, selectedModel)
                 context.putPrefBoolean(VoiceAssistant.ENABLED, enabled)

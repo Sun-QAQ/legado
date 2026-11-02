@@ -120,13 +120,15 @@ class OtherConfigFragment : PreferenceFragment(),
     private fun updateVoiceAiSummary() {
         viewLifecycleOwner.lifecycleScope.launch {
             val source = try { VoiceAiInterpreter.source() } catch (_: VoiceAiException) { null }
-            findPreference<Preference>(VoiceAiInterpreter.MODEL)?.summary = if (source == null) {
+            val modelSummary = if (source == null) {
                 getString(R.string.voice_assistant_ai_configure)
             } else {
                 val prefix = if (requireContext().getPrefLong(VoiceAiInterpreter.SOURCE_ID) == 0L)
                     getString(R.string.voice_assistant_ai_follow) + " · " else ""
                 "$prefix${source.name} · ${source.model}"
             }
+            findPreference<Preference>(VoiceAiInterpreter.MODEL)?.summary =
+                "$modelSummary\n${getString(R.string.voice_assistant_ai_summary)}"
         }
     }
 
