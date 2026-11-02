@@ -34,6 +34,7 @@ Thumbs.db
 Desktop.ini
 
 # Local documents and external artifacts; never force-add them
+/AGENTS.md
 /docs/
 /book-sources/
 
