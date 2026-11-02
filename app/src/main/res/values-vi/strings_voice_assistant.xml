@@ -9,4 +9,6 @@
     <string name="voice_assistant_ai_model">Mô hình AI cho trợ lý</string>
     <string name="voice_assistant_ai_follow">Theo nhà cung cấp AI hiện tại</string>
     <string name="voice_assistant_ai_configure">Hãy cấu hình nhà cung cấp và mô hình AI trước</string>
+    <string name="voice_assistant_settings">Cài đặt trợ lý giọng nói</string>
+    <string name="voice_assistant_settings_summary">Từ đánh thức, lệnh giọng nói và mô hình AI</string>
 </resources>

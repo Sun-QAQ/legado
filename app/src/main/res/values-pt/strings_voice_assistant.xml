@@ -9,4 +9,6 @@
     <string name="voice_assistant_ai_model">Modelo de IA do assistente</string>
     <string name="voice_assistant_ai_follow">Usar o provedor de IA atual</string>
     <string name="voice_assistant_ai_configure">Configure primeiro um provedor e um modelo de IA</string>
+    <string name="voice_assistant_settings">Configurações do assistente de voz</string>
+    <string name="voice_assistant_settings_summary">Palavra de ativação, comandos e modelo de IA</string>
 </resources>

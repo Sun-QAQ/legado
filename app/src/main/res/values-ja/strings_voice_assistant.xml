@@ -9,4 +9,6 @@
     <string name="voice_assistant_ai_model">音声アシスタントの AI モデル</string>
     <string name="voice_assistant_ai_follow">現在の AI プロバイダーを使用</string>
     <string name="voice_assistant_ai_configure">先に AI プロバイダーとモデルを設定してください</string>
+    <string name="voice_assistant_settings">音声アシスタント設定</string>
+    <string name="voice_assistant_settings_summary">呼びかけ、音声操作、AI モデル</string>
 </resources>

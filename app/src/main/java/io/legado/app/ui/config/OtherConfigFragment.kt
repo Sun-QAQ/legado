@@ -1,18 +1,13 @@
 package io.legado.app.ui.config
 
 import android.annotation.SuppressLint
-import android.Manifest
 import android.content.ComponentName
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.view.View
 import androidx.core.view.postDelayed
-import androidx.core.content.ContextCompat
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.preference.SwitchPreferenceCompat
 import androidx.fragment.app.activityViewModels
-import androidx.lifecycle.lifecycleScope
 import androidx.preference.ListPreference
 import androidx.preference.Preference
 import com.jeremyliao.liveeventbus.LiveEventBus
@@ -22,12 +17,6 @@ import io.legado.app.constant.PreferKey
 import io.legado.app.databinding.DialogEditTextBinding
 import io.legado.app.help.AppFreezeMonitor
 import io.legado.app.help.DispatchersMonitor
-import io.legado.app.help.voice.VoiceAssistant
-import io.legado.app.help.voice.VoiceAiInterpreter
-import io.legado.app.help.voice.VoiceAiException
-import io.legado.app.data.appDb
-import io.legado.app.lib.dialogs.selector
-import io.legado.app.ui.book.agent.AiSourceManageActivity
 import io.legado.app.help.config.AppConfig
 import io.legado.app.help.config.LocalConfig
 import io.legado.app.help.config.ReadBookConfig
@@ -44,12 +33,6 @@ import io.legado.app.utils.getPrefBoolean
 import io.legado.app.utils.postEvent
 import io.legado.app.utils.putPrefBoolean
 import io.legado.app.utils.putPrefString
-import io.legado.app.utils.putPrefLong
-import io.legado.app.utils.getPrefLong
-import io.legado.app.utils.startActivity
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import io.legado.app.utils.removePref
 import io.legado.app.utils.restart
 import io.legado.app.utils.showDialogFragment
@@ -63,10 +46,6 @@ class OtherConfigFragment : PreferenceFragment(),
     SharedPreferences.OnSharedPreferenceChangeListener {
 
     private val viewModel by activityViewModels<ConfigViewModel>()
-    private val voicePermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-        findPreference<SwitchPreferenceCompat>(VoiceAssistant.ENABLED)?.isChecked = granted
-        if (!granted) appCtx.toastOnUi(R.string.voice_assistant_permission)
-    }
     private val packageManager = appCtx.packageManager
     private val componentName = ComponentName(
         appCtx,
@@ -81,13 +60,6 @@ class OtherConfigFragment : PreferenceFragment(),
     override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
         putPrefBoolean(PreferKey.processText, isProcessTextEnabled())
         addPreferencesFromResource(R.xml.pref_config_other)
-        findPreference<SwitchPreferenceCompat>(VoiceAssistant.ENABLED)?.setOnPreferenceChangeListener { _, value ->
-            if (value == true && ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.RECORD_AUDIO) !=
-                PackageManager.PERMISSION_GRANTED) {
-                voicePermission.launch(Manifest.permission.RECORD_AUDIO)
-                false
-            } else true
-        }
         upPreferenceSummary(PreferKey.userAgent, AppConfig.userAgent)
         upPreferenceSummary(PreferKey.preDownloadNum, AppConfig.preDownloadNum.toString())
         upPreferenceSummary(PreferKey.threadCount, AppConfig.threadCount.toString())
@@ -112,59 +84,8 @@ class OtherConfigFragment : PreferenceFragment(),
         preferenceManager.sharedPreferences?.unregisterOnSharedPreferenceChangeListener(this)
     }
 
-    override fun onResume() {
-        super.onResume()
-        updateVoiceAiSummary()
-    }
-
-    private fun updateVoiceAiSummary() {
-        viewLifecycleOwner.lifecycleScope.launch {
-            val source = try { VoiceAiInterpreter.source() } catch (_: VoiceAiException) { null }
-            val modelSummary = if (source == null) {
-                getString(R.string.voice_assistant_ai_configure)
-            } else {
-                val prefix = if (requireContext().getPrefLong(VoiceAiInterpreter.SOURCE_ID) == 0L)
-                    getString(R.string.voice_assistant_ai_follow) + " · " else ""
-                "$prefix${source.name} · ${source.model}"
-            }
-            findPreference<Preference>(VoiceAiInterpreter.MODEL)?.summary =
-                "$modelSummary\n${getString(R.string.voice_assistant_ai_summary)}"
-        }
-    }
-
-    private fun selectVoiceAiModel() {
-        viewLifecycleOwner.lifecycleScope.launch {
-            val sources = withContext(Dispatchers.IO) { appDb.aiSourceDao.allEnabled }
-            val labels = listOf(getString(R.string.voice_assistant_ai_follow)) + sources.map { it.name } +
-                getString(R.string.ai_source_manage)
-            requireContext().selector(getString(R.string.voice_assistant_ai_model), labels) { _, index ->
-                when (index) {
-                    0 -> {
-                        putPrefLong(VoiceAiInterpreter.SOURCE_ID, 0)
-                        putPrefString(VoiceAiInterpreter.MODEL, "")
-                        updateVoiceAiSummary()
-                    }
-                    labels.lastIndex -> startActivity<AiSourceManageActivity>()
-                    else -> {
-                        val source = sources[index - 1]
-                        val models = (listOf(source.model) + source.getModelList()).filter { it.isNotBlank() }.distinct()
-                        if (models.isEmpty()) {
-                            appCtx.toastOnUi(R.string.voice_assistant_ai_configure)
-                        } else requireContext().selector(source.name, models) { _, selected ->
-                            putPrefLong(VoiceAiInterpreter.SOURCE_ID, source.id)
-                            putPrefString(VoiceAiInterpreter.MODEL, models[selected])
-                            updateVoiceAiSummary()
-                        }
-                    }
-                }
-            }
-        }
-    }
-
     override fun onPreferenceTreeClick(preference: Preference): Boolean {
         when (preference.key) {
-            "voiceAssistantListen" -> { VoiceAssistant.listenNow(); return true }
-            VoiceAiInterpreter.MODEL -> { selectVoiceAiModel(); return true }
             PreferKey.userAgent -> showUserAgentDialog()
             PreferKey.defaultBookTreeUri -> localBookTreeSelect.launch {
                 title = getString(R.string.select_book_folder)

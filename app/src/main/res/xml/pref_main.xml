@@ -79,6 +79,13 @@
             app:iconSpaceReserved="false" />
 
         <io.legado.app.lib.prefs.Preference
+            android:icon="@drawable/ic_voice_assistant"
+            android:key="voice_assistant_setting"
+            android:summary="@string/voice_assistant_settings_summary"
+            android:title="@string/voice_assistant_settings"
+            app:iconSpaceReserved="false" />
+
+        <io.legado.app.lib.prefs.Preference
             android:icon="@drawable/ic_cfg_other"
             android:key="setting"
             android:summary="@string/other_setting_s"

@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.preference.PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <io.legado.app.lib.prefs.SwitchPreference
+        android:key="voiceAssistantEnabled"
+        android:defaultValue="false"
+        android:title="@string/voice_assistant"
+        android:summary="@string/voice_assistant_summary"
+        app:iconSpaceReserved="false" />
+
+    <io.legado.app.lib.prefs.Preference
+        android:key="voiceAssistantListen"
+        android:dependency="voiceAssistantEnabled"
+        android:persistent="false"
+        android:title="@string/voice_assistant_listen"
+        android:summary="@string/voice_assistant_commands"
+        app:iconSpaceReserved="false" />
+
+    <io.legado.app.lib.prefs.Preference
+        android:key="voiceAssistantAiModel"
+        android:title="@string/voice_assistant_ai_model"
+        app:iconSpaceReserved="false" />
+
+</androidx.preference.PreferenceScreen>

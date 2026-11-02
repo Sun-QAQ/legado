@@ -9,4 +9,6 @@
     <string name="voice_assistant_ai_model">语音助手 AI 模型</string>
     <string name="voice_assistant_ai_follow">跟随当前 AI 供应商</string>
     <string name="voice_assistant_ai_configure">请先配置 AI 供应商和模型</string>
+    <string name="voice_assistant_settings">语音助手设置</string>
+    <string name="voice_assistant_settings_summary">唤醒、语音指令与 AI 模型</string>
 </resources>

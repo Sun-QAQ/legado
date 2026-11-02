@@ -9,4 +9,6 @@
     <string name="voice_assistant_ai_model">Voice assistant AI model</string>
     <string name="voice_assistant_ai_follow">Follow current AI provider</string>
     <string name="voice_assistant_ai_configure">Configure an AI provider and model first</string>
+    <string name="voice_assistant_settings">Voice assistant settings</string>
+    <string name="voice_assistant_settings_summary">Wake word, voice commands and AI model</string>
 </resources>
