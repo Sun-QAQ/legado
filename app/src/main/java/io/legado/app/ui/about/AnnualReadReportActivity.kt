@@ -54,7 +54,7 @@ class AnnualReadReportActivity : BaseActivity<ActivityAnnualReadReportBinding>(i
     private fun updateNavigation(position: Int) {
         if (pages.isEmpty()) return
         binding.pageIndicator.text = getString(R.string.annual_report_page, position + 1, pages.size)
-        applyPageTheme(position)
+        applyPageTheme()
         repeat(binding.pageDots.childCount) { index ->
             val target = binding.pageDots.getChildAt(index) as FrameLayout
             target.isSelected = index == position
@@ -63,7 +63,7 @@ class AnnualReadReportActivity : BaseActivity<ActivityAnnualReadReportBinding>(i
                 width = (if (index == position) 15 else 4).dpToPx()
             }
             dot.background = GradientDrawable().apply {
-                setColor(reportStyle.foreground(position))
+                setColor(reportStyle.ink)
                 cornerRadius = 4.dpToPx().toFloat()
             }
             dot.alpha = if (index == position) 1f else 0.25f
@@ -72,7 +72,7 @@ class AnnualReadReportActivity : BaseActivity<ActivityAnnualReadReportBinding>(i
 
     override fun onActivityCreated(savedInstanceState: Bundle?) {
         binding.pageNavigation.applyNavigationBarPadding(withInitialPadding = true)
-        applyPageTheme(0)
+        applyPageTheme()
         binding.scrollView.applyNavigationBarPadding()
         restoredPage = savedInstanceState?.getInt("page") ?: 0
         binding.reportPager.registerOnPageChangeCallback(pageCallback)
@@ -88,7 +88,7 @@ class AnnualReadReportActivity : BaseActivity<ActivityAnnualReadReportBinding>(i
     override fun onPrepareOptionsMenu(menu: Menu): Boolean {
         menu.findItem(R.id.menu_report_year)?.isEnabled = !loading && years.isNotEmpty()
         menu.findItem(R.id.menu_report_refresh)?.isVisible = !loading && selectedYear in years
-        applyPageTheme(if (binding.reportPager.isVisible) binding.reportPager.currentItem else 0)
+        applyPageTheme()
         return super.onPrepareOptionsMenu(menu)
     }
 
@@ -162,7 +162,7 @@ class AnnualReadReportActivity : BaseActivity<ActivityAnnualReadReportBinding>(i
         binding.pageNavigation.isVisible = false
         binding.scrollView.isVisible = true
         binding.content.removeAllViews()
-        applyPageTheme(0)
+        applyPageTheme()
         addMessage(getString(message), reportStyle.ink)
     }
 
@@ -218,10 +218,10 @@ class AnnualReadReportActivity : BaseActivity<ActivityAnnualReadReportBinding>(i
         }
     }
 
-    private fun applyPageTheme(position: Int) {
-        val background = reportStyle.background(position)
-        val foreground = reportStyle.foreground(position)
-        val secondary = reportStyle.secondary(position)
+    private fun applyPageTheme() {
+        val background = reportStyle.paper
+        val foreground = reportStyle.ink
+        val secondary = reportStyle.muted
         binding.root.setBackgroundColor(background)
         binding.titleBar.apply {
             setBackgroundColor(background)

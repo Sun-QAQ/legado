@@ -208,7 +208,7 @@ class AnnualReadReportFeatureTest {
                     activity.getString(R.string.annual_report_month, 6),
                     activity.getString(R.string.annual_report_duration, 2L, 30L)),
                     chart.findViewWithTag<TextView>("annual_report_month_detail").text.toString())
-                assertEquals(activity.reportStyle.forestText,
+                assertEquals(activity.reportStyle.ink,
                     activity.findViewById<TextView>(R.id.page_indicator).currentTextColor)
             }
             awaitPagerLayout(scenario, 2)
@@ -255,9 +255,9 @@ class AnnualReadReportFeatureTest {
                         scenario.onActivity { activity ->
                             val style = activity.reportStyle
                             assertTrue(androidx.core.graphics.ColorUtils.calculateContrast(
-                                style.foreground(page), style.background(page)) >= 4.5)
+                                style.ink, style.paper) >= 4.5)
                             assertTrue(androidx.core.graphics.ColorUtils.calculateContrast(
-                                style.secondary(page), style.background(page)) >= 4.5)
+                                style.muted, style.paper) >= 4.5)
                             val root = activity.findViewById<View>(android.R.id.content)
                             val config = activity.resources.configuration
                             val scroll = activity.pages[page]

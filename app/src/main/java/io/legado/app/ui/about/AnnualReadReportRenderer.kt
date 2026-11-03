@@ -45,16 +45,7 @@ internal class AnnualReadReportStyle(private val context: Context) {
     val muted = color(R.color.annual_report_muted, Color.DKGRAY)
     val line = color(R.color.annual_report_line, Color.LTGRAY)
     val accent = color(R.color.annual_report_accent, Color.BLACK)
-    val forest = color(R.color.annual_report_forest, Color.WHITE)
-    val forestText = color(R.color.annual_report_forest_text, Color.BLACK)
-    val forestMuted = color(R.color.annual_report_forest_muted, Color.DKGRAY)
-    val forestLine = color(R.color.annual_report_forest_line, Color.LTGRAY)
     val bar = color(R.color.annual_report_bar, Color.DKGRAY)
-    val selectedBar = color(R.color.annual_report_bar_selected, Color.BLACK)
-
-    fun background(page: Int) = if (page == 2) forest else paper
-    fun foreground(page: Int) = if (page == 2) forestText else ink
-    fun secondary(page: Int) = if (page == 2) forestMuted else muted
 }
 
 /** Native text and accessible chart controls, backed only by the saved report. */
@@ -82,16 +73,16 @@ internal class AnnualReadReportRenderer(
         readingDays(report)
         val months = monthlyRhythm(report)
         if (report.books.isNotEmpty()) books(report)
-        else text(months, R.string.annual_report_data_note, 11, style.forestMuted, top = 28)
+        else text(months, R.string.annual_report_data_note, 11, style.muted, top = 28)
         return pages.toList()
     }
 
-    private fun page(background: Int = style.paper): LinearLayout {
+    private fun page(): LinearLayout {
         val content = column().apply { setPadding(dp(28), dp(18), dp(28), dp(16)) }
         pages.add(NestedScrollView(context).apply {
             isFillViewport = true
             clipToPadding = false
-            setBackgroundColor(background)
+            setBackgroundColor(style.paper)
             addView(content, ViewGroup.LayoutParams(-1, -2))
         })
         return content
@@ -192,33 +183,32 @@ internal class AnnualReadReportRenderer(
         text(this, R.string.annual_report_days_closing, 14, style.muted, top = 24, serif = true)
     }
 
-    private fun monthlyRhythm(report: AnnualReadReport): LinearLayout = page(style.forest).apply {
-        eyebrow(this, R.string.annual_report_chapter_months, style.forestMuted)
-        title(this, R.string.annual_report_months_hero, R.string.annual_report_months_accent,
-            color = style.forestText, accent = style.selectedBar)
-        text(this, R.string.annual_report_months_intro, 12, style.forestMuted, top = 12)
-        divider(this, style.forestLine, top = 16)
+    private fun monthlyRhythm(report: AnnualReadReport): LinearLayout = page().apply {
+        eyebrow(this, R.string.annual_report_chapter_months)
+        title(this, R.string.annual_report_months_hero, R.string.annual_report_months_accent)
+        text(this, R.string.annual_report_months_intro, 12, style.muted, top = 12)
+        divider(this, top = 16)
         val peak = report.monthlyTimes.maxOrNull() ?: 0L
         val peakIndex = report.monthlyTimes.indexOf(peak).coerceAtLeast(0)
         if (peak > 0) {
-            text(this, R.string.annual_report_peak_label, 11, style.forestMuted, top = 12)
+            text(this, R.string.annual_report_peak_label, 11, style.muted, top = 12)
             val peakRow = row()
             addView(peakRow, params(top = 8))
             text(peakRow, numberSpans(context.getString(R.string.annual_report_month, peakIndex + 1), 52),
-                14, style.forestText, layout = LinearLayout.LayoutParams(0, -2, 1f))
-            text(peakRow, duration(peak), 13, style.forestText,
+                14, style.ink, layout = LinearLayout.LayoutParams(0, -2, 1f))
+            text(peakRow, duration(peak), 13, style.ink,
                 layout = LinearLayout.LayoutParams(0, -2, 1f)).gravity = Gravity.END
         } else {
-            text(this, R.string.annual_report_no_months, 16, style.forestText, top = 22, serif = true)
+            text(this, R.string.annual_report_no_months, 16, style.ink, top = 22, serif = true)
         }
         val chartTitle = row()
         addView(chartTitle, params(top = 18))
-        text(chartTitle, R.string.annual_report_monthly_label, 10, style.forestMuted,
+        text(chartTitle, R.string.annual_report_monthly_label, 10, style.muted,
             layout = LinearLayout.LayoutParams(0, -2, 1f))
-        text(chartTitle, R.string.annual_report_chart_hours, 10, style.forestMuted,
+        text(chartTitle, R.string.annual_report_chart_hours, 10, style.muted,
             layout = LinearLayout.LayoutParams(-2, -2))
         monthlyChart(this, report.monthlyTimes, peakIndex)
-        text(this, R.string.annual_report_months_closing, 16, style.forestText, top = 12, serif = true)
+        text(this, R.string.annual_report_months_closing, 16, style.ink, top = 12, serif = true)
             .gravity = Gravity.CENTER
     }
 
@@ -233,7 +223,7 @@ internal class AnnualReadReportRenderer(
         chart.addView(axis, LinearLayout.LayoutParams(dp(24), -1).apply { bottomMargin = dp(24) })
         listOf(ceiling, ceiling / 2, 0.0).forEachIndexed { index, value ->
             text(axis, String.format(Locale.getDefault(), if (value % 1 == 0.0) "%.0f" else "%.1f", value),
-                9, style.forestMuted, layout = LinearLayout.LayoutParams(-1, 0, 1f)).apply {
+                9, style.muted, layout = LinearLayout.LayoutParams(-1, 0, 1f)).apply {
                 gravity = when (index) { 0 -> Gravity.TOP; 1 -> Gravity.CENTER_VERTICAL; else -> Gravity.BOTTOM }
                 importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
             }
@@ -241,7 +231,7 @@ internal class AnnualReadReportRenderer(
         val detail = TextView(context).apply {
             tag = "annual_report_month_detail"
             textSize = 12f
-            setTextColor(style.selectedBar)
+            setTextColor(style.accent)
             gravity = Gravity.CENTER
             accessibilityLiveRegion = View.ACCESSIBILITY_LIVE_REGION_POLITE
         }
@@ -249,7 +239,7 @@ internal class AnnualReadReportRenderer(
         val columns = mutableListOf<View>()
         fun select(index: Int) {
             bars.forEachIndexed { i, bar ->
-                val drawable = ClipDrawable(rounded(if (i == index) style.selectedBar else style.bar, 2),
+                val drawable = ClipDrawable(rounded(if (i == index) style.accent else style.bar, 2),
                     Gravity.BOTTOM, ClipDrawable.VERTICAL)
                 bar.background = drawable
                 drawable.level = if (times[i] > 0) {
@@ -283,7 +273,7 @@ internal class AnnualReadReportRenderer(
                 marginStart = dp(3)
                 marginEnd = dp(3)
             })
-            text(column, (index + 1).toString(), 10, style.forestMuted,
+            text(column, (index + 1).toString(), 10, style.muted,
                 layout = LinearLayout.LayoutParams(-1, dp(24))).apply {
                 gravity = Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
                 importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
@@ -293,7 +283,7 @@ internal class AnnualReadReportRenderer(
         parent.addView(quarters, params(top = 12).apply { marginStart = dp(24) })
         repeat(4) { index ->
             text(quarters, context.getString(R.string.annual_report_quarter, index + 1), 9,
-                style.forestMuted, layout = LinearLayout.LayoutParams(0, -2, 1f)).gravity = Gravity.CENTER
+                style.muted, layout = LinearLayout.LayoutParams(0, -2, 1f)).gravity = Gravity.CENTER
         }
         parent.addView(detail, params(top = 14))
         select(selected)
