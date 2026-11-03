@@ -197,6 +197,7 @@ class AgentViewModel @JvmOverloads constructor(
     private var editingSource: BookSource? = null
     private var savedSourceResult: String? = null
     private val readingContextProvider = ReadingContextProvider()
+    internal var bookQuestionContext: String? = null
 
     fun selectSupplier(id: Long, name: String) {
         supplierSelection.select(id)
@@ -2387,7 +2388,7 @@ class AgentViewModel @JvmOverloads constructor(
             .ifBlank { "当前没有启用的工具。" }
         return buildAgentRequest(supplier, requestTurns, composeAgentSystemPrompt(
             currentPersonaPrompt, AgentPresetPreferences.selectedPrompt(context), toolOverview
-        ), disabledTools)
+        ) + bookQuestionContext?.let { "\n\n$it" }.orEmpty(), disabledTools)
     }
 
     private fun buildAgentRequest(

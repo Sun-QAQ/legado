@@ -1,0 +1,16 @@
+<resources>
+    <string name="book_question_title">AI 问书</string>
+    <string name="book_question_book">《%1$s》</string>
+    <string name="book_question_hint">针对本书提出你的问题</string>
+    <string name="book_question_close">收起问书</string>
+    <string name="book_question_highlights">书籍亮点</string>
+    <string name="book_question_background">背景解读</string>
+    <string name="book_question_concepts">关键概念</string>
+    <string name="book_question_highlights_prompt">这本书有哪些值得关注的亮点？请结合当前阅读进度介绍。</string>
+    <string name="book_question_background_prompt">请解读这本书的时代、社会或创作背景，帮助我理解已读内容。</string>
+    <string name="book_question_concepts_prompt">请解释当前章节中值得理解的关键概念、人物关系或重要设定。</string>
+    <string name="book_question_suggestion_summary">当前章节主要讲了什么？</string>
+    <string name="book_question_suggestion_people">目前有哪些重要人物或核心观点？</string>
+    <string name="book_question_suggestion_details">当前章节有哪些值得留意的细节？</string>
+    <string name="book_question_model">AI 模型设置</string>
+</resources>

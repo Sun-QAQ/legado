@@ -223,6 +223,24 @@
             <View
                 android:layout_width="0dp"
                 android:layout_height="match_parent"
+                android:layout_weight="2" />
+
+            <com.google.android.material.floatingactionbutton.FloatingActionButton
+                android:id="@+id/fabAi"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginVertical="16dp"
+                android:contentDescription="@string/book_question_title"
+                android:src="@drawable/ic_bottom_ai_e"
+                android:tooltipText="@string/book_question_title"
+                app:backgroundTint="@color/background_menu"
+                app:elevation="2dp"
+                app:fabSize="mini"
+                app:pressedTranslationZ="2dp" />
+
+            <View
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
                 android:layout_weight="1" />
 
         </LinearLayout>
