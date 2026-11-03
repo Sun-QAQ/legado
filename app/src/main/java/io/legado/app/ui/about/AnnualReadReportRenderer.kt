@@ -299,15 +299,15 @@ internal class AnnualReadReportRenderer(
         eyebrow(this, R.string.annual_report_chapter_calendar)
         title(this, R.string.annual_report_calendar_hero, R.string.annual_report_calendar_accent,
             size = 26, top = 16)
-        text(this, R.string.annual_report_calendar_intro, 12, style.muted, top = 12)
+        text(this, R.string.annual_report_calendar_intro, 12, style.muted, top = 8)
         val times = report.dailyTimes.orEmpty()
         val yearStart = LocalDate.of(report.year, 1, 1)
         text(this, context.getString(R.string.annual_report_calendar_summary,
-            yearStart.lengthOfYear(), times.count { it > 0 }), 12, style.ink, top = 12)
+            yearStart.lengthOfYear(), times.count { it > 0 }), 12, style.ink, top = 8)
         divider(this, top = 14)
         repeat(4) { quarter ->
             val monthRow = row()
-            addView(monthRow, params(top = 12))
+            addView(monthRow, params(top = 8))
             repeat(3) { index ->
                 val month = yearStart.withMonth(quarter * 3 + index + 1)
                 val calendar = column().apply { tag = "annual_report_calendar_month_${month.monthValue}" }
@@ -350,7 +350,7 @@ internal class AnnualReadReportRenderer(
             }
         }
         val legend = row().apply { gravity = Gravity.CENTER_VERTICAL }
-        addView(legend, params(top = 12))
+        addView(legend, params(top = 8))
         text(legend, R.string.annual_report_calendar_less, 10, style.muted,
             layout = LinearLayout.LayoutParams(-2, -2).apply { marginEnd = dp(6) })
         listOf(0L, 1L, 900_000L, 1_800_000L, 3_600_000L).forEach { time ->
