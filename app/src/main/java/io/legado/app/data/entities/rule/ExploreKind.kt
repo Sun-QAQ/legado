@@ -6,7 +6,8 @@ package io.legado.app.data.entities.rule
 data class ExploreKind(
     val title: String = "",
     val url: String? = null,
-    val style: FlexChildStyle? = null
+    val style: FlexChildStyle? = null,
+    val html: String? = null
 ) {
 
     fun style(): FlexChildStyle {

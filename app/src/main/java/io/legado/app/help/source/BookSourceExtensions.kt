@@ -7,9 +7,7 @@ import io.legado.app.data.entities.BookSource
 import io.legado.app.data.entities.BookSourcePart
 import io.legado.app.data.entities.rule.ExploreKind
 import io.legado.app.utils.ACache
-import io.legado.app.utils.GSON
 import io.legado.app.utils.MD5Utils
-import io.legado.app.utils.fromJsonArray
 import io.legado.app.utils.isJsonArray
 import io.legado.app.utils.printOnDebug
 import kotlinx.coroutines.Dispatchers
@@ -68,16 +66,7 @@ suspend fun BookSource.exploreKinds(): List<ExploreKind> {
                         aCache.put(exploreKindsKey, ruleStr)
                     }
                 }
-                if (ruleStr.isJsonArray()) {
-                    GSON.fromJsonArray<ExploreKind>(ruleStr).getOrThrow().let {
-                        kinds.addAll(it)
-                    }
-                } else {
-                    ruleStr.split("(&&|\n)+".toRegex()).forEach { kindStr ->
-                        val kindCfg = kindStr.split("::")
-                        kinds.add(ExploreKind(kindCfg.first(), kindCfg.getOrNull(1)))
-                    }
-                }
+                kinds.addAll(ExploreKindsParser.parse(ruleStr))
             }.onFailure {
                 kinds.add(ExploreKind("ERROR:${it.localizedMessage}", it.stackTraceToString()))
                 it.printOnDebug()

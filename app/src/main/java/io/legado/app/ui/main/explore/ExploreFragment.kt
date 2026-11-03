@@ -379,6 +379,12 @@ class ExploreFragment() : VMBaseFragment<ExploreViewModel>(R.layout.fragment_exp
         }
     }
 
+    override fun onDestroyView() {
+        adapter.disposeWebViews()
+        binding.rvFind.adapter = null
+        super.onDestroyView()
+    }
+
     fun compressExplore() {
         if (!adapter.compressExplore()) {
             if (AppConfig.isEInkMode) {

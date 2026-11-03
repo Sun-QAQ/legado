@@ -49,6 +49,7 @@ class ExploreAdapter(context: Context, val callBack: CallBack) :
      * 已解析的发现分类缓存，避免重复展示加载态
      */
     private val kindsCache = hashMapOf<String, List<ExploreKind>>()
+    private val webViews = mutableSetOf<ExploreWebView>()
 
     private val avatarPalette = arrayOf(
         intArrayOf(0xFFE8E3FF.toInt(), 0xFF5546C9.toInt()),
@@ -82,7 +83,7 @@ class ExploreAdapter(context: Context, val callBack: CallBack) :
             llCategories.isVisible = expanded
             if (!expanded) {
                 llLoading.isVisible = false
-                flexbox.removeAllViews()
+                clearCategories(flexbox)
                 return
             }
             val kinds = kindsCache[sourceUrl]
@@ -91,7 +92,7 @@ class ExploreAdapter(context: Context, val callBack: CallBack) :
                 upKindList(flexbox, sourceUrl, kinds)
                 return
             }
-            flexbox.removeAllViews()
+            clearCategories(flexbox)
             llLoading.isVisible = true
             rotateLoading.loadingColor = context.accentColor
             Coroutine.async(callBack.scope) {
@@ -99,7 +100,9 @@ class ExploreAdapter(context: Context, val callBack: CallBack) :
             }.onSuccess { kindList ->
                 kindsCache[sourceUrl] = kindList
                 // 异步期间 item 可能已被回收或复用，需要确认视图仍对应同一书源
-                if (holder.layoutPosition == position && getItem(position)?.bookSourceUrl == sourceUrl) {
+                if (holder.layoutPosition == position && getItem(position)?.bookSourceUrl == sourceUrl
+                    && sourceUrl in expandedSources
+                ) {
                     llLoading.isVisible = false
                     upKindList(flexbox, sourceUrl, kindList)
                 }
@@ -168,6 +171,26 @@ class ExploreAdapter(context: Context, val callBack: CallBack) :
         }
     }
 
+    override fun onViewRecycled(holder: ItemViewHolder) {
+        (holder.binding as? ItemFindBookBinding)?.let { clearCategories(it.flexbox) }
+        super.onViewRecycled(holder)
+    }
+
+    fun disposeWebViews() {
+        webViews.toList().forEach { it.dispose() }
+        webViews.clear()
+    }
+
+    private fun clearCategories(flexbox: FlexboxLayout) {
+        for (index in flexbox.childCount - 1 downTo 0) {
+            (flexbox.getChildAt(index) as? ExploreWebView)?.let {
+                webViews.remove(it)
+                it.dispose()
+            }
+        }
+        flexbox.removeAllViews()
+    }
+
     /**
      * 书源头像：按地址稳定取色，取名称首字
      */
@@ -193,8 +216,22 @@ class ExploreAdapter(context: Context, val callBack: CallBack) :
      * 渲染分类：默认三列等宽，书源自定义的 flex 样式（如 flexBasisPercent=1 独占整行）优先生效
      */
     private fun upKindList(flexbox: FlexboxLayout, sourceUrl: String, kinds: List<ExploreKind>) {
-        flexbox.removeAllViews()
+        val html = kinds.singleOrNull()?.html
+        val current = flexbox.getChildAt(0) as? ExploreWebView
+        if (html != null && current?.sourceUrl == sourceUrl && current.html == html) return
+        clearCategories(flexbox)
         flexbox.isVisible = kinds.isNotEmpty()
+        if (html != null) {
+            val webView = ExploreWebView(context, sourceUrl, html) { url, title ->
+                callBack.openExplore(sourceUrl, title, url)
+            }
+            webViews.add(webView)
+            flexbox.addView(webView, FlexboxLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 1).apply {
+                flexBasisPercent = 1f
+                flexShrink = 0f
+            })
+            return
+        }
         kinds.forEach { kind ->
             val tv = createCategoryView(kind, sourceUrl)
             val style = kind.style()
