@@ -22,6 +22,7 @@ import androidx.test.espresso.matcher.ViewMatchers.isDisplayed
 import androidx.test.espresso.matcher.ViewMatchers.withId
 import androidx.test.espresso.matcher.ViewMatchers.withText
 import androidx.test.platform.app.InstrumentationRegistry
+import com.google.android.material.shape.MaterialShapeDrawable
 import io.legado.app.R
 import io.legado.app.data.entities.ReadStat
 import io.legado.app.help.config.AppConfig
@@ -313,7 +314,8 @@ class AnnualReadReportFeatureTest {
                             assertEquals(background, (page.background as ColorDrawable).color)
                         }
                         val titleBar = activity.findViewById<io.legado.app.ui.widget.TitleBar>(R.id.title_bar)
-                        assertEquals(background, (titleBar.background as ColorDrawable).color)
+                        assertEquals(background,
+                            (titleBar.background as MaterialShapeDrawable).fillColor!!.defaultColor)
                         assertEquals(background,
                             (activity.findViewById<View>(R.id.page_navigation).background as ColorDrawable).color)
                     }
