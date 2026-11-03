@@ -157,6 +157,11 @@ class AnnualReadReportFeatureTest {
                 }
                 ActivityScenario.launch(AnnualReadReportActivity::class.java).use { scenario ->
                     awaitReport(scenario)
+                    scenario.onActivity { activity ->
+                        val menu = activity.findViewById<io.legado.app.ui.widget.TitleBar>(R.id.title_bar).menu
+                        assertEquals(1, menu.size())
+                        assertEquals(R.id.menu_report_year, menu.getItem(0).itemId)
+                    }
                     scenario.onActivity { activity -> activity.renderReport(fixture()) }
                     instrumentation.waitForIdleSync()
                     scenario.onActivity { activity ->

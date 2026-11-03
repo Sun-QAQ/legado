@@ -6,8 +6,6 @@
     <string name="annual_report_later">以后再说</string>
     <string name="annual_report_choose_year">年份</string>
     <string name="annual_report_year">%1$d 年</string>
-    <string name="annual_report_refresh">更新报告</string>
-    <string name="annual_report_refresh_confirm">根据当前保留的每日阅读记录重新生成并替换这份报告？如已删除或更改统计数据，报告也会随之变化。</string>
     <string name="annual_report_not_ready">每年 12 月起可手动生成当年的阅读报告；若尚未生成，将在 12 月 31 日打开 App 时提醒。往年的报告和有每日阅读记录的年份，也会在这里等您回顾。</string>
     <string name="annual_report_error">暂时无法生成或读取报告，请重试。</string>
     <string name="annual_report_retry">点击重试</string>

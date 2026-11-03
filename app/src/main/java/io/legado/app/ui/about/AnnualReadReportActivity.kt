@@ -87,7 +87,6 @@ class AnnualReadReportActivity : BaseActivity<ActivityAnnualReadReportBinding>(i
 
     override fun onPrepareOptionsMenu(menu: Menu): Boolean {
         menu.findItem(R.id.menu_report_year)?.isEnabled = !loading && years.isNotEmpty()
-        menu.findItem(R.id.menu_report_refresh)?.isVisible = !loading && selectedYear in years
         applyPageTheme()
         return super.onPrepareOptionsMenu(menu)
     }
@@ -104,18 +103,11 @@ class AnnualReadReportActivity : BaseActivity<ActivityAnnualReadReportBinding>(i
                 }
                 return true
             }
-            R.id.menu_report_refresh -> {
-                alert(R.string.annual_report_refresh, R.string.annual_report_refresh_confirm) {
-                    okButton { loadReport(refresh = true) }
-                    cancelButton()
-                }
-                return true
-            }
         }
         return super.onCompatOptionsItemSelected(item)
     }
 
-    private fun loadReport(refresh: Boolean = false) {
+    private fun loadReport() {
         reportJob?.cancel()
         reportJob = lifecycleScope.launch {
             loading = true
@@ -131,8 +123,7 @@ class AnnualReadReportActivity : BaseActivity<ActivityAnnualReadReportBinding>(i
                     val available = store.years(today)
                     val year = selectedYear.takeIf { it in available } ?: available.firstOrNull()
                     val report = year?.let {
-                        if (refresh) store.generate(it, today)
-                        else store.load(it) ?: store.generate(it, today)
+                        store.load(it) ?: store.generate(it, today)
                     }
                     Triple(available, report, report?.let { AnnualReadReportCovers.load(it) }.orEmpty())
                 }
@@ -149,7 +140,7 @@ class AnnualReadReportActivity : BaseActivity<ActivityAnnualReadReportBinding>(i
             } catch (_: Exception) {
                 showMessage(R.string.annual_report_error)
                 addMessage(getString(R.string.annual_report_retry), reportStyle.accent)
-                    .setOnClickListener { loadReport(refresh) }
+                    .setOnClickListener { loadReport() }
             } finally {
                 loading = false
                 binding.progress.isVisible = false
