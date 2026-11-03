@@ -6,6 +6,7 @@ import android.graphics.Canvas
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
+import androidx.core.os.ConfigurationCompat
 import androidx.core.view.isVisible
 import androidx.lifecycle.Lifecycle
 import androidx.test.core.app.ActivityScenario
@@ -24,7 +25,6 @@ import io.legado.app.data.entities.ReadStat
 import io.legado.app.help.config.AppConfig
 import io.legado.app.help.config.ThemeConfig
 import io.legado.app.help.config.LocalConfig
-import io.legado.app.lib.theme.ThemePalette
 import org.junit.Assert.*
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -160,18 +160,13 @@ class AnnualReadReportFeatureTest {
                         val bookDuration = textViews(content).last {
                             it.text.toString() == activity.getString(R.string.annual_report_duration, 2L, 30L)
                         }
-                        val palette = ThemePalette(activity)
-                        val surface = androidx.core.graphics.ColorUtils.compositeColors(
-                            palette.surface,
-                            androidx.core.graphics.ColorUtils.setAlphaComponent(palette.background, 255),
-                        )
                         assertTrue("Book reading time remains readable in theme $night",
                             androidx.core.graphics.ColorUtils.calculateContrast(
-                                bookDuration.currentTextColor, surface) >= 4.5)
+                                bookDuration.currentTextColor, activity.reportStyle.paper) >= 4.5)
                         assertTrue(pager.height > 0)
                         val image = Bitmap.createBitmap(pager.width, pager.height, Bitmap.Config.ARGB_8888)
                         val canvas = Canvas(image)
-                        canvas.drawColor(ThemePalette(activity).background)
+                        canvas.drawColor(activity.reportStyle.paper)
                         pager.draw(canvas)
                         File(activity.externalCacheDir, "annual-report-${if (night) "dark" else "light"}.png")
                             .outputStream().use { image.compress(Bitmap.CompressFormat.PNG, 100, it) }
@@ -181,6 +176,105 @@ class AnnualReadReportFeatureTest {
                         assertEquals(3, pager.adapter?.itemCount)
                         assertTrue(activity.pages.flatMap { texts(it) }
                             .contains(activity.getString(R.string.annual_report_empty_title)))
+                    }
+                }
+            }
+        } finally {
+            instrumentation.runOnMainSync {
+                AppConfig.isNightTheme = original
+                ThemeConfig.applyDayNight(instrumentation.targetContext)
+            }
+        }
+    }
+
+    @Test
+    fun chartSelectionAndChapterDotsReflectTheSavedStatistics() {
+        ActivityScenario.launch(AnnualReadReportActivity::class.java).use { scenario ->
+            awaitReport(scenario)
+            scenario.onActivity { it.renderReport(fixture()) }
+            instrumentation.waitForIdleSync()
+            scenario.onActivity { activity ->
+                val pager = activity.findViewById<androidx.viewpager2.widget.ViewPager2>(R.id.report_pager)
+                val dots = activity.findViewById<ViewGroup>(R.id.page_dots)
+                assertEquals(4, dots.childCount)
+                dots.getChildAt(2).performClick()
+                assertEquals(2, pager.currentItem)
+                val chart = activity.pages[2]
+                val june = chart.findViewWithTag<View>("annual_report_month_6")
+                assertTrue(june.performClick())
+                assertTrue(june.isSelected)
+                assertFalse(chart.findViewWithTag<View>("annual_report_month_1").isSelected)
+                assertEquals(activity.getString(R.string.annual_report_month_value,
+                    activity.getString(R.string.annual_report_month, 6),
+                    activity.getString(R.string.annual_report_duration, 2L, 30L)),
+                    chart.findViewWithTag<TextView>("annual_report_month_detail").text.toString())
+                assertEquals(activity.reportStyle.forestText,
+                    activity.findViewById<TextView>(R.id.page_indicator).currentTextColor)
+            }
+            awaitPagerLayout(scenario, 2)
+            scenario.onActivity { activity ->
+                val column = activity.pages[2].findViewWithTag<ViewGroup>("annual_report_month_6")
+                val track = column.getChildAt(0) as ViewGroup
+                assertTrue("June bar should be visible after jumping to the chart; track=${track.height}",
+                    track.getChildAt(0).height > 0)
+                assertTrue(track.getChildAt(0).background.level > 0)
+                activity.renderReport(AnnualReadReport.create(fixture().year, LocalDate.now(), emptyList()))
+                activity.findViewById<androidx.viewpager2.widget.ViewPager2>(R.id.report_pager)
+                    .setCurrentItem(2, false)
+            }
+            awaitPagerLayout(scenario, 2)
+            scenario.onActivity { activity ->
+                assertEquals(3, activity.findViewById<ViewGroup>(R.id.page_dots).childCount)
+                repeat(12) { month ->
+                    val column = activity.pages[2].findViewWithTag<ViewGroup>("annual_report_month_${month + 1}")
+                    assertEquals(0, (column.getChildAt(0) as ViewGroup).getChildAt(0).background.level)
+                }
+            }
+        }
+    }
+
+    @Test
+    fun journalPagesRemainReadableInBothThemesAndCaptureScreenshots() {
+        val original = AppConfig.isNightTheme
+        try {
+            for (night in listOf(false, true)) {
+                instrumentation.runOnMainSync {
+                    AppConfig.isNightTheme = night
+                    ThemeConfig.applyDayNight(instrumentation.targetContext)
+                }
+                ActivityScenario.launch(AnnualReadReportActivity::class.java).use { scenario ->
+                    awaitReport(scenario)
+                    scenario.onActivity { it.renderReport(fixture()) }
+                    instrumentation.waitForIdleSync()
+                    repeat(4) { page ->
+                        scenario.onActivity { activity ->
+                            activity.findViewById<androidx.viewpager2.widget.ViewPager2>(R.id.report_pager)
+                                .setCurrentItem(page, false)
+                        }
+                        awaitPagerLayout(scenario, page)
+                        scenario.onActivity { activity ->
+                            val style = activity.reportStyle
+                            assertTrue(androidx.core.graphics.ColorUtils.calculateContrast(
+                                style.foreground(page), style.background(page)) >= 4.5)
+                            assertTrue(androidx.core.graphics.ColorUtils.calculateContrast(
+                                style.secondary(page), style.background(page)) >= 4.5)
+                            val root = activity.findViewById<View>(android.R.id.content)
+                            val config = activity.resources.configuration
+                            val scroll = activity.pages[page]
+                            if (page in listOf(0, 2) && config.fontScale <= 1.05f &&
+                                scroll.height / activity.resources.displayMetrics.density >= 630 &&
+                                ConfigurationCompat.getLocales(config)[0]?.language == "zh") {
+                                assertTrue("Chapter $page should fit a normal phone viewport: " +
+                                    "content=${scroll.getChildAt(0).height}, viewport=${scroll.height}",
+                                    scroll.getChildAt(0).height <= scroll.height)
+                            }
+                            val image = Bitmap.createBitmap(root.width, root.height, Bitmap.Config.ARGB_8888)
+                            root.draw(Canvas(image))
+                            File(activity.externalCacheDir,
+                                "annual-journal-${if (night) "dark" else "light"}-$page.png")
+                                .outputStream().use { image.compress(Bitmap.CompressFormat.PNG, 100, it) }
+                            image.recycle()
+                        }
                     }
                 }
             }
@@ -212,5 +306,23 @@ class AnnualReadReportFeatureTest {
             Thread.sleep(50)
         }
         fail("Report did not finish loading")
+    }
+
+    private fun awaitPagerLayout(scenario: ActivityScenario<AnnualReadReportActivity>, page: Int) {
+        repeat(100) {
+            var ready = false
+            scenario.onActivity { activity ->
+                val pager = activity.findViewById<androidx.viewpager2.widget.ViewPager2>(R.id.report_pager)
+                val content = activity.pages[page]
+                ready = pager.scrollState == androidx.viewpager2.widget.ViewPager2.SCROLL_STATE_IDLE &&
+                    content.isLaidOut && !content.isLayoutRequested
+            }
+            if (ready) {
+                instrumentation.waitForIdleSync()
+                return
+            }
+            Thread.sleep(20)
+        }
+        fail("Report page did not finish layout")
     }
 }

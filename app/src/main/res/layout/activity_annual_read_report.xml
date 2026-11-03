@@ -9,6 +9,7 @@
         android:id="@+id/title_bar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        app:titleTextAppearance="@style/AnnualReportToolbarTitle"
         app:title="@string/annual_report_title" />
 
     <ProgressBar
@@ -48,14 +49,34 @@
         android:layout_height="wrap_content"
         android:gravity="center"
         android:orientation="horizontal"
-        android:padding="12dp"
+        android:paddingStart="24dp"
+        android:paddingEnd="24dp"
         android:visibility="gone">
+        <LinearLayout
+            android:id="@+id/page_dots"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal" />
         <TextView
             android:id="@+id/page_indicator"
-            android:layout_width="0dp"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
+            android:layout_marginStart="8dp"
+            android:fontFamily="serif"
+            android:textSize="11sp"
             android:gravity="center"
             android:accessibilityLiveRegion="polite" />
+        <Space
+            android:layout_width="0dp"
+            android:layout_height="1dp"
+            android:layout_weight="1" />
+        <TextView
+            android:id="@+id/report_signature"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:text="@string/annual_report_signature"
+            android:textSize="9sp" />
     </LinearLayout>
 </LinearLayout>
