@@ -22,11 +22,12 @@ class ExploreWebViewTest {
             val opened = CountDownLatch(1)
             var openedUrl = ""
             var openedTitle = ""
+            var readyCount = 0
             scenario.onActivity { activity ->
                 web = ExploreWebView(activity, "https://example.org/", """
                     <!doctype html><html><head><style>body{margin:0}#catalog{height:320px}</style></head>
                     <body><div id="catalog"><button id="category" onclick="java.open('explore','https://example.org/list?page={{page}}','测试分类')">测试分类</button></div></body></html>
-                """.trimIndent()) { url, title ->
+                """.trimIndent(), onContentReady = { readyCount++ }) { url, title ->
                     openedUrl = url
                     openedTitle = title
                     opened.countDown()
@@ -42,6 +43,7 @@ class ExploreWebViewTest {
                 if (!sized) SystemClock.sleep(100)
             }
             assertTrue("网页应按内容高度展开", sized)
+            assertEquals(1, readyCount)
             scenario.onActivity {
                 web.evaluateJavascript("document.getElementById('category').click()", null)
             }

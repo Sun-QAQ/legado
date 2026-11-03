@@ -16,9 +16,11 @@ class ExploreWebView(
     context: Context,
     val sourceUrl: String,
     val html: String,
+    private val onContentReady: () -> Unit = {},
     private val openExplore: (url: String, title: String) -> Unit
 ) : WebView(context) {
     private var disposed = false
+    private var contentReady = false
 
     init {
         setBackgroundColor(Color.TRANSPARENT)
@@ -82,6 +84,10 @@ class ExploreWebView(
                 if (params.height != height) {
                     params.height = height
                     layoutParams = params
+                }
+                if (!contentReady) {
+                    contentReady = true
+                    onContentReady()
                 }
             }
         }

@@ -222,7 +222,11 @@ class ExploreAdapter(context: Context, val callBack: CallBack) :
         clearCategories(flexbox)
         flexbox.isVisible = kinds.isNotEmpty()
         if (html != null) {
-            val webView = ExploreWebView(context, sourceUrl, html) { url, title ->
+            val webView = ExploreWebView(context, sourceUrl, html, onContentReady = {
+                // 首次从占位高度变为完整网页时，继续以书源标题作为滚动锚点。
+                val position = getItems().indexOfFirst { it.bookSourceUrl == sourceUrl }
+                if (position >= 0 && sourceUrl in expandedSources) callBack.scrollTo(position)
+            }) { url, title ->
                 callBack.openExplore(sourceUrl, title, url)
             }
             webViews.add(webView)
