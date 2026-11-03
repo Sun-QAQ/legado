@@ -115,6 +115,71 @@ class AnnualReadReportFeatureTest {
     }
 
     @Test
+    fun legacySnapshotsGainDailyDotsWithoutReplacingTheirSavedStatistics() {
+        val context = instrumentation.targetContext
+        val root = File(context.cacheDir, "annual-report-test-${UUID.randomUUID()}")
+        val isolated = object : ContextWrapper(context) {
+            override fun getFilesDir(): File = root
+        }
+        try {
+            val report = fixture().copy(dailyTimes = null)
+            val store = AnnualReadReportStore(isolated)
+            store.save(report)
+            val file = File(root, "annual_read_reports/${report.year}.json")
+            val before = file.readText()
+            val loaded = requireNotNull(store.load(report.year))
+            assertTrue(loaded.dailyTimesFromRecords)
+            assertEquals(LocalDate.of(report.year, 1, 1).lengthOfYear(), loaded.dailyTimes!!.size)
+            assertEquals(report, loaded.copy(dailyTimes = null, dailyTimesFromRecords = false))
+            assertEquals(before, file.readText())
+        } finally {
+            root.deleteRecursively()
+        }
+    }
+
+    @Test
+    fun calendarIncludesLeapDayAndSeparatesReadingEmptyAndFutureDates() {
+        val report = AnnualReadReport.create(2024, LocalDate.of(2024, 3, 1), listOf(
+            ReadStat("A", LocalDate.of(2024, 2, 28).toEpochDay(), 1_000),
+            ReadStat("B", LocalDate.of(2024, 2, 28).toEpochDay(), 2_000),
+            ReadStat("A", LocalDate.of(2024, 2, 29).toEpochDay(), 3_600_000),
+            ReadStat("A", LocalDate.of(2024, 3, 1).toEpochDay(), 900_000),
+            ReadStat("A", LocalDate.of(2024, 3, 2).toEpochDay(), 1_000),
+        ))
+        ActivityScenario.launch(AnnualReadReportActivity::class.java).use { scenario ->
+            awaitReport(scenario)
+            scenario.onActivity { activity ->
+                activity.renderReport(report)
+                activity.findViewById<androidx.viewpager2.widget.ViewPager2>(R.id.report_pager)
+                    .setCurrentItem(3, false)
+                val calendar = activity.pages[3]
+                fun day(date: String) = calendar.findViewWithTag<View>("annual_report_day_$date")
+                repeat(12) { month ->
+                    assertNotNull(calendar.findViewWithTag<View>("annual_report_calendar_month_${month + 1}"))
+                }
+                repeat(366) { index ->
+                    assertNotNull(day(LocalDate.of(2024, 1, 1).plusDays(index.toLong()).toString()))
+                }
+                assertNull(day("2024-02-30"))
+                assertTrue(day("2024-02-29").isSelected)
+                assertTrue(day("2024-02-28").contentDescription.toString()
+                    .contains(activity.getString(R.string.annual_report_under_minute)))
+                assertFalse(day("2024-01-01").isSelected)
+                assertTrue(day("2024-01-01").contentDescription.toString()
+                    .contains(activity.getString(R.string.annual_report_calendar_zero)))
+                assertFalse(day("2024-03-02").isSelected)
+                assertTrue(day("2024-03-02").contentDescription.toString()
+                    .contains(activity.getString(R.string.annual_report_calendar_future)))
+                val leapDay = day("2024-02-29")
+                assertEquals(3, (leapDay.parent as ViewGroup).indexOfChild(leapDay))
+                val firstDay = day("2024-01-01")
+                assertEquals(0, (firstDay.parent as ViewGroup).indexOfChild(firstDay))
+            }
+            awaitPagerLayout(scenario, 3)
+        }
+    }
+
+    @Test
     fun generationRecoversFromAnUnreadableSnapshot() {
         val context = instrumentation.targetContext
         val root = File(context.cacheDir, "annual-report-test-${UUID.randomUUID()}")
@@ -166,12 +231,12 @@ class AnnualReadReportFeatureTest {
                     instrumentation.waitForIdleSync()
                     scenario.onActivity { activity ->
                         val pager = activity.findViewById<androidx.viewpager2.widget.ViewPager2>(R.id.report_pager)
-                        assertEquals(4, pager.adapter?.itemCount)
+                        assertEquals(5, pager.adapter?.itemCount)
                         assertEquals(0, pager.currentItem)
-                        assertEquals("1 / 4", activity.findViewById<TextView>(R.id.page_indicator).text.toString())
+                        assertEquals("1 / 5", activity.findViewById<TextView>(R.id.page_indicator).text.toString())
                         pager.setCurrentItem(1, false)
                         assertEquals(1, pager.currentItem)
-                        assertEquals("2 / 4", activity.findViewById<TextView>(R.id.page_indicator).text.toString())
+                        assertEquals("2 / 5", activity.findViewById<TextView>(R.id.page_indicator).text.toString())
                         val content = activity.pages.last()
                         val text = activity.pages.flatMap { texts(it) }.joinToString("\n")
                         assertTrue(text.contains("山海之间"))
@@ -193,7 +258,7 @@ class AnnualReadReportFeatureTest {
                         image.recycle()
                         activity.renderReport(AnnualReadReport.create(fixture().year,
                             LocalDate.now(), emptyList()))
-                        assertEquals(3, pager.adapter?.itemCount)
+                        assertEquals(4, pager.adapter?.itemCount)
                         assertTrue(activity.pages.flatMap { texts(it) }
                             .contains(activity.getString(R.string.annual_report_empty_title)))
                     }
@@ -216,7 +281,7 @@ class AnnualReadReportFeatureTest {
             scenario.onActivity { activity ->
                 val pager = activity.findViewById<androidx.viewpager2.widget.ViewPager2>(R.id.report_pager)
                 val dots = activity.findViewById<ViewGroup>(R.id.page_dots)
-                assertEquals(4, dots.childCount)
+                assertEquals(5, dots.childCount)
                 dots.getChildAt(2).performClick()
                 assertEquals(2, pager.currentItem)
                 val chart = activity.pages[2]
@@ -244,7 +309,7 @@ class AnnualReadReportFeatureTest {
             }
             awaitPagerLayout(scenario, 2)
             scenario.onActivity { activity ->
-                assertEquals(3, activity.findViewById<ViewGroup>(R.id.page_dots).childCount)
+                assertEquals(4, activity.findViewById<ViewGroup>(R.id.page_dots).childCount)
                 repeat(12) { month ->
                     val column = activity.pages[2].findViewWithTag<ViewGroup>("annual_report_month_${month + 1}")
                     assertEquals(0, (column.getChildAt(0) as ViewGroup).getChildAt(0).background.level)
@@ -266,7 +331,7 @@ class AnnualReadReportFeatureTest {
                     awaitReport(scenario)
                     scenario.onActivity { it.renderReport(fixture()) }
                     instrumentation.waitForIdleSync()
-                    repeat(4) { page ->
+                    repeat(5) { page ->
                         scenario.onActivity { activity ->
                             activity.findViewById<androidx.viewpager2.widget.ViewPager2>(R.id.report_pager)
                                 .setCurrentItem(page, false)
@@ -369,25 +434,25 @@ class AnnualReadReportFeatureTest {
                 scenario.onActivity { activity ->
                     activity.renderReport(report, covers)
                     activity.findViewById<androidx.viewpager2.widget.ViewPager2>(R.id.report_pager)
-                        .setCurrentItem(3, false)
+                        .setCurrentItem(4, false)
                 }
-                awaitPagerLayout(scenario, 3)
+                awaitPagerLayout(scenario, 4)
                 var loaded = false
                 for (attempt in 0 until 100) {
                     scenario.onActivity { activity ->
-                        loaded = !activity.pages[3].findViewWithTag<CoverImageView>("annual_report_cover_0").isDefaultCover
+                        loaded = !activity.pages[4].findViewWithTag<CoverImageView>("annual_report_cover_0").isDefaultCover
                     }
                     if (loaded) break
                     Thread.sleep(50)
                 }
                 assertTrue("The same custom cover used by the bookshelf should load", loaded)
                 scenario.onActivity { activity ->
-                    val cover = activity.pages[3].findViewWithTag<CoverImageView>("annual_report_cover_0")
+                    val cover = activity.pages[4].findViewWithTag<CoverImageView>("annual_report_cover_0")
                     assertEquals(customCover.absolutePath, cover.bitmapPath)
                     val image = cover.drawable.toBitmap(1, 1)
                     assertEquals(Color.BLUE, image.getPixel(0, 0))
                     image.recycle()
-                    val missing = activity.pages[3].findViewWithTag<CoverImageView>("annual_report_cover_1")
+                    val missing = activity.pages[4].findViewWithTag<CoverImageView>("annual_report_cover_1")
                     assertNull(missing.bitmapPath)
                     assertTrue(missing.isDefaultCover)
                 }

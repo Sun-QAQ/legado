@@ -23,6 +23,7 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.annotation.StringRes
 import androidx.core.content.ContextCompat
+import androidx.core.graphics.ColorUtils
 import androidx.core.os.ConfigurationCompat
 import androidx.core.widget.NestedScrollView
 import io.legado.app.R
@@ -76,6 +77,7 @@ internal class AnnualReadReportRenderer(
         cover(report)
         readingDays(report)
         val months = monthlyRhythm(report)
+        dailyCalendar(report)
         if (report.books.isNotEmpty()) books(report)
         else text(months, R.string.annual_report_data_note, 11, style.muted, top = 28)
         return pages.toList()
@@ -291,6 +293,98 @@ internal class AnnualReadReportRenderer(
         }
         parent.addView(detail, params(top = 14))
         select(selected)
+    }
+
+    private fun dailyCalendar(report: AnnualReadReport) = page().apply {
+        eyebrow(this, R.string.annual_report_chapter_calendar)
+        title(this, R.string.annual_report_calendar_hero, R.string.annual_report_calendar_accent)
+        text(this, R.string.annual_report_calendar_intro, 12, style.muted, top = 12)
+        val times = report.dailyTimes.orEmpty()
+        val yearStart = LocalDate.of(report.year, 1, 1)
+        text(this, context.getString(R.string.annual_report_calendar_summary,
+            yearStart.lengthOfYear(), times.count { it > 0 }), 12, style.ink, top = 18)
+        divider(this, top = 14)
+        repeat(4) { quarter ->
+            val monthRow = row()
+            addView(monthRow, params(top = 16))
+            repeat(3) { index ->
+                val month = yearStart.withMonth(quarter * 3 + index + 1)
+                val calendar = column().apply { tag = "annual_report_calendar_month_${month.monthValue}" }
+                monthRow.addView(calendar, LinearLayout.LayoutParams(0, -2, 1f).apply {
+                    if (index < 2) marginEnd = dp(12)
+                })
+                text(calendar, context.getString(R.string.annual_report_month, month.monthValue),
+                    11, style.ink, top = 0, serif = true)
+                val offset = month.dayOfWeek.value - 1
+                repeat(6) { week ->
+                    val weekRow = row()
+                    calendar.addView(weekRow, params(dp(12), top = if (week == 0) 7 else 0))
+                    repeat(7) { weekday ->
+                        val day = week * 7 + weekday - offset + 1
+                        val cell = FrameLayout(context)
+                        weekRow.addView(cell, LinearLayout.LayoutParams(0, -1, 1f))
+                        if (day in 1..month.lengthOfMonth()) {
+                            val date = month.withDayOfMonth(day)
+                            val time = times.getOrElse(date.dayOfYear - 1) { 0L }
+                            val future = date.toEpochDay() > report.throughDate
+                            cell.tag = "annual_report_day_$date"
+                            cell.isSelected = !future && time > 0
+                            val label = when {
+                                future -> context.getString(R.string.annual_report_calendar_future)
+                                time > 0 -> duration(time)
+                                else -> context.getString(R.string.annual_report_calendar_zero)
+                            }
+                            cell.contentDescription = context.getString(
+                                R.string.annual_report_calendar_day, date.toString(), label)
+                            cell.importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_YES
+                            cell.addView(View(context).apply {
+                                background = calendarDot(time, future)
+                                importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
+                            }, FrameLayout.LayoutParams(dp(if (compact) 6 else 7),
+                                dp(if (compact) 6 else 7), Gravity.CENTER))
+                        } else {
+                            cell.importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS
+                        }
+                    }
+                }
+            }
+        }
+        val legend = row().apply { gravity = Gravity.CENTER_VERTICAL }
+        addView(legend, params(top = 20))
+        text(legend, R.string.annual_report_calendar_less, 10, style.muted,
+            layout = LinearLayout.LayoutParams(-2, -2).apply { marginEnd = dp(6) })
+        listOf(0L, 1L, 900_000L, 1_800_000L, 3_600_000L).forEach { time ->
+            legend.addView(View(context).apply {
+                background = calendarDot(time)
+                importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
+            }, LinearLayout.LayoutParams(dp(7), dp(7)).apply { marginEnd = dp(5) })
+        }
+        text(legend, R.string.annual_report_calendar_more, 10, style.muted,
+            layout = LinearLayout.LayoutParams(-2, -2))
+        text(this, R.string.annual_report_calendar_legend, 10, style.muted, top = 8)
+        text(this, context.getString(R.string.annual_report_period, report.year,
+            LocalDate.ofEpochDay(report.throughDate).toString()), 10, style.muted, top = 14)
+        if (report.dailyTimesFromRecords) {
+            text(this, R.string.annual_report_calendar_legacy, 10, style.muted, top = 10)
+        }
+    }
+
+    private fun calendarDot(time: Long, future: Boolean = false) = GradientDrawable().apply {
+        shape = GradientDrawable.OVAL
+        if (future) {
+            setColor(Color.TRANSPARENT)
+            setStroke(dp(1), style.line)
+        } else {
+            val fraction = when {
+                time <= 0 -> 0.09f
+                time < TimeUnit.MINUTES.toMillis(15) -> 0.3f
+                time < TimeUnit.MINUTES.toMillis(30) -> 0.5f
+                time < TimeUnit.HOURS.toMillis(1) -> 0.75f
+                else -> 1f
+            }
+            setColor(ColorUtils.blendARGB(style.paper,
+                if (time > 0) style.accent else style.ink, fraction))
+        }
     }
 
     private fun books(report: AnnualReadReport) = page().apply {

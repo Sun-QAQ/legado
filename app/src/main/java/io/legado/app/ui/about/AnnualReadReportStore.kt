@@ -33,6 +33,20 @@ internal class AnnualReadReportStore(context: Context) {
                 require(it.year == year && it.monthlyTimes.size == 12)
                 require(LocalDate.ofEpochDay(it.throughDate).year == year)
                 require(it.books.all { book -> book.readTime > 0 })
+                it.dailyTimes?.let { times ->
+                    require(times.size == LocalDate.of(year, 1, 1).lengthOfYear())
+                    require(times.all { time -> time >= 0 })
+                }
+            }.let { report ->
+                if (report.dailyTimes != null) report else report.copy(
+                    dailyTimes = AnnualReadReport.create(
+                        year, LocalDate.ofEpochDay(report.throughDate),
+                        appDb.readStatDao.getStats(
+                            LocalDate.of(year, 1, 1).toEpochDay(), report.throughDate,
+                        ),
+                    ).dailyTimes,
+                    dailyTimesFromRecords = true,
+                )
             }
         }.getOrNull()
     }

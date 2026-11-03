@@ -22,6 +22,11 @@ class AnnualReadReportTest {
         assertEquals(100, report.monthlyTimes[0])
         assertEquals(200, report.monthlyTimes[11])
         assertEquals(LocalDate.of(2026, 12, 3).toEpochDay(), report.throughDate)
+        assertEquals(365, report.dailyTimes!!.size)
+        assertEquals(100L, report.dailyTimes[0])
+        assertEquals(200L, report.dailyTimes[336])
+        assertEquals(0L, report.dailyTimes[337])
+        assertEquals(report.totalTime, report.dailyTimes.sum())
     }
 
     @Test
@@ -43,6 +48,11 @@ class AnnualReadReportTest {
         assertEquals(160, report.books.first().readTime)
         assertEquals(2, report.books.size)
         assertEquals(LocalDate.of(2024, 12, 31).toEpochDay(), report.throughDate)
+        assertEquals(366, report.dailyTimes!!.size)
+        assertEquals(30L, report.dailyTimes[58])
+        assertEquals(40L, report.dailyTimes[59])
+        assertEquals(50L, report.dailyTimes[60])
+        assertEquals(report.totalTime, report.dailyTimes.sum())
     }
 
     @Test
@@ -55,6 +65,7 @@ class AnnualReadReportTest {
         assertNull(report.busiestDate)
         assertTrue(report.books.isEmpty())
         assertEquals(List(12) { 0L }, report.monthlyTimes)
+        assertEquals(List(365) { 0L }, report.dailyTimes)
     }
 
     @Test

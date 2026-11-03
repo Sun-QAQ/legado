@@ -18,6 +18,8 @@ internal data class AnnualReadReport(
     val busiestTime: Long,
     val monthlyTimes: List<Long>,
     val books: List<Book>,
+    val dailyTimes: List<Long>? = null,
+    @Transient val dailyTimesFromRecords: Boolean = false,
 ) {
     @Keep
     data class Book(val name: String, val readTime: Long)
@@ -53,6 +55,7 @@ internal data class AnnualReadReport(
                 year, end.toEpochDay(), System.currentTimeMillis(), days.values.sum(),
                 days.size, longest, days.keys.firstOrNull(), busiest?.key,
                 busiest?.value ?: 0L, months, books,
+                List(start.lengthOfYear()) { days[start.plusDays(it.toLong()).toEpochDay()] ?: 0L },
             )
         }
     }
