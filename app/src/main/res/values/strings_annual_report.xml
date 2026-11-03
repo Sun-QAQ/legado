@@ -29,7 +29,5 @@
     <string name="annual_report_empty_title">Your story awaits</string>
     <string name="annual_report_empty">No daily reading records are available for this year. Enable reading records to start collecting your reading moments.</string>
     <string name="annual_report_data_note">Based on daily reading time stored on this device. Earlier unrecorded time cannot be recovered. Books with the same title are combined; read does not mean finished. Reports are saved locally and can be updated from the top right menu.</string>
-    <string name="annual_report_previous">Previous</string>
-    <string name="annual_report_next">Next</string>
-    <string name="annual_report_page">%1$d / %2$d\nSwipe to explore</string>
+    <string name="annual_report_page">%1$d / %2$d</string>
 </resources>

@@ -54,8 +54,6 @@ class AnnualReadReportActivity : BaseActivity<ActivityAnnualReadReportBinding>()
 
     private fun updateNavigation(position: Int) {
         binding.pageIndicator.text = getString(R.string.annual_report_page, position + 1, pages.size)
-        binding.previousPage.isEnabled = position > 0
-        binding.nextPage.isEnabled = position < pages.lastIndex
     }
 
     override fun onActivityCreated(savedInstanceState: Bundle?) {
@@ -63,12 +61,6 @@ class AnnualReadReportActivity : BaseActivity<ActivityAnnualReadReportBinding>()
         binding.scrollView.applyNavigationBarPadding()
         restoredPage = savedInstanceState?.getInt("page") ?: 0
         binding.reportPager.registerOnPageChangeCallback(pageCallback)
-        binding.previousPage.setOnClickListener {
-            binding.reportPager.currentItem = binding.reportPager.currentItem - 1
-        }
-        binding.nextPage.setOnClickListener {
-            binding.reportPager.currentItem = binding.reportPager.currentItem + 1
-        }
         selectedYear = savedInstanceState?.getInt("year") ?: intent.getIntExtra("year", 0)
         loadReport()
     }

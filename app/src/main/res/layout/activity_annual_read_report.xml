@@ -50,11 +50,6 @@
         android:orientation="horizontal"
         android:padding="12dp"
         android:visibility="gone">
-        <Button
-            android:id="@+id/previous_page"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/annual_report_previous" />
         <TextView
             android:id="@+id/page_indicator"
             android:layout_width="0dp"
@@ -62,10 +57,5 @@
             android:layout_weight="1"
             android:gravity="center"
             android:accessibilityLiveRegion="polite" />
-        <Button
-            android:id="@+id/next_page"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/annual_report_next" />
     </LinearLayout>
 </LinearLayout>
