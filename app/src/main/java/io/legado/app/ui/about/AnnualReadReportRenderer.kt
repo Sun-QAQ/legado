@@ -297,16 +297,17 @@ internal class AnnualReadReportRenderer(
 
     private fun dailyCalendar(report: AnnualReadReport) = page().apply {
         eyebrow(this, R.string.annual_report_chapter_calendar)
-        title(this, R.string.annual_report_calendar_hero, R.string.annual_report_calendar_accent)
+        title(this, R.string.annual_report_calendar_hero, R.string.annual_report_calendar_accent,
+            size = 26, top = 16)
         text(this, R.string.annual_report_calendar_intro, 12, style.muted, top = 12)
         val times = report.dailyTimes.orEmpty()
         val yearStart = LocalDate.of(report.year, 1, 1)
         text(this, context.getString(R.string.annual_report_calendar_summary,
-            yearStart.lengthOfYear(), times.count { it > 0 }), 12, style.ink, top = 18)
+            yearStart.lengthOfYear(), times.count { it > 0 }), 12, style.ink, top = 12)
         divider(this, top = 14)
         repeat(4) { quarter ->
             val monthRow = row()
-            addView(monthRow, params(top = 16))
+            addView(monthRow, params(top = 12))
             repeat(3) { index ->
                 val month = yearStart.withMonth(quarter * 3 + index + 1)
                 val calendar = column().apply { tag = "annual_report_calendar_month_${month.monthValue}" }
@@ -318,7 +319,7 @@ internal class AnnualReadReportRenderer(
                 val offset = month.dayOfWeek.value - 1
                 repeat(6) { week ->
                     val weekRow = row()
-                    calendar.addView(weekRow, params(dp(12), top = if (week == 0) 7 else 0))
+                    calendar.addView(weekRow, params(dp(10), top = if (week == 0) 7 else 0))
                     repeat(7) { weekday ->
                         val day = week * 7 + weekday - offset + 1
                         val cell = FrameLayout(context)
@@ -340,8 +341,7 @@ internal class AnnualReadReportRenderer(
                             cell.addView(View(context).apply {
                                 background = calendarDot(time, future)
                                 importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
-                            }, FrameLayout.LayoutParams(dp(if (compact) 6 else 7),
-                                dp(if (compact) 6 else 7), Gravity.CENTER))
+                            }, FrameLayout.LayoutParams(dp(6), dp(6), Gravity.CENTER))
                         } else {
                             cell.importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS
                         }
@@ -350,7 +350,7 @@ internal class AnnualReadReportRenderer(
             }
         }
         val legend = row().apply { gravity = Gravity.CENTER_VERTICAL }
-        addView(legend, params(top = 20))
+        addView(legend, params(top = 12))
         text(legend, R.string.annual_report_calendar_less, 10, style.muted,
             layout = LinearLayout.LayoutParams(-2, -2).apply { marginEnd = dp(6) })
         listOf(0L, 1L, 900_000L, 1_800_000L, 3_600_000L).forEach { time ->
@@ -363,7 +363,7 @@ internal class AnnualReadReportRenderer(
             layout = LinearLayout.LayoutParams(-2, -2))
         text(this, R.string.annual_report_calendar_legend, 10, style.muted, top = 8)
         text(this, context.getString(R.string.annual_report_period, report.year,
-            LocalDate.ofEpochDay(report.throughDate).toString()), 10, style.muted, top = 14)
+            LocalDate.ofEpochDay(report.throughDate).toString()), 10, style.muted, top = 10)
         if (report.dailyTimesFromRecords) {
             text(this, R.string.annual_report_calendar_legacy, 10, style.muted, top = 10)
         }
@@ -434,14 +434,14 @@ internal class AnnualReadReportRenderer(
 
     private fun title(parent: LinearLayout, @StringRes title: Int, @StringRes accentWord: Int,
                       size: Int = if (compact) 29 else 32,
-                      color: Int = style.ink, accent: Int = style.accent) {
+                      color: Int = style.ink, accent: Int = style.accent, top: Int = 24) {
         val value = context.getString(title)
         val word = context.getString(accentWord)
         val styled = SpannableString(value)
         val start = value.indexOf(word)
         if (start >= 0) styled.setSpan(ForegroundColorSpan(accent), start, start + word.length,
             Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
-        text(parent, styled, size, color, top = 24, serif = true).apply {
+        text(parent, styled, size, color, top = top, serif = true).apply {
             setLineSpacing(dp(5).toFloat(), 1f)
             letterSpacing = 0.04f
         }

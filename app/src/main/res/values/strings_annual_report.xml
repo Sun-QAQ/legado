@@ -36,7 +36,7 @@
     <string name="annual_report_chapter_calendar">Chapter four · A year in dots</string>
     <string name="annual_report_calendar_hero">Every day,\na little starlight.</string>
     <string name="annual_report_calendar_accent">starlight</string>
-    <string name="annual_report_calendar_intro">One dot, one day.\nEach row runs Monday to Sunday, tracing your year in reading.</string>
+    <string name="annual_report_calendar_intro">One dot per day. Rows run Monday to Sunday.</string>
     <string name="annual_report_calendar_summary">%1$d days, %2$d with reading records</string>
     <string name="annual_report_calendar_day">%1$s, %2$s</string>
     <string name="annual_report_calendar_zero">No reading recorded</string>

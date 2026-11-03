@@ -348,7 +348,7 @@ class AnnualReadReportFeatureTest {
                             val root = activity.findViewById<View>(android.R.id.content)
                             val config = activity.resources.configuration
                             val scroll = activity.pages[page]
-                            if (page in listOf(0, 2) && config.fontScale <= 1.05f &&
+                            if (page in listOf(0, 2, 3) && config.fontScale <= 1.05f &&
                                 scroll.height / activity.resources.displayMetrics.density >= 630 &&
                                 ConfigurationCompat.getLocales(config)[0]?.language == "zh") {
                                 assertTrue("Chapter $page should fit a normal phone viewport: " +

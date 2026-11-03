@@ -36,7 +36,7 @@
     <string name="annual_report_chapter_calendar">第四章 · 日历之上</string>
     <string name="annual_report_calendar_hero">把每一天，\n读成星光。</string>
     <string name="annual_report_calendar_accent">星光</string>
-    <string name="annual_report_calendar_intro">一个点，一天光阴。\n每行从周一到周日，收藏这一年的阅读足迹。</string>
+    <string name="annual_report_calendar_intro">每个点代表一天，每行从周一到周日。</string>
     <string name="annual_report_calendar_summary">%1$d 个日子，%2$d 天留有阅读足迹</string>
     <string name="annual_report_calendar_day">%1$s，%2$s</string>
     <string name="annual_report_calendar_zero">无阅读记录</string>
