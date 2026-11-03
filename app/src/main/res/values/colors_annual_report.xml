@@ -1,9 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="annual_report_paper">#F8F5EB</color>
-    <color name="annual_report_ink">#253E32</color>
-    <color name="annual_report_muted">#666E5D</color>
-    <color name="annual_report_line">#DEDFCF</color>
     <color name="annual_report_accent">#B55D3C</color>
     <color name="annual_report_bar">#87A18B</color>
     <style name="AnnualReportToolbarTitle" parent="TextAppearance.AppCompat.Widget.ActionBar.Title">

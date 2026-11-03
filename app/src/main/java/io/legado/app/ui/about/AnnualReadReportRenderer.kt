@@ -27,6 +27,7 @@ import androidx.core.os.ConfigurationCompat
 import androidx.core.widget.NestedScrollView
 import io.legado.app.R
 import io.legado.app.help.config.AppConfig
+import io.legado.app.lib.theme.ThemePalette
 import io.legado.app.utils.dpToPx
 import java.io.File
 import java.time.LocalDate
@@ -35,15 +36,16 @@ import java.util.concurrent.TimeUnit
 import kotlin.math.ceil
 import kotlin.math.roundToInt
 
-/** The report is a self-contained journal; its paper and illustration follow day/night mode. */
+/** Journal pages share the app background and readable foreground colors. */
 internal class AnnualReadReportStyle(private val context: Context) {
+    private val palette = ThemePalette(context)
     private fun color(id: Int, monochrome: Int): Int =
         if (AppConfig.isEInkMode) monochrome else ContextCompat.getColor(context, id)
 
-    val paper = color(R.color.annual_report_paper, Color.WHITE)
-    val ink = color(R.color.annual_report_ink, Color.BLACK)
-    val muted = color(R.color.annual_report_muted, Color.DKGRAY)
-    val line = color(R.color.annual_report_line, Color.LTGRAY)
+    val paper = palette.background
+    val ink = palette.text
+    val muted = palette.secondaryText
+    val line = palette.divider
     val accent = color(R.color.annual_report_accent, Color.BLACK)
     val bar = color(R.color.annual_report_bar, Color.DKGRAY)
 }

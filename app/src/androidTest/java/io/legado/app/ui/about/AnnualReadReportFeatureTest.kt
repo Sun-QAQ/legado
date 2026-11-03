@@ -3,6 +3,8 @@ package io.legado.app.ui.about
 import android.content.ContextWrapper
 import android.graphics.Bitmap
 import android.graphics.Canvas
+import android.graphics.Color
+import android.graphics.drawable.ColorDrawable
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
@@ -25,6 +27,8 @@ import io.legado.app.data.entities.ReadStat
 import io.legado.app.help.config.AppConfig
 import io.legado.app.help.config.ThemeConfig
 import io.legado.app.help.config.LocalConfig
+import io.legado.app.lib.theme.ThemePalette
+import io.legado.app.lib.theme.ThemeStore
 import org.junit.Assert.*
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -254,6 +258,8 @@ class AnnualReadReportFeatureTest {
                         awaitPagerLayout(scenario, page)
                         scenario.onActivity { activity ->
                             val style = activity.reportStyle
+                            assertEquals(ThemePalette(activity).background, style.paper)
+                            assertEquals(style.paper, (activity.pages[page].background as ColorDrawable).color)
                             assertTrue(androidx.core.graphics.ColorUtils.calculateContrast(
                                 style.ink, style.paper) >= 4.5)
                             assertTrue(androidx.core.graphics.ColorUtils.calculateContrast(
@@ -282,6 +288,40 @@ class AnnualReadReportFeatureTest {
             instrumentation.runOnMainSync {
                 AppConfig.isNightTheme = original
                 ThemeConfig.applyDayNight(instrumentation.targetContext)
+            }
+        }
+    }
+
+    @Test
+    fun allChaptersUseTheCurrentCustomAppBackground() {
+        val context = instrumentation.targetContext
+        val originalBackground = ThemePalette(context).background
+        try {
+            for (background in listOf(Color.rgb(232, 245, 233), Color.rgb(20, 35, 42))) {
+                instrumentation.runOnMainSync {
+                    ThemeStore.editTheme(context).backgroundColor(background).apply()
+                }
+                ActivityScenario.launch(AnnualReadReportActivity::class.java).use { scenario ->
+                    awaitReport(scenario)
+                    scenario.onActivity { activity ->
+                        activity.renderReport(fixture())
+                        val style = activity.reportStyle
+                        assertEquals(background, style.paper)
+                        assertTrue(androidx.core.graphics.ColorUtils.calculateContrast(style.ink, background) >= 4.5)
+                        assertTrue(androidx.core.graphics.ColorUtils.calculateContrast(style.muted, background) >= 4.5)
+                        activity.pages.forEach { page ->
+                            assertEquals(background, (page.background as ColorDrawable).color)
+                        }
+                        val titleBar = activity.findViewById<io.legado.app.ui.widget.TitleBar>(R.id.title_bar)
+                        assertEquals(background, (titleBar.background as ColorDrawable).color)
+                        assertEquals(background,
+                            (activity.findViewById<View>(R.id.page_navigation).background as ColorDrawable).color)
+                    }
+                }
+            }
+        } finally {
+            instrumentation.runOnMainSync {
+                ThemeStore.editTheme(context).backgroundColor(originalBackground).apply()
             }
         }
     }
