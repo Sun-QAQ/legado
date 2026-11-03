@@ -19,7 +19,6 @@ internal data class AnnualReadReport(
     val monthlyTimes: List<Long>,
     val books: List<Book>,
     val dailyTimes: List<Long>? = null,
-    @Transient val dailyTimesFromRecords: Boolean = false,
 ) {
     @Keep
     data class Book(val name: String, val readTime: Long)

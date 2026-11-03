@@ -44,7 +44,6 @@
     <string name="annual_report_calendar_less">少</string>
     <string name="annual_report_calendar_more">多</string>
     <string name="annual_report_calendar_legend">颜色越深，阅读越久；空心点为统计日期之后的日子。</string>
-    <string name="annual_report_calendar_legacy">旧版报告的点阵来自本机现存的每日记录，缺失的记录无法补全；原报告统计保持不变。</string>
     <string name="annual_report_journal_hero">把时光，\n读成故事。</string>
     <string name="annual_report_journal_hero_accent">故事</string>
     <string name="annual_report_journal_intro">每一页，都是与自己的相逢。</string>

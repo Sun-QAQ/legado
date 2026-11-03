@@ -364,9 +364,6 @@ internal class AnnualReadReportRenderer(
         text(this, R.string.annual_report_calendar_legend, 10, style.muted, top = 8)
         text(this, context.getString(R.string.annual_report_period, report.year,
             LocalDate.ofEpochDay(report.throughDate).toString()), 10, style.muted, top = 10)
-        if (report.dailyTimesFromRecords) {
-            text(this, R.string.annual_report_calendar_legacy, 10, style.muted, top = 10)
-        }
     }
 
     private fun calendarDot(time: Long, future: Boolean = false) = GradientDrawable().apply {

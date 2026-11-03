@@ -44,7 +44,6 @@
     <string name="annual_report_calendar_less">Less</string>
     <string name="annual_report_calendar_more">More</string>
     <string name="annual_report_calendar_legend">Darker dots mean more reading; hollow dots fall after the report period.</string>
-    <string name="annual_report_calendar_legacy">Dots for older reports use daily records still on this device. Missing records cannot be recovered; the original report statistics are preserved.</string>
     <string name="annual_report_journal_hero">Time,\nwell read.</string>
     <string name="annual_report_journal_hero_accent">well read</string>
     <string name="annual_report_journal_intro">Every page, a little closer to yourself.</string>

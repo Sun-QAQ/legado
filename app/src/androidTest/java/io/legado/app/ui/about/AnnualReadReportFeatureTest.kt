@@ -128,9 +128,8 @@ class AnnualReadReportFeatureTest {
             val file = File(root, "annual_read_reports/${report.year}.json")
             val before = file.readText()
             val loaded = requireNotNull(store.load(report.year))
-            assertTrue(loaded.dailyTimesFromRecords)
             assertEquals(LocalDate.of(report.year, 1, 1).lengthOfYear(), loaded.dailyTimes!!.size)
-            assertEquals(report, loaded.copy(dailyTimes = null, dailyTimesFromRecords = false))
+            assertEquals(report, loaded.copy(dailyTimes = null))
             assertEquals(before, file.readText())
         } finally {
             root.deleteRecursively()

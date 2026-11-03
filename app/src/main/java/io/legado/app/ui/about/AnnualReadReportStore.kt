@@ -45,7 +45,6 @@ internal class AnnualReadReportStore(context: Context) {
                             LocalDate.of(year, 1, 1).toEpochDay(), report.throughDate,
                         ),
                     ).dailyTimes,
-                    dailyTimesFromRecords = true,
                 )
             }
         }.getOrNull()
