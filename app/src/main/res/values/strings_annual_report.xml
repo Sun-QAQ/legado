@@ -8,7 +8,7 @@
     <string name="annual_report_year">%1$d</string>
     <string name="annual_report_refresh">Update report</string>
     <string name="annual_report_refresh_confirm">Replace this report using the daily reading records currently available? Deleted or changed statistics will affect the new report.</string>
-    <string name="annual_report_not_ready">Reports become available each December. Saved reports and previous years with daily reading records can also be revisited here.</string>
+    <string name="annual_report_not_ready">Reports can be generated manually from December. If you have not generated one, opening the app on December 31 will show a reminder. Saved reports and previous years with daily reading records can also be revisited here.</string>
     <string name="annual_report_error">Unable to generate or read the report. Please try again.</string>
     <string name="annual_report_retry">Tap to retry</string>
     <string name="annual_report_eyebrow">%1$d · MY YEAR IN BOOKS</string>

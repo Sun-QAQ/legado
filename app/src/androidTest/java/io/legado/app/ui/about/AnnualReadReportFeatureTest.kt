@@ -62,13 +62,18 @@ class AnnualReadReportFeatureTest {
         val originalYear = LocalConfig.getInt(key, 0)
         val hadYear = LocalConfig.contains(key)
         val originalPrivacy = LocalConfig.privacyPolicyOk
-        val december = LocalDate.of(LocalDate.now().year + 100, 12, 1)
+        val december = LocalDate.of(LocalDate.now().year + 100, 12, 31)
         val context = instrumentation.targetContext
         val message = context.getString(R.string.annual_report_prompt, december.year)
         try {
             LocalConfig.edit().remove(key).commit()
             LocalConfig.privacyPolicyOk = true
             ActivityScenario.launch(ReadRecordActivity::class.java).use { scenario ->
+                scenario.onActivity { activity ->
+                    AnnualReadReportPrompt.showIfNeeded(activity) { december.minusDays(1) }
+                }
+                onView(withText(message)).check(doesNotExist())
+                assertNotEquals(december.year, LocalConfig.getInt(key, 0))
                 scenario.moveToState(Lifecycle.State.CREATED)
                 scenario.onActivity { activity ->
                     AnnualReadReportPrompt.showIfNeeded(activity) { december }

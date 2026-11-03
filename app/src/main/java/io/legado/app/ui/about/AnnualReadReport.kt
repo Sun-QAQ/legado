@@ -63,5 +63,6 @@ internal object AnnualReadReportPolicy {
         if (today.monthValue == 12) today.year else today.year - 1
 
     fun shouldPrompt(today: LocalDate, promptedYear: Int, hasReport: Boolean): Boolean =
-        today.monthValue == 12 && promptedYear != today.year && !hasReport
+        today.monthValue == 12 && today.dayOfMonth == 31 &&
+            promptedYear != today.year && !hasReport
 }

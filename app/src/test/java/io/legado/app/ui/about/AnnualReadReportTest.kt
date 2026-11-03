@@ -58,15 +58,22 @@ class AnnualReadReportTest {
     }
 
     @Test
-    fun `invitation starts in December and is suppressed after dismissal or generation`() {
-        val november = LocalDate.of(2026, 11, 30)
-        val december = november.plusDays(1)
-        assertFalse(AnnualReadReportPolicy.shouldPrompt(november, 0, false))
-        assertTrue(AnnualReadReportPolicy.shouldPrompt(december, 2025, false))
-        assertFalse(AnnualReadReportPolicy.shouldPrompt(december, 2026, false))
-        assertFalse(AnnualReadReportPolicy.shouldPrompt(december, 0, true))
+    fun `invitation only appears on December 31 and is suppressed after dismissal or generation`() {
+        assertFalse(AnnualReadReportPolicy.shouldPrompt(LocalDate.of(2026, 11, 30), 0, false))
+        for (day in 1..30) {
+            assertFalse(
+                "No early invitation on December $day",
+                AnnualReadReportPolicy.shouldPrompt(LocalDate.of(2026, 12, day), 0, false)
+            )
+        }
+        val yearEnd = LocalDate.of(2026, 12, 31)
+        assertTrue(AnnualReadReportPolicy.shouldPrompt(yearEnd, 2025, false))
+        assertFalse(AnnualReadReportPolicy.shouldPrompt(yearEnd, 2026, false))
+        assertFalse(AnnualReadReportPolicy.shouldPrompt(yearEnd, 0, true))
         assertFalse(AnnualReadReportPolicy.shouldPrompt(LocalDate.of(2027, 1, 1), 2026, false))
-        assertTrue(AnnualReadReportPolicy.shouldPrompt(LocalDate.of(2027, 12, 1), 2026, false))
+        assertFalse(AnnualReadReportPolicy.shouldPrompt(LocalDate.of(2027, 12, 1), 2026, false))
+        assertTrue(AnnualReadReportPolicy.shouldPrompt(LocalDate.of(2027, 12, 31), 2026, false))
+        assertTrue(AnnualReadReportPolicy.shouldPrompt(LocalDate.of(2028, 12, 31), 2027, false))
     }
 
     @Test
@@ -74,6 +81,8 @@ class AnnualReadReportTest {
         assertEquals(2025, AnnualReadReportPolicy.latestYear(LocalDate.of(2026, 1, 1)))
         assertEquals(2025, AnnualReadReportPolicy.latestYear(LocalDate.of(2026, 11, 30)))
         assertEquals(2026, AnnualReadReportPolicy.latestYear(LocalDate.of(2026, 12, 1)))
+        assertEquals(2026, AnnualReadReportPolicy.latestYear(LocalDate.of(2026, 12, 30)))
+        assertEquals(2026, AnnualReadReportPolicy.latestYear(LocalDate.of(2026, 12, 31)))
         assertEquals(2026, AnnualReadReportPolicy.latestYear(LocalDate.of(2027, 1, 1)))
     }
 
