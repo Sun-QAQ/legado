@@ -28,6 +28,7 @@ import androidx.core.widget.NestedScrollView
 import io.legado.app.R
 import io.legado.app.help.config.AppConfig
 import io.legado.app.lib.theme.ThemePalette
+import io.legado.app.ui.widget.image.CoverImageView
 import io.legado.app.utils.dpToPx
 import java.io.File
 import java.time.LocalDate
@@ -54,6 +55,7 @@ internal class AnnualReadReportStyle(private val context: Context) {
 internal class AnnualReadReportRenderer(
     private val context: Context,
     private val style: AnnualReadReportStyle,
+    private val covers: Map<String, AnnualReadReportCover> = emptyMap(),
 ) {
     private val pages = mutableListOf<NestedScrollView>()
     private val compact = context.resources.configuration.screenWidthDp < 350
@@ -298,23 +300,18 @@ internal class AnnualReadReportRenderer(
         text(this, R.string.annual_report_book_list, 12, style.ink, top = 26)
         text(this, R.string.annual_report_books_hint, 10, style.muted, top = 5)
         divider(this, top = 12)
-        val coverColors = intArrayOf(0xff344e3d.toInt(), 0xff343e51.toInt(),
-            0xff626b48.toInt(), 0xff9c573c.toInt(), 0xff476569.toInt())
         report.books.take(10).forEachIndexed { index, book ->
             val bookRow = row().apply { gravity = Gravity.CENTER_VERTICAL }
             addView(bookRow, params(top = 16))
             text(bookRow, String.format(Locale.getDefault(), "%02d", index + 1), 11, style.muted,
                 serif = true, layout = LinearLayout.LayoutParams(dp(25), -2))
             val name = book.name.ifBlank { context.getString(R.string.read_record_untitled_book) }
-            text(bookRow, name.codePoints().toArray().take(5)
-                .joinToString("\n") { String(Character.toChars(it)) }, 9,
-                if (AppConfig.isEInkMode) Color.BLACK else 0xfff4efdc.toInt(), serif = true,
-                layout = LinearLayout.LayoutParams(dp(43), dp(65))).apply {
-                gravity = Gravity.CENTER
-                background = rounded(if (AppConfig.isEInkMode) Color.LTGRAY
-                    else coverColors[index % coverColors.size], 1)
+            val cover = covers[book.name]
+            bookRow.addView(CoverImageView(context, filletRadius = dp(2).toFloat()).apply {
+                tag = "annual_report_cover_$index"
                 importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
-            }
+                load(cover?.path, name, cover?.author, false, cover?.origin)
+            }, LinearLayout.LayoutParams(dp(43), -2))
             val info = column()
             bookRow.addView(info, LinearLayout.LayoutParams(0, -2, 1f).apply { marginStart = dp(14) })
             text(info, name, 16, style.ink, serif = true)

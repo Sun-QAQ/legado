@@ -9,8 +9,10 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import androidx.core.os.ConfigurationCompat
+import androidx.core.graphics.drawable.toBitmap
 import androidx.core.view.isVisible
 import androidx.lifecycle.Lifecycle
+import androidx.room.Room
 import androidx.test.core.app.ActivityScenario
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.espresso.Espresso.onView
@@ -24,12 +26,15 @@ import androidx.test.espresso.matcher.ViewMatchers.withText
 import androidx.test.platform.app.InstrumentationRegistry
 import com.google.android.material.shape.MaterialShapeDrawable
 import io.legado.app.R
+import io.legado.app.data.AppDatabase
+import io.legado.app.data.entities.Book
 import io.legado.app.data.entities.ReadStat
 import io.legado.app.help.config.AppConfig
 import io.legado.app.help.config.ThemeConfig
 import io.legado.app.help.config.LocalConfig
 import io.legado.app.lib.theme.ThemePalette
 import io.legado.app.lib.theme.ThemeStore
+import io.legado.app.ui.widget.image.CoverImageView
 import org.junit.Assert.*
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -325,6 +330,62 @@ class AnnualReadReportFeatureTest {
             instrumentation.runOnMainSync {
                 ThemeStore.editTheme(context).backgroundColor(originalBackground).apply()
             }
+        }
+    }
+
+    @Test
+    fun bookListLoadsTheBookshelfCustomCoverAndFallsBackForMissingBooks() {
+        val context = instrumentation.targetContext
+        val report = fixture()
+        val root = File(context.cacheDir, "annual-cover-test-${UUID.randomUUID()}")
+        check(root.mkdirs())
+        val customCover = File(root, "custom.png")
+        val bitmap = Bitmap.createBitmap(16, 24, Bitmap.Config.ARGB_8888)
+        bitmap.eraseColor(Color.BLUE)
+        customCover.outputStream().use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
+        bitmap.recycle()
+        val db = Room.inMemoryDatabaseBuilder(context, AppDatabase::class.java).build()
+        val originalDefaultCover = AppConfig.useDefaultCover
+        try {
+            AppConfig.useDefaultCover = false
+            val shelfBook = Book(bookUrl = "annual-cover-test", name = report.books[0].name,
+                author = "Test author", coverUrl = File(root, "missing-original.png").absolutePath,
+                customCoverUrl = customCover.absolutePath)
+            db.bookDao.insert(shelfBook)
+            val covers = AnnualReadReportCovers.load(report, db.bookDao)
+            assertEquals(1, covers.size)
+            ActivityScenario.launch(AnnualReadReportActivity::class.java).use { scenario ->
+                awaitReport(scenario)
+                scenario.onActivity { activity ->
+                    activity.renderReport(report, covers)
+                    activity.findViewById<androidx.viewpager2.widget.ViewPager2>(R.id.report_pager)
+                        .setCurrentItem(3, false)
+                }
+                awaitPagerLayout(scenario, 3)
+                var loaded = false
+                for (attempt in 0 until 100) {
+                    scenario.onActivity { activity ->
+                        loaded = !activity.pages[3].findViewWithTag<CoverImageView>("annual_report_cover_0").isDefaultCover
+                    }
+                    if (loaded) break
+                    Thread.sleep(50)
+                }
+                assertTrue("The same custom cover used by the bookshelf should load", loaded)
+                scenario.onActivity { activity ->
+                    val cover = activity.pages[3].findViewWithTag<CoverImageView>("annual_report_cover_0")
+                    assertEquals(customCover.absolutePath, cover.bitmapPath)
+                    val image = cover.drawable.toBitmap(1, 1)
+                    assertEquals(Color.BLUE, image.getPixel(0, 0))
+                    image.recycle()
+                    val missing = activity.pages[3].findViewWithTag<CoverImageView>("annual_report_cover_1")
+                    assertNull(missing.bitmapPath)
+                    assertTrue(missing.isDefaultCover)
+                }
+            }
+        } finally {
+            AppConfig.useDefaultCover = originalDefaultCover
+            db.close()
+            root.deleteRecursively()
         }
     }
 

@@ -127,20 +127,21 @@ class AnnualReadReportActivity : BaseActivity<ActivityAnnualReadReportBinding>(i
             invalidateOptionsMenu()
             try {
                 val today = LocalDate.now()
-                val (availableYears, report) = withContext(IO) {
+                val (availableYears, report, covers) = withContext(IO) {
                     val available = store.years(today)
                     val year = selectedYear.takeIf { it in available } ?: available.firstOrNull()
-                    available to year?.let {
+                    val report = year?.let {
                         if (refresh) store.generate(it, today)
                         else store.load(it) ?: store.generate(it, today)
                     }
+                    Triple(available, report, report?.let { AnnualReadReportCovers.load(it) }.orEmpty())
                 }
                 years = availableYears
                 selectedYear = report?.year ?: 0
                 if (report == null) {
                     showMessage(R.string.annual_report_not_ready)
                 } else {
-                    renderReport(report)
+                    renderReport(report, covers)
                 }
                 binding.scrollView.scrollTo(0, 0)
             } catch (e: CancellationException) {
@@ -166,14 +167,14 @@ class AnnualReadReportActivity : BaseActivity<ActivityAnnualReadReportBinding>(i
         addMessage(getString(message), reportStyle.ink)
     }
 
-    internal fun renderReport(report: AnnualReadReport) {
+    internal fun renderReport(report: AnnualReadReport, covers: Map<String, AnnualReadReportCover> = emptyMap()) {
         binding.reportPager.adapter = null
         pages.clear()
         binding.content.removeAllViews()
         binding.scrollView.isVisible = false
         selectedYear = report.year
         binding.titleBar.subtitle = null
-        pages.addAll(AnnualReadReportRenderer(this, reportStyle).render(report))
+        pages.addAll(AnnualReadReportRenderer(this, reportStyle, covers).render(report))
         createPageDots()
         binding.reportPager.adapter = object : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
             override fun getItemCount() = pages.size
