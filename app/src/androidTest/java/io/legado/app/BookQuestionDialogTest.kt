@@ -48,7 +48,7 @@ class BookQuestionDialogTest {
         ActivityScenario.launch(SearchActivity::class.java).use { scenario ->
             scenario.onActivity { activity ->
                 BookQuestionDialog.newInstance("界面测试书籍", "测试作者", "local://ui-test", "第一章", "已读正文")
-                    .show(activity.supportFragmentManager, "questionTest")
+                    .showNow(activity.supportFragmentManager, "questionTest")
                 activity.supportFragmentManager.executePendingTransactions()
                 val root = activity.supportFragmentManager.findFragmentByTag("questionTest")!!.requireView()
                 assertEquals("《界面测试书籍》", root.findViewById<TextView>(R.id.tv_book).text.toString())

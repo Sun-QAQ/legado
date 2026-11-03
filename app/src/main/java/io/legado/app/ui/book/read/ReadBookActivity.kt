@@ -74,9 +74,9 @@ import io.legado.app.receiver.NetworkChangedListener
 import io.legado.app.receiver.TimeBatteryReceiver
 import io.legado.app.service.BaseReadAloudService
 import io.legado.app.ui.about.AppLogDialog
-import io.legado.app.ui.book.bookmark.BookmarkDialog
 import io.legado.app.ui.book.agent.BookQuestionContext
 import io.legado.app.ui.book.agent.BookQuestionDialog
+import io.legado.app.ui.book.bookmark.BookmarkDialog
 import io.legado.app.ui.book.changesource.ChangeBookSourceDialog
 import io.legado.app.ui.book.changesource.ChangeChapterSourceDialog
 import io.legado.app.ui.book.info.BookInfoActivity
@@ -1526,7 +1526,7 @@ class ReadBookActivity : BaseReadBookActivity(),
             chapter?.pages?.take(ReadBook.durPageIndex + 1)
                 ?.joinToString("\n") { it.text }.orEmpty()
                 .takeLast(BookQuestionContext.MAX_EXCERPT_LENGTH)
-        ).show(supportFragmentManager, "bookQuestion")
+        ).showNow(supportFragmentManager, "bookQuestion")
     }
 
     /**
