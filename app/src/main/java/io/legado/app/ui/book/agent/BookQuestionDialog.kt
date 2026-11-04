@@ -104,7 +104,7 @@ class BookQuestionDialog : BaseDialogFragment(R.layout.dialog_book_question) {
         binding.btnClose.setOnClickListener { dismiss() }
         binding.btnModel.setOnClickListener { startActivity<AiSourceManageActivity>() }
         val palette = ThemePalette(requireContext())
-        binding.inputBar.background = rounded(palette.surface, 24)
+        binding.inputBar.background = rounded(palette.surface, 16)
         binding.btnSend.backgroundTintList = ColorStateList.valueOf(palette.accent)
         listOf(
             R.string.book_question_suggestion_summary,
