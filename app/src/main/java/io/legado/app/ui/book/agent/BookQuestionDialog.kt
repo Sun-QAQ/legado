@@ -181,8 +181,7 @@ class BookQuestionDialog : BaseDialogFragment(R.layout.dialog_book_question) {
                 }
                 launch {
                     viewModel.waiting.collect { waiting ->
-                        binding.btnSend.setImageResource(if (waiting) R.drawable.ic_stop_black_24dp else R.drawable.ic_arrow_right)
-                        binding.btnSend.rotation = if (waiting) 0f else -90f
+                        binding.btnSend.setImageResource(if (waiting) R.drawable.ic_stop_black_24dp else R.drawable.ic_book_question_send)
                         binding.btnSend.contentDescription = getString(if (waiting) R.string.agent_interrupt else R.string.agent_send)
                         for (i in 0 until binding.quickActions.childCount) {
                             binding.quickActions.getChildAt(i).isEnabled = !waiting

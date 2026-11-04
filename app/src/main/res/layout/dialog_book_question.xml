@@ -103,9 +103,9 @@
         android:layout_marginHorizontal="20dp"
         android:layout_marginBottom="14dp"
         android:gravity="center_vertical"
-        android:minHeight="64dp"
+        android:minHeight="52dp"
         android:paddingHorizontal="12dp"
-        android:paddingVertical="8dp"
+        android:paddingVertical="2dp"
         app:layout_constraintBottom_toBottomOf="parent">
 
         <io.legado.app.ui.book.agent.AgentInputEditText
@@ -118,7 +118,8 @@
             android:imeOptions="actionSend"
             android:inputType="textCapSentences|textMultiLine"
             android:maxLines="4"
-            android:minHeight="48dp"
+            android:minHeight="40dp"
+            android:paddingVertical="4dp"
             android:textSize="16sp" />
 
         <androidx.appcompat.widget.AppCompatImageButton
@@ -126,11 +127,10 @@
             android:layout_width="48dp"
             android:layout_height="48dp"
             android:layout_marginStart="8dp"
-            android:background="@drawable/bg_btn_send"
+            android:background="@drawable/bg_book_question_send"
             android:contentDescription="@string/agent_send"
             android:padding="13dp"
-            android:rotation="-90"
-            app:srcCompat="@drawable/ic_arrow_right"
+            app:srcCompat="@drawable/ic_book_question_send"
             app:tint="@color/white" />
     </LinearLayout>
 </androidx.constraintlayout.widget.ConstraintLayout>
