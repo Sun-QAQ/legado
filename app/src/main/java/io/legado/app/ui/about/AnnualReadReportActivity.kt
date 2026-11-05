@@ -129,9 +129,7 @@ class AnnualReadReportActivity : BaseActivity<ActivityAnnualReadReportBinding>(i
                 }
                 years = availableYears
                 selectedYear = report?.year ?: 0
-                if (report == null) {
-                    showMessage(R.string.annual_report_not_ready)
-                } else {
+                if (report != null) {
                     renderReport(report, covers)
                 }
                 binding.scrollView.scrollTo(0, 0)
