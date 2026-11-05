@@ -63,14 +63,6 @@
         android:textSize="18sp"
         android:textStyle="bold" />
     <TextView
-        android:id="@+id/notice"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:paddingHorizontal="20dp"
-        android:paddingBottom="12dp"
-        android:text="@string/read_timeline_notice"
-        android:textSize="13sp" />
-    <TextView
         android:id="@+id/empty"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"

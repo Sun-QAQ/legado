@@ -58,7 +58,6 @@ class ReadTimelineActivity : BaseActivity<ActivityReadTimelineBinding>() {
         binding.recyclerView.adapter = adapter
         binding.recyclerView.applyNavigationBarPadding()
         binding.summary.setTextColor(palette.text)
-        binding.notice.setTextColor(palette.secondaryText)
         binding.empty.setTextColor(palette.secondaryText)
         listOf(binding.previousDay, binding.nextDay).forEach {
             it.backgroundTintList = null
