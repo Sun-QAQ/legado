@@ -8,18 +8,6 @@
     android:keepScreenOn="true"
     tools:context=".ui.book.video.VideoPlayActivity">
 
-    <ImageView
-        android:id="@+id/iv_bg"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:scaleType="centerCrop"
-        tools:ignore="ContentDescription,ImageContrastCheck" />
-
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:background="#50000000" />
-
     <androidx.media3.ui.PlayerView
         android:id="@+id/player_view"
         android:layout_width="0dp"

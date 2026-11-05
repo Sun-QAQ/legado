@@ -37,7 +37,6 @@ import io.legado.app.help.book.isVideo
 import io.legado.app.help.book.removeType
 import io.legado.app.help.config.AppConfig
 import io.legado.app.lib.dialogs.alert
-import io.legado.app.model.BookCover
 import io.legado.app.model.VideoPlay
 import io.legado.app.service.VideoPlayService
 import io.legado.app.ui.about.AppLogDialog
@@ -125,9 +124,6 @@ class VideoPlayActivity :
         bindVideoService()
         viewModel.titleData.observe(this) {
             binding.titleBar.title = it
-        }
-        viewModel.coverData.observe(this) {
-            upCover(it)
         }
         viewModel.initData(intent)
         initView()
@@ -241,11 +237,6 @@ class VideoPlayActivity :
 
     private fun updateSpeed(speed: Float) {
         controls.exoPlaybackSpeed.text = String.format(Locale.ROOT, "%.1fX", speed)
-    }
-
-    private fun upCover(path: String?) {
-        BookCover.loadBlur(this, path, sourceOrigin = VideoPlay.bookSource?.bookSourceUrl)
-            .into(binding.ivBg)
     }
 
     private fun playButton() {

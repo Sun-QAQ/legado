@@ -24,7 +24,6 @@ import io.legado.app.utils.toastOnUi
 
 class VideoPlayViewModel(application: Application) : BaseViewModel(application) {
     val titleData = MutableLiveData<String>()
-    val coverData = MutableLiveData<String>()
 
     fun initData(intent: Intent) = VideoPlay.apply {
         execute {
@@ -45,7 +44,6 @@ class VideoPlayViewModel(application: Application) : BaseViewModel(application) 
             VideoPlay.resetData(book)
         }
         titleData.postValue(book.name)
-        coverData.postValue(book.getDisplayCover())
         if (book.tocUrl.isEmpty() && !loadBookInfo(book)) {
             return
         }
