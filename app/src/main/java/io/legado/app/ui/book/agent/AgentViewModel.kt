@@ -59,15 +59,12 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
-import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import java.util.UUID
-import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
-import java.util.concurrent.atomic.AtomicLong
 import kotlin.coroutines.coroutineContext
 import kotlin.math.min
 import kotlin.math.max
@@ -168,9 +165,16 @@ class AgentViewModel @JvmOverloads constructor(
     private var currentPersonaPrompt: String = DEFAULT_AGENT_PERSONA_PROMPT
 
     private val history = arrayListOf<AgentChatTurn>()
-    private val persistenceMutex = Mutex()
-    private val saveSequence = AtomicLong()
-    private val latestSaves = ConcurrentHashMap<String, Long>()
+    private val conversationPersistence = AgentConversationPersistence(
+        viewModelScope,
+        save = { appDb.aiConversationDao.saveSnapshot(it) },
+        delete = { id ->
+            appDb.aiConversationDao.delete(id)
+            AgentImageStorage.deleteConversation(context, id)
+        }
+    )
+    private val persistenceMutex get() = conversationPersistence.mutex
+    private var conversationSelection = 0L
     private var conversationHistoryEnabled = false
     private var conversationHistoryStarted = false
     private var conversationCreatedAt = 0L
@@ -266,9 +270,10 @@ class AgentViewModel @JvmOverloads constructor(
         if (conversationHistoryStarted) return null
         conversationHistoryStarted = true
         conversationHistoryEnabled = true
+        val selection = conversationSelection
         return viewModelScope.launch {
             val rememberedId = context.getPrefString(conversationPreferenceKey)
-            val conversation = withContext(Dispatchers.IO) {
+            val conversation = conversationPersistence.load(getString(R.string.agent_interrupted)) {
                 if (rememberedId.isNullOrEmpty()) {
                     // 空串表示上次退出时处于新对话状态，保持空白；null 为旧版本无记录，兼容恢复最近会话
                     if (rememberedId == null && restoreLatestConversation) appDb.aiConversationDao.latest() else null
@@ -277,7 +282,7 @@ class AgentViewModel @JvmOverloads constructor(
                         ?: if (restoreLatestConversation) appDb.aiConversationDao.latest() else null
                 }
             }
-            if (_messages.value.isEmpty()) {
+            if (selection == conversationSelection && _messages.value.isEmpty()) {
                 if (conversation == null) {
                     rememberConversationId(null)
                 } else {
@@ -295,42 +300,49 @@ class AgentViewModel @JvmOverloads constructor(
     }
 
     fun newConversation(): Job {
+        val selection = ++conversationSelection
         return viewModelScope.launch {
             stopActiveRequest()
             persistConversationNow()
-            resetConversationState()
+            if (selection == conversationSelection) resetConversationState()
         }
     }
 
     fun openConversation(id: String): Job? {
         if (id == _currentConversationId.value) return null
+        val selection = ++conversationSelection
         return viewModelScope.launch {
             stopActiveRequest()
             persistConversationNow()
-            val conversation = withContext(Dispatchers.IO) {
+            val conversation = conversationPersistence.load(getString(R.string.agent_interrupted)) {
                 appDb.aiConversationDao.get(id)
             } ?: return@launch
-            restoreConversation(conversation)
+            if (selection == conversationSelection) restoreConversation(conversation)
         }
     }
 
     fun deleteConversation(id: String) {
+        conversationPersistence.invalidate(id)
+        val selection = if (id == _currentConversationId.value) ++conversationSelection else conversationSelection
         viewModelScope.launch {
             if (id == _currentConversationId.value) {
                 stopActiveRequest()
             }
+            conversationPersistence.invalidate(id)
             val latest = withContext(Dispatchers.IO) {
                 persistenceMutex.withLock {
                     appDb.aiConversationDao.delete(id)
                     AgentImageStorage.deleteConversation(context, id)
                     if (id == _currentConversationId.value) {
-                        appDb.aiConversationDao.latest()
+                        appDb.aiConversationDao.latest()?.let {
+                            conversationPersistence.decode(it, getString(R.string.agent_interrupted))
+                        }
                     } else {
                         null
                     }
                 }
             }
-            if (id == _currentConversationId.value) {
+            if (selection == conversationSelection && id == _currentConversationId.value) {
                 resetConversationState()
                 latest?.let(::restoreConversation)
             }
@@ -359,22 +371,30 @@ class AgentViewModel @JvmOverloads constructor(
     }
 
     fun deleteAllConversations() {
+        _currentConversationId.value?.let(conversationPersistence::invalidate)
+        conversationPersistence.invalidateAll()
+        val selection = ++conversationSelection
         viewModelScope.launch {
             stopActiveRequest()
+            _currentConversationId.value?.let(conversationPersistence::invalidate)
+            conversationPersistence.invalidateAll()
             withContext(Dispatchers.IO) {
                 persistenceMutex.withLock {
                     appDb.aiConversationDao.deleteAll()
                     AgentImageStorage.deleteAll(context)
                 }
             }
-            resetConversationState()
+            if (selection == conversationSelection) resetConversationState()
         }
     }
 
     fun clearChat() {
+        _currentConversationId.value?.let(conversationPersistence::invalidate)
+        val selection = ++conversationSelection
         viewModelScope.launch {
             stopActiveRequest()
             _currentConversationId.value?.let { id ->
+                conversationPersistence.invalidate(id)
                 withContext(Dispatchers.IO) {
                     persistenceMutex.withLock {
                         appDb.aiConversationDao.delete(id)
@@ -382,7 +402,7 @@ class AgentViewModel @JvmOverloads constructor(
                     }
                 }
             }
-            resetConversationState()
+            if (selection == conversationSelection) resetConversationState()
         }
     }
 
@@ -424,34 +444,14 @@ class AgentViewModel @JvmOverloads constructor(
         _waiting.value = false
     }
 
-    private fun restoreConversation(conversation: AiConversation) {
+    private fun restoreConversation(restored: RestoredAgentConversation) {
+        val conversation = restored.metadata
         resetConversationState()
         _currentConversationId.value = conversation.id
         conversationCreatedAt = conversation.createdAt
         rememberConversationId(conversation.id)
-        history.addAll(AgentConversationCodec.decodeTurns(conversation.turnsJson))
-        _messages.value = AgentConversationCodec.decodeMessages(conversation.messagesJson)
-            .filterNot { it.placeholder }
-            .map { message ->
-                message.copy(
-                    canLoadMore = false,
-                    streaming = false,
-                    steps = message.steps.map { step ->
-                        if (step.state == AgentStepState.RUNNING) {
-                            step.copy(
-                                state = AgentStepState.FAILED,
-                                summary = getString(R.string.agent_interrupted)
-                            )
-                        } else {
-                            step
-                        }
-                    }
-                )
-            }
-        val linked = AgentConversationEditor.linkLegacy(_messages.value, history)
-        _messages.value = linked.messages
-        history.clear()
-        history.addAll(linked.turns)
+        _messages.value = restored.content.messages
+        history.addAll(restored.content.turns)
         if (conversation.supplierId > 0) {
             supplierSelection.select(conversation.supplierId)
             selectedSupplierId = conversation.supplierId
@@ -472,34 +472,18 @@ class AgentViewModel @JvmOverloads constructor(
 
     private fun scheduleConversationSave() {
         if (!conversationHistoryEnabled) return
-        val conversation = currentConversationSnapshot()
-        val id = conversation?.id ?: _currentConversationId.value ?: return
-        val sequence = saveSequence.incrementAndGet()
-        latestSaves[id] = sequence
-        viewModelScope.launch(Dispatchers.IO) {
-            persistenceMutex.withLock {
-                if (latestSaves[id] != sequence) return@withLock
-                if (conversation == null) {
-                    appDb.aiConversationDao.delete(id)
-                    AgentImageStorage.deleteConversation(context, id)
-                } else appDb.aiConversationDao.saveSnapshot(conversation)
-            }
-        }
+        val snapshot = currentConversationSnapshot()
+        val id = snapshot?.metadata?.id ?: _currentConversationId.value ?: return
+        conversationPersistence.schedule(id, snapshot)
     }
 
     private suspend fun persistConversationNow() {
         if (!conversationHistoryEnabled) return
-        val conversation = currentConversationSnapshot() ?: return
-        val sequence = saveSequence.incrementAndGet()
-        latestSaves[conversation.id] = sequence
-        withContext(Dispatchers.IO) {
-            persistenceMutex.withLock {
-                if (latestSaves[conversation.id] == sequence) appDb.aiConversationDao.saveSnapshot(conversation)
-            }
-        }
+        val snapshot = currentConversationSnapshot() ?: return
+        conversationPersistence.saveNow(snapshot)
     }
 
-    private fun currentConversationSnapshot(): AiConversation? {
+    private fun currentConversationSnapshot(): AgentConversationSnapshot? {
         val messages = _messages.value.filterNot { it.placeholder || it.streaming }
         if (messages.isEmpty()) return null
         val now = System.currentTimeMillis()
@@ -509,14 +493,14 @@ class AgentViewModel @JvmOverloads constructor(
             rememberConversationId(it)
         }
         val firstQuestion = messages.firstOrNull { it.isUser }?.text.orEmpty()
-        return AiConversation(
+        val metadata = AiConversation(
             id = id,
             title = AgentConversationCodec.titleFrom(
                 firstQuestion,
                 getString(R.string.agent_new_chat)
             ),
-            messagesJson = AgentConversationCodec.encodeMessages(messages),
-            turnsJson = AgentConversationCodec.encodeTurns(history),
+            messagesJson = "",
+            turnsJson = "",
             supplierId = _currentSupplierId.value,
             personaId = _currentPersonaId.value,
             personaName = _currentPersonaName.value,
@@ -524,6 +508,7 @@ class AgentViewModel @JvmOverloads constructor(
             createdAt = conversationCreatedAt.takeIf { it > 0 } ?: now,
             updatedAt = now
         )
+        return AgentConversationSnapshot.capture(metadata, messages, history)
     }
 
     internal suspend fun sendAttachments(text: String, prepared: List<PreparedAgentAttachment>, modelOverride: String? = null) {
@@ -1114,7 +1099,7 @@ class AgentViewModel @JvmOverloads constructor(
         return try {
             val bytes = AiImageGenerationHelper.generate(source, prompt, actualSize)
             val conversationId = _currentConversationId.value
-                ?: currentConversationSnapshot()?.id
+                ?: currentConversationSnapshot()?.metadata?.id
                 ?: UUID.randomUUID().toString()
             val path = withContext(Dispatchers.IO) {
                 AgentImageStorage.save(context, conversationId, bytes)
