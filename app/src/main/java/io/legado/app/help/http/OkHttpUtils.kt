@@ -23,7 +23,6 @@ import java.io.File
 import java.io.IOException
 import java.nio.charset.Charset
 import java.util.zip.ZipInputStream
-import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
 suspend fun OkHttpClient.newCallResponse(
@@ -38,6 +37,7 @@ suspend fun OkHttpClient.newCallResponse(
         if (response.isSuccessful) {
             return response
         }
+        if (i < retry) response.close()
     }
     return response!!
 }
@@ -70,7 +70,7 @@ suspend fun Call.await(): Response = suspendCancellableCoroutine { block ->
         }
 
         override fun onResponse(call: Call, response: Response) {
-            block.resume(response)
+            block.resume(response) { _, unconsumed, _ -> unconsumed.close() }
         }
     })
 
