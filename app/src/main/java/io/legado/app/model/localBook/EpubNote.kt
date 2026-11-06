@@ -1,8 +1,22 @@
 package io.legado.app.model.localBook
 
 import org.jsoup.nodes.Element
+import java.net.URI
+import java.net.URLDecoder
 
 object EpubNote {
+
+    internal fun resolveTarget(resourceHref: String, rawHref: String): Pair<String, String>? = runCatching {
+        if ('#' !in rawHref) return null
+        val href = rawHref.trim()
+        fun decode(value: String) = URLDecoder.decode(value.replace("+", "%2B"), "UTF-8")
+        val fragment = decode(href.substringAfter('#'))
+        if (fragment.isBlank()) return null
+        val base = URI(null, null, resourceHref, null)
+        val relative = href.substringBefore('#')
+        val target = if (relative.isEmpty()) base else base.resolve(URI(null, null, decode(relative), null))
+        target.path to fragment
+    }.getOrNull()
 
     const val displayChar = "※"
     const val cacheMarker = "\uE100LEGADO_EPUB_NOTE_V1\uE101"

@@ -23,6 +23,8 @@ import org.jsoup.nodes.Element
 import org.jsoup.nodes.TextNode
 import org.jsoup.parser.Parser
 import org.jsoup.select.Elements
+import java.io.Closeable
+import org.jsoup.nodes.Document
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
@@ -31,7 +33,7 @@ import java.net.URI
 import java.net.URLDecoder
 import java.nio.charset.Charset
 
-class EpubFile(var book: Book) {
+class EpubFile(var book: Book) : Closeable {
 
     companion object : BaseLocalBookParse {
         private var eFile: EpubFile? = null
@@ -39,6 +41,7 @@ class EpubFile(var book: Book) {
         @Synchronized
         private fun getEFile(book: Book): EpubFile {
             if (eFile == null || eFile?.book?.bookUrl != book.bookUrl) {
+                eFile?.close()
                 eFile = EpubFile(book)
                 //对于Epub文件默认不启用替换
                 //io.legado.app.data.entities.Book getUseReplaceRule
@@ -71,7 +74,9 @@ class EpubFile(var book: Book) {
             return getEFile(book).upBookInfo()
         }
 
+        @Synchronized
         fun clear() {
+            eFile?.close()
             eFile = null
         }
     }
@@ -82,8 +87,14 @@ class EpubFile(var book: Book) {
      *持有引用，避免被回收
      */
     private var fileDescriptor: ParcelFileDescriptor? = null
+    private var zipFile: AndroidZipFile? = null
+    private val imageStreams = RetainedInputStreams { releaseResources() }
+    private val noteDocuments = object : LinkedHashMap<String, Document>(8, 0.75f, true) {
+        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, Document>?) = size > 8
+    }
     private var epubBook: EpubBook? = null
         get() {
+            check(!imageStreams.isClosed) { "EPUB parser is closed" }
             if (field == null || fileDescriptor == null) {
                 field = readEpub()
             }
@@ -106,15 +117,17 @@ class EpubFile(var book: Book) {
      */
     private fun readEpub(): EpubBook? {
         return kotlin.runCatching {
-            //ContentScheme拷贝到私有文件夹采用懒加载防止OOM
-            //val zipFile = BookHelp.getEpubFile(book)
-            BookHelp.getBookPFD(book)?.let {
-                fileDescriptor = it
-                val zipFile = AndroidZipFile(it, book.originName)
-                EpubReader().readEpubLazy(zipFile, "utf-8")
+            val descriptor = BookHelp.getBookPFD(book) ?: return@runCatching null
+            val archive = AndroidZipFile(descriptor, book.originName)
+            try {
+                EpubReader().readEpubLazy(archive, "utf-8").also {
+                    fileDescriptor = descriptor
+                    zipFile = archive
+                }
+            } catch (error: Throwable) {
+                try { archive.close() } catch (closeError: Throwable) { error.addSuppressed(closeError) }
+                throw error
             }
-
-
         }.onFailure {
             AppLog.put("读取Epub文件失败\n${it.localizedMessage}", it)
             it.printOnDebug()
@@ -281,18 +294,15 @@ class EpubFile(var book: Book) {
     ): ResolvedNote? {
         if ('#' !in rawHref) return null
         return runCatching {
-            val resolvedHref = URI(resource.href.encodeURI())
-                .resolve(rawHref.trim().encodeURI())
-                .toString()
-            val resourceHref = URLDecoder.decode(resolvedHref.substringBefore('#'), "UTF-8")
-            val fragmentId = URLDecoder.decode(resolvedHref.substringAfter('#'), "UTF-8")
-            if (fragmentId.isBlank()) return null
+            val (resourceHref, fragmentId) = EpubNote.resolveTarget(resource.href, rawHref) ?: return null
             val sameResource = resourceHref == resource.href
             val target = if (sameResource) {
                 body.getElementById(fragmentId)
             } else {
                 epubBook?.resources?.getByHref(resourceHref)?.let {
-                    Jsoup.parse(String(it.data, mCharset)).getElementById(fragmentId)
+                    noteDocuments.getOrPut(resourceHref) {
+                        Jsoup.parse(String(it.data, mCharset))
+                    }.getElementById(fragmentId)
                 }
             }
             target?.let { ResolvedNote(it, sameResource) }
@@ -305,9 +315,11 @@ class EpubFile(var book: Book) {
     )
 
     private fun getImage(href: String): InputStream? {
-        if (href == "cover.jpeg") return epubBook?.coverImage?.inputStream
-        val abHref = URLDecoder.decode(href, "UTF-8")
-        return epubBook?.resources?.getByHref(abHref)?.inputStream
+        val resource = if (href == "cover.jpeg") epubBook?.coverImage else {
+            val abHref = URLDecoder.decode(href, "UTF-8")
+            epubBook?.resources?.getByHref(abHref)
+        }
+        return resource?.inputStream?.let(imageStreams::retain)
     }
 
     private fun upBookCover(fastCheck: Boolean = false) {
@@ -321,11 +333,14 @@ class EpubFile(var book: Book) {
                 }
                 /*部分书籍DRM处理后，封面获取异常，待优化*/
                 it.coverImage?.inputStream?.use { input ->
-                    val cover = BitmapFactory.decodeStream(input)
-                    val out = FileOutputStream(FileUtils.createFileIfNotExist(book.coverUrl!!))
-                    cover.compress(Bitmap.CompressFormat.JPEG, 90, out)
-                    out.flush()
-                    out.close()
+                    val cover = BitmapFactory.decodeStream(input) ?: return@use
+                    try {
+                        FileOutputStream(FileUtils.createFileIfNotExist(book.coverUrl!!)).use { out ->
+                            cover.compress(Bitmap.CompressFormat.JPEG, 90, out)
+                        }
+                    } finally {
+                        cover.recycle()
+                    }
                 } ?: AppLog.putDebug("Epub: 封面获取为空. path: ${book.bookUrl}")
             }
         } catch (e: Exception) {
@@ -336,7 +351,7 @@ class EpubFile(var book: Book) {
 
     private fun upBookInfo() {
         if (epubBook == null) {
-            eFile = null
+            clear()
             book.intro = "书籍导入异常"
         } else {
             upBookCover()
@@ -486,8 +501,20 @@ class EpubFile(var book: Book) {
     }
 
 
-    protected fun finalize() {
-        fileDescriptor?.close()
+    override fun close() {
+        noteDocuments.clear()
+        imageStreams.close()
+    }
+
+    private fun releaseResources() {
+        try {
+            zipFile?.close() ?: fileDescriptor?.close()
+        } finally {
+            fileDescriptor = null
+            zipFile = null
+            epubBookContents = null
+            epubBook = null
+        }
     }
 
 }

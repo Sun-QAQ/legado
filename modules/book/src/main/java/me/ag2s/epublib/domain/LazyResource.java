@@ -95,16 +95,15 @@ public class LazyResource extends Resource {
 
             Log.d(TAG, "Initializing lazy resource: " + this.getHref());
 
-            InputStream in = resourceProvider.getResourceStream(this.originalHref);
-            byte[] readData = IOUtil.toByteArray(in, (int) this.cachedSize);
-            if (readData == null) {
-                throw new IOException(
-                        "Could not load the contents of resource: " + this.getHref());
-            } else {
-                this.data = readData;
+            try (InputStream in = resourceProvider.getResourceStream(this.originalHref)) {
+                byte[] readData = IOUtil.toByteArray(in, (int) this.cachedSize);
+                if (readData == null) {
+                    throw new IOException(
+                            "Could not load the contents of resource: " + this.getHref());
+                } else {
+                    this.data = readData;
+                }
             }
-
-            in.close();
         }
 
         return data;

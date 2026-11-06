@@ -9,6 +9,19 @@ import java.util.LinkedList
 
 class EpubNoteTest {
 
+    @Test fun `fragment references retain current document and decode identifiers`() {
+        assertEquals("OEBPS/chapter.xhtml" to "注+释", EpubNote.resolveTarget("OEBPS/chapter.xhtml", "#%E6%B3%A8+%E9%87%8A"))
+    }
+
+    @Test fun `cross document fragments resolve relative paths without encoding the separator`() {
+        assertEquals("Notes/end notes.xhtml" to "n1", EpubNote.resolveTarget("OEBPS/chapter.xhtml", "../Notes/end%20notes.xhtml#n1"))
+    }
+
+    @Test fun `ordinary links and empty fragments are not note targets`() {
+        assertEquals(null, EpubNote.resolveTarget("chapter.xhtml", "next.xhtml"))
+        assertEquals(null, EpubNote.resolveTarget("chapter.xhtml", "#"))
+    }
+
     @Test
     fun `注释标记可转换为显示符号和正文`() {
         val notes = LinkedList<String>()
