@@ -29,6 +29,7 @@ class AiChatController {
     private var closed = false
     private val availableModels = mutableMapOf<Long, List<String>>()
     private val selectedModels = mutableMapOf<Long, String>()
+    private val stateTracker = AiChatStateTracker()
 
     private suspend fun <T : Any> withAgent(block: suspend (AgentViewModel) -> T): ReturnData =
         try {
@@ -93,7 +94,7 @@ class AiChatController {
         )
     }
 
-    suspend fun state(): ReturnData = withAgent { snapshot(it) }
+    suspend fun state(revision: String? = null): ReturnData = withAgent { snapshot(it, revision) }
 
     suspend fun history(): ReturnData = withAgent {
         withContext(Dispatchers.IO) {
@@ -158,7 +159,7 @@ class AiChatController {
         snapshot(agent)
     }
 
-    private suspend fun snapshot(agent: AgentViewModel): Map<String, Any?> = mapOf(
+    private suspend fun snapshot(agent: AgentViewModel, revision: String? = null): Map<String, Any?> = stateTracker.snapshot(mapOf(
         "conversationId" to agent.currentConversationId.value,
         "waiting" to agent.waiting.value,
         "supplierId" to agent.currentSupplierId.value.toString(),
@@ -166,8 +167,8 @@ class AiChatController {
             appDb.aiSourceDao.get(agent.currentSupplierId.value)?.model.orEmpty()
         }),
         "personaId" to agent.currentPersonaId.value.toString(),
-        "messages" to agent.messages.value.map { AiChatPayload.message(it, agent.streamingText.value) }
-    )
+        "messages" to agent.messages.value.mapIndexed { index, message -> AiChatPayload.message(message, agent.streamingText.value, "legacy:$index") }
+    ), revision)
 
     /** 由 WebService 在主线程销毁，取消流式请求和后台任务。 */
     fun close() {

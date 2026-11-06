@@ -77,7 +77,7 @@
       >
         <article
           v-for="(message, index) in state.messages"
-          :key="index"
+          :key="message.id || index"
           class="chat-message"
           :class="{ 'from-user': message.isUser }"
           :aria-label="message.isUser ? '我的消息' : 'AI 回复'"
@@ -310,6 +310,7 @@
   </section>
 </template>
 <script setup lang="ts">
+import { mergeChatState } from '@/utils/chatState'
 import {
   ChatDotRound,
   Clock,
@@ -501,10 +502,13 @@ const onScroll = () => {
   if (el) followReply = el.scrollHeight - el.scrollTop - el.clientHeight < 100
 }
 const applyState = async (value: ChatState) => {
-  state.value = value
+  const merged = mergeChatState(state.value, value)
+  if (!merged) return false
+  state.value = merged
   await nextTick()
   if (followReply && conversation.value)
     conversation.value.scrollTop = conversation.value.scrollHeight
+  return true
 }
 const stopPolling = () => {
   clearTimeout(timer)
@@ -519,9 +523,13 @@ const schedulePoll = () => {
   timer = setTimeout(async () => {
     polling = new AbortController()
     try {
-      const value = await getChatState(polling.signal)
+      const value = await getChatState(polling.signal, state.value.revision)
       if (revision !== currentRevision || lifetime.signal.aborted) return
-      await applyState(value)
+      if (!(await applyState(value))) {
+        const full = await getChatState(polling.signal)
+        if (revision !== currentRevision || lifetime.signal.aborted) return
+        await applyState(full)
+      }
       schedulePoll()
     } catch (e) {
       if (

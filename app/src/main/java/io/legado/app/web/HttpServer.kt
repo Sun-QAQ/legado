@@ -100,7 +100,7 @@ class HttpServer(port: Int, private val onRequest: () -> Unit = { WebService.ser
                     returnData = when (uri) {
                         "/webAuth" -> ReturnData().setData(mapOf("enabled" to WebAuth.enabled))
                         "/getAiChatConfig" -> runBlocking { aiChat.config() }
-                        "/getAiChat" -> runBlocking { aiChat.state() }
+                        "/getAiChat" -> runBlocking { aiChat.state(parameters["revision"]?.firstOrNull()) }
                         "/getAiChatHistory" -> runBlocking { aiChat.history() }
                         "/getBookSource" -> BookSourceController.getSource(parameters)
                         "/getBookSources" -> BookSourceController.sources

@@ -11,7 +11,8 @@ internal object AiChatPayload {
         "modelError" to modelError
     )
 
-    fun message(message: AgentMessage, streamingText: String?): Map<String, Any?> = mapOf(
+    fun message(message: AgentMessage, streamingText: String?, fallbackId: String = "legacy"): Map<String, Any?> = mapOf(
+        "id" to (message.id?.takeIf { it.isNotBlank() } ?: if (message.placeholder) "steps" else fallbackId),
         "isUser" to message.isUser,
         "text" to if (message.streaming) streamingText ?: message.text else message.text,
         "streaming" to message.streaming,

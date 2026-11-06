@@ -2,6 +2,7 @@ import ajax from './axios'
 import type { LeagdoApiResponse } from './api'
 
 export interface ChatMessage {
+  id?: string
   attachments?: {
     name: string
     mimeType: string
@@ -17,6 +18,9 @@ export interface ChatMessage {
   images: { path: string; prompt: string }[]
 }
 export interface ChatState {
+  revision?: string
+  baseRevision?: string | null
+  reset?: boolean
   conversationId: string | null
   waiting: boolean
   supplierId: string
@@ -53,10 +57,14 @@ export const getChatConfig = async (signal: AbortSignal) =>
       })
     ).data,
   )
-export const getChatState = async (signal: AbortSignal) =>
+export const getChatState = async (signal: AbortSignal, revision?: string) =>
   unwrap(
-    (await ajax.get<LeagdoApiResponse<ChatState>>('getAiChat', { signal }))
-      .data,
+    (
+      await ajax.get<LeagdoApiResponse<ChatState>>('getAiChat', {
+        signal,
+        params: { revision },
+      })
+    ).data,
   )
 export const getChatHistory = async (signal: AbortSignal) =>
   unwrap(
