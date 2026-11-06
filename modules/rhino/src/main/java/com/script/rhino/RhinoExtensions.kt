@@ -10,6 +10,7 @@ import kotlin.contracts.contract
 import kotlin.coroutines.ContinuationInterceptor
 import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.coroutineContext
+import kotlin.coroutines.EmptyCoroutineContext
 
 val rhinoContext: RhinoContext
     get() = Context.getCurrentContext() as RhinoContext
@@ -25,15 +26,19 @@ inline fun <T> suspendContinuation(crossinline block: suspend CoroutineScope.() 
     }
     val cx = Context.enter()
     try {
-        val pending = cx.captureContinuation()
+        val pending = try {
+            cx.captureContinuation()
+        } catch (_: IllegalStateException) {
+            val parent = (cx as? RhinoContext)?.coroutineContext ?: EmptyCoroutineContext
+            // The calling thread is blocked; dispatching back to it would deadlock.
+            return runBlocking(parent.minusKey(ContinuationInterceptor)) { block() }
+        }
         pending.applicationState = suspend {
             supervisorScope {
                 block()
             }
         }
         throw pending
-    } catch (e: IllegalStateException) {
-        return runBlocking { block() }
     } finally {
         Context.exit()
     }
@@ -53,6 +58,7 @@ inline fun <T> runScriptWithContext(context: CoroutineContext, block: () -> T): 
 }
 
 suspend inline fun <T> runScriptWithContext(block: () -> T): T {
+    RhinoScriptEngine
     val rhinoContext = Context.enter() as RhinoContext
     val previousCoroutineContext = rhinoContext.coroutineContext
     rhinoContext.coroutineContext = coroutineContext.minusKey(ContinuationInterceptor)
