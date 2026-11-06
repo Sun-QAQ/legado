@@ -524,9 +524,7 @@ class ReadBookActivity : BaseReadBookActivity(),
 
             R.id.menu_chapter_change_source -> lifecycleScope.launch {
                 val book = ReadBook.book ?: return@launch
-                val chapter =
-                    appDb.bookChapterDao.getChapter(book.bookUrl, ReadBook.durChapterIndex)
-                        ?: return@launch
+                val chapter = selectedChapter(book.bookUrl, ReadBook.durChapterIndex) ?: return@launch
                 binding.readMenu.runMenuOut()
                 showDialogFragment(
                     ChangeChapterSourceDialog(book.name, book.author, chapter.index, chapter.title)
@@ -1468,19 +1466,32 @@ class ReadBookActivity : BaseReadBookActivity(),
     }
 
     override fun payAction() {
+        lifecycleScope.launch { paySelectedChapter() }
+    }
+
+    private fun isCurrentChapter(bookUrl: String, index: Int) = !isFinishing && !isDestroyed &&
+        ReadBook.book?.bookUrl == bookUrl && ReadBook.durChapterIndex == index
+
+    private suspend fun selectedChapter(bookUrl: String, index: Int) = querySelectedChapter(
+        bookUrl, index,
+        isCurrent = { isCurrentChapter(bookUrl, index) },
+        query = { url, chapter -> appDb.bookChapterDao.getChapterAsync(url, chapter) }
+    )
+
+    private suspend fun paySelectedChapter() {
         val book = ReadBook.book ?: return
         if (book.isLocal) return
-        val chapter = appDb.bookChapterDao.getChapter(book.bookUrl, ReadBook.durChapterIndex)
-        if (chapter == null) {
-            toastOnUi("no chapter")
+        val index = ReadBook.durChapterIndex
+        val chapter = selectedChapter(book.bookUrl, index) ?: run {
+            if (isCurrentChapter(book.bookUrl, index)) toastOnUi("no chapter")
             return
         }
+        val source = ReadBook.bookSource ?: return
         alert(R.string.chapter_pay) {
             setMessage(chapter.title)
             yesButton {
+                if (ReadBook.book?.bookUrl != book.bookUrl || ReadBook.durChapterIndex != index) return@yesButton
                 Coroutine.async(lifecycleScope) {
-                    val source =
-                        ReadBook.bookSource ?: throw NoStackTraceException("no book source")
                     val payAction = source.getContentRule().payAction
                     if (payAction.isNullOrBlank()) {
                         throw NoStackTraceException("no pay action")
