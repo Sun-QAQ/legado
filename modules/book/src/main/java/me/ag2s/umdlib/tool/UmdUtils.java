@@ -8,6 +8,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.EOFException;
 import java.util.Random;
 import java.util.zip.Inflater;
 import java.nio.charset.StandardCharsets;
@@ -76,19 +77,27 @@ public class UmdUtils {
      */
     public static byte[] decompress(byte[] compress) throws Exception {
         Inflater inflater = new Inflater();
-        inflater.reset();
-        inflater.setInput(compress);
-
-        ByteArrayOutputStream baos = new ByteArrayOutputStream(compress.length);
-        try (baos) {
+        try (ByteArrayOutputStream baos = new ByteArrayOutputStream(compress.length)) {
+            inflater.setInput(compress);
             byte[] buff = new byte[BUFFER_SIZE];
             while (!inflater.finished()) {
                 int count = inflater.inflate(buff);
-                baos.write(buff, 0, count);
+                if (count > 0) {
+                    baos.write(buff, 0, count);
+                } else if (!inflater.finished()) {
+                    if (inflater.needsDictionary()) {
+                        throw new IOException("UMD compressed data requires a dictionary");
+                    }
+                    if (inflater.needsInput()) {
+                        throw new EOFException("Truncated UMD compressed data");
+                    }
+                    throw new IOException("UMD decompression made no progress");
+                }
             }
+            return baos.toByteArray();
+        } finally {
+            inflater.end();
         }
-        inflater.end();
-        return baos.toByteArray();
     }
 
 

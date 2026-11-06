@@ -29,6 +29,7 @@ android {
 }
 
 dependencies {
+    testImplementation(libs.junit)
     implementation(libs.androidx.annotation)
     //implementation 'androidx.annotation:annotation:1.7.1'
 }
