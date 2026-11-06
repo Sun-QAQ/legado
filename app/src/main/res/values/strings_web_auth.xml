@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="web_auth_title">Web service authentication</string>
+    <string name="web_auth_summary">Require an access key to pair browsers and third-party clients</string>
+    <string name="web_auth_key_title">Web access key</string>
+    <string name="web_auth_reset">Reset key</string>
+</resources>

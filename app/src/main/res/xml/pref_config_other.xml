@@ -171,6 +171,18 @@
             android:summary="@string/show_add_to_shelf_alert_summary"
             android:title="@string/show_add_to_shelf_alert_title" />
 
+        <io.legado.app.lib.prefs.SwitchPreference
+            android:defaultValue="false"
+            android:key="webAuthEnabled"
+            android:title="@string/web_auth_title"
+            android:summary="@string/web_auth_summary" />
+
+        <io.legado.app.lib.prefs.Preference
+            android:key="webAuthKey"
+            android:title="@string/web_auth_key_title"
+            android:dependency="webAuthEnabled"
+            app:iconSpaceReserved="false" />
+
         <io.legado.app.lib.prefs.Preference
             android:key="webPort"
             android:title="@string/web_port_title"

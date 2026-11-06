@@ -27,7 +27,7 @@ class AssetsWeb(rootPath: String) {
             NanoHTTPD.Response.Status.OK,
             getMimeType(path1),
             inputStream
-        )
+        ).apply { addHeader("Referrer-Policy", "no-referrer") }
     }
 
     private fun getMimeType(path: String): String {

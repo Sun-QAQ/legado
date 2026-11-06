@@ -1,6 +1,7 @@
 package io.legado.app.web
 
 import android.graphics.Bitmap
+import com.google.gson.JsonParser
 import fi.iki.elonen.NanoHTTPD
 import io.legado.app.api.ReturnData
 import io.legado.app.api.controller.BookController
@@ -23,14 +24,18 @@ import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.File
 
-class HttpServer(port: Int) : NanoHTTPD("::", port) {
+class HttpServer(port: Int, private val onRequest: () -> Unit = { WebService.serve() }) : NanoHTTPD("::", port) {
     private val assetsWeb = AssetsWeb("web")
     private val aiChat = AiChatController()
 
     fun closeChat() = aiChat.close()
 
     override fun serve(session: IHTTPSession): Response {
-        WebService.serve()
+        val authEndpoint = session.uri in setOf("/webAuth", "/webAuth/pair")
+        if (session.method != Method.OPTIONS && !authEndpoint &&
+            (session.method != Method.GET || !WebAccessPolicy.isPublicAsset(session.uri)) &&
+            !WebAuth.authorize(session)) return WebAuth.unauthorized(session.headers["origin"])
+        onRequest()
         var returnData: ReturnData? = null
         val ct = ContentType(session.headers["content-type"]).tryUTF8()
         session.headers["content-type"] = ct.contentTypeHeader
@@ -38,16 +43,19 @@ class HttpServer(port: Int) : NanoHTTPD("::", port) {
 
         val startAt = System.currentTimeMillis()
         LogUtils.d(TAG) {
-            "${session.method.name} - $uri - ${session.queryParameterString} - Start($startAt)"
+            "${session.method.name} - $uri - ${WebAccessPolicy.redactQuery(session.queryParameterString)} - Start($startAt)"
         }
 
         try {
             when (session.method) {
                 Method.OPTIONS -> {
                     val response = newFixedLengthResponse("")
-                    response.addHeader("Access-Control-Allow-Methods", "POST")
-                    response.addHeader("Access-Control-Allow-Headers", "content-type")
-                    response.addHeader("Access-Control-Allow-Origin", session.headers["origin"])
+                    response.addHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+                    response.addHeader("Access-Control-Allow-Headers", "content-type, authorization")
+                    session.headers["origin"]?.takeIf {
+                        WebAuth.allowsOrigin(it) || authEndpoint
+                    }?.let { response.addHeader("Access-Control-Allow-Origin", it) }
+                    response.addHeader("Vary", "Origin")
                     //response.addHeader("Access-Control-Max-Age", "3600");
                     return response
                 }
@@ -57,7 +65,13 @@ class HttpServer(port: Int) : NanoHTTPD("::", port) {
                     session.parseBody(files)
                     val postData = files["postData"]
 
-                    returnData = runBlocking {
+                    returnData = if (uri == "/webAuth/pair") {
+                        val key = runCatching {
+                            JsonParser.parseString(postData ?: "{}").asJsonObject.get("key")?.asString
+                        }.getOrNull()
+                        if (!WebAuth.pair(key, session.headers["origin"])) return WebAuth.unauthorized(session.headers["origin"])
+                        ReturnData().setData(true)
+                    } else runBlocking {
                         when (uri) {
                             "/aiChat" -> aiChat.action(postData)
                             "/saveBookSource" -> BookSourceController.saveSource(postData)
@@ -84,6 +98,7 @@ class HttpServer(port: Int) : NanoHTTPD("::", port) {
                     val parameters = session.parameters
 
                     returnData = when (uri) {
+                        "/webAuth" -> ReturnData().setData(mapOf("enabled" to WebAuth.enabled))
                         "/getAiChatConfig" -> runBlocking { aiChat.config() }
                         "/getAiChat" -> runBlocking { aiChat.state() }
                         "/getAiChatHistory" -> runBlocking { aiChat.history() }
@@ -155,17 +170,20 @@ class HttpServer(port: Int) : NanoHTTPD("::", port) {
             if (uri == "/cover" && coverFile == null) {
                 response.addHeader("Cache-Control", "no-store")
             }
-            if (uri == "/aiChat" || uri.startsWith("/getAiChat")) {
+            if (authEndpoint || uri == "/aiChat" || uri.startsWith("/getAiChat")) {
                 response.addHeader("Cache-Control", "no-store")
             }
-            response.addHeader("Access-Control-Allow-Origin", session.headers["origin"])
+            session.headers["origin"]?.takeIf {
+                WebAuth.allowsOrigin(it) || authEndpoint
+            }?.let { response.addHeader("Access-Control-Allow-Origin", it) }
+            response.addHeader("Vary", "Origin")
             LogUtils.d(TAG) {
-                "${session.method.name} - $uri - ${session.queryParameterString} - End($startAt)"
+                "${session.method.name} - $uri - ${WebAccessPolicy.redactQuery(session.queryParameterString)} - End($startAt)"
             }
             return response
         } catch (e: Exception) {
             LogUtils.d(TAG) {
-                "${session.method.name} - $uri - ${session.queryParameterString} - Error End($startAt)\n$e\n${e.stackTraceStr}"
+                "${session.method.name} - $uri - ${WebAccessPolicy.redactQuery(session.queryParameterString)} - Error End($startAt)\n$e\n${e.stackTraceStr}"
             }
             return newFixedLengthResponse(e.message)
         }

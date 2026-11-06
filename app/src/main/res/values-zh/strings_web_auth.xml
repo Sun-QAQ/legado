@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="web_auth_title">网页服务鉴权</string>
+    <string name="web_auth_summary">开启后，网页和第三方客户端需要使用访问密钥配对</string>
+    <string name="web_auth_key_title">网页访问密钥</string>
+    <string name="web_auth_reset">重置密钥</string>
+</resources>
