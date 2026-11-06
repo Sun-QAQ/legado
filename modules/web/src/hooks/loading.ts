@@ -33,7 +33,8 @@ export const useLoading = (
   }
 
   onUnmounted(() => {
-    closeLoading()
+    loadingInstance?.close()
+    loadingInstance = null
   })
 
   return { isLoading, showLoading, closeLoading, loadingWrapper }

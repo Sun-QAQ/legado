@@ -9,6 +9,7 @@ import type {
 } from '@/book'
 import type { webReadConfig } from '@/web'
 import { ElMessage } from 'element-plus/es'
+import { CanceledError } from 'axios'
 
 const default_config: webReadConfig = {
   theme: 0,
@@ -27,6 +28,7 @@ const default_config: webReadConfig = {
 }
 let webReadConfigLoadedDate: Date | undefined
 let webReadConfigPromise: Promise<void> | undefined
+let catalogRevision = 0
 
 export const useBookStore = defineStore('book', {
   state: () => {
@@ -103,11 +105,24 @@ export const useBookStore = defineStore('book', {
     /** 从后端加载书籍目录，优先返回内存缓存 */
     async loadWebCatalog(
       book: typeof this.readingBook,
+      signal?: AbortSignal,
     ): Promise<BookChapter[]> {
       const { bookUrl, name, chapterIndex } = book
+      if (signal?.aborted) throw new CanceledError()
+      const revision = ++catalogRevision
+      if (
+        bookUrl === this.readingBook.bookUrl &&
+        this.catalog.length > chapterIndex &&
+        this.catalog.length > 0
+      ) {
+        return this.catalog
+      }
       const fetchChapterList_promise = API.getChapterList(
         bookUrl as string,
+        signal,
       ).then(res => {
+        if (signal?.aborted || revision !== catalogRevision)
+          throw new CanceledError()
         const { isSuccess, data, errorMsg } = res.data
         if (isSuccess === false) {
           ElMessage.error(errorMsg)
@@ -125,17 +140,7 @@ export const useBookStore = defineStore('book', {
         console.log(`书籍${name}: 章节目录已更新`)
         return this.catalog
       })
-      if (
-        bookUrl === this.readingBook.bookUrl &&
-        this.catalog.length > 0 &&
-        this.catalog.length - 1 >= chapterIndex
-      ) {
-        console.log(`返回书籍《${name}》 缓存的章节目录`)
-        return this.catalog
-      } else {
-        console.log(`从阅读后端获取书籍《${name}》 章节目录数据...`)
-        return await fetchChapterList_promise
-      }
+      return await fetchChapterList_promise
     },
     setPopCataVisible(visible: boolean) {
       this.popCataVisible = visible

@@ -121,6 +121,8 @@
 import jump from '@/plugins/jump'
 import settings from '@/config/themeConfig'
 import API from '@api'
+import { isCancel } from 'axios'
+import { createChapterRequests } from '@/utils/chapterRequests'
 import { useLoading } from '@/hooks/loading'
 import { useThrottleFn } from '@vueuse/shared'
 import { isNullOrBlank } from '@/utils/utils'
@@ -130,7 +132,19 @@ import MangaReader from '@/components/MangaReader.vue'
 
 const content = ref()
 // loading spinner
-const { isLoading, loadingWrapper } = useLoading(content, '正在获取信息')
+const { isLoading, showLoading, closeLoading } = useLoading(
+  content,
+  '正在获取信息',
+)
+const requests = createChapterRequests()
+const lifetime = new AbortController()
+let initializing = true
+let returnTimer: ReturnType<typeof setTimeout> | undefined
+const syncLoading = () => {
+  if (lifetime.signal.aborted) return
+  if (initializing || requests.pending) showLoading()
+  else closeLoading()
+}
 const store = useBookStore()
 
 const {
@@ -314,59 +328,56 @@ watch(mangaMode, () => {
   if (!mangaMode.value) toChapterPos(position)
 })
 const noPoint = ref(true)
-const getContent = (
+const getContent = async (
   index: number,
   reloadChapter = true,
   chapterPos = 0,
   lastMangaPage = false,
 ) => {
+  const bookUrl = store.readingBook.bookUrl
+  const chapter = catalog.value[index]
+  if (!chapter) return
+  if (!reloadChapter && chapterData.value.some(data => data.index === index))
+    return
+  const request = requests.start(bookUrl, index, reloadChapter)
+  if (!request) return
+  const current = () =>
+    request.isCurrent() && bookUrl === store.readingBook.bookUrl
   if (reloadChapter) {
-    //展示进度条
     store.setShowContent(false)
-    //强制滚回顶层
     jump(top.value, { duration: 0 })
-    //从目录，按钮切换章节时保存进度 预加载时不保存
     saveReadingBookProgressToBrowser(index, chapterPos)
     chapterData.value = []
   }
-  const bookUrl = store.readingBook.bookUrl
-  if (!catalog.value[index]) return
-  const { title, index: chapterIndex } = catalog.value[index]
-
-  loadingWrapper(
-    API.getBookContent(bookUrl, chapterIndex).then(
-      res => {
-        if (res.data.isSuccess) {
-          const data = res.data.data
-          const content = data.split(/\n+/)
-          chapterData.value.push({ index, content, title })
-          if (reloadChapter && mangaMode.value && lastMangaPage) {
-            const pages = getMangaPages(content)
-            saveReadingBookProgressToBrowser(
-              index,
-              pages.at(-1)?.chapterPos || 0,
-            )
-          } else if (reloadChapter && !mangaMode.value) toChapterPos(chapterPos)
-        } else {
-          ElMessage({ message: res.data.errorMsg, type: 'error' })
-          const content = [res.data.errorMsg]
-          chapterData.value.push({ index, content, title })
-        }
-        store.setContentLoading(true)
-        noPoint.value = false
-        store.setShowContent(true)
-        if (!res.data.isSuccess) {
-          throw res.data
-        }
-      },
-      err => {
-        const content = ['获取章节内容失败！']
-        chapterData.value.push({ index, content, title })
-        store.setShowContent(true)
-        throw err
-      },
-    ),
-  )
+  syncLoading()
+  try {
+    const res = await API.getBookContent(bookUrl, chapter.index, request.signal)
+    if (!current()) return
+    const { isSuccess, data, errorMsg } = res.data
+    const paragraphs = isSuccess ? data.split(/\n+/) : [errorMsg]
+    chapterData.value.push({ index, content: paragraphs, title: chapter.title })
+    if (!isSuccess) ElMessage.error(errorMsg)
+    if (reloadChapter && isSuccess && mangaMode.value && lastMangaPage) {
+      saveReadingBookProgressToBrowser(
+        index,
+        getMangaPages(paragraphs).at(-1)?.chapterPos || 0,
+      )
+    } else if (reloadChapter && !mangaMode.value) toChapterPos(chapterPos)
+    store.setContentLoading(true)
+    noPoint.value = false
+    store.setShowContent(true)
+  } catch (error) {
+    if (!current() || isCancel(error)) return
+    chapterData.value.push({
+      index,
+      content: ['获取章节内容失败！'],
+      title: chapter.title,
+    })
+    store.setShowContent(true)
+  } finally {
+    request.finish()
+    syncLoading()
+  }
 }
 
 // 章节进度跳转和计算
@@ -535,34 +546,44 @@ const ignoreKeyPress = (event: KeyboardEvent) => {
   }
 }
 
+watch(
+  () => store.readingBook.bookUrl,
+  () => requests.reset(),
+  { flush: 'sync' },
+)
+
 onMounted(async () => {
-  window.addEventListener('keydown', onFocusEscape)
-  await store.loadWebConfig()
-  //获取书籍数据
-  const bookUrl = sessionStorage.getItem('bookUrl')
-  const name = sessionStorage.getItem('bookName')
-  const author = sessionStorage.getItem('bookAuthor')
-  const chapterIndex = Number(sessionStorage.getItem('chapterIndex') || 0)
-  const chapterPos = Number(sessionStorage.getItem('chapterPos') || 0)
-  const isSeachBook = sessionStorage.getItem('isSeachBook') === 'true'
-  if (isNullOrBlank(bookUrl) || isNullOrBlank(name) || author === null) {
-    ElMessage.warning('书籍信息为空，即将自动返回书架页面...')
-    return setTimeout(toShelf, 500)
-  }
-  const book: typeof store.readingBook = {
-    // @ts-expect-error: bookUrl name author is NON_Blank string here
-    bookUrl,
-    // @ts-expect-error: bookUrl name author is NON_Blank string here
-    name,
-    author,
-    chapterIndex,
-    chapterPos,
-    isSeachBook,
-  }
-  onResize()
-  window.addEventListener('resize', onResize)
-  loadingWrapper(
-    store.loadWebCatalog(book).then(chapters => {
+  syncLoading()
+  try {
+    window.addEventListener('keydown', onFocusEscape)
+    await store.loadWebConfig()
+    if (lifetime.signal.aborted) return
+    //获取书籍数据
+    const bookUrl = sessionStorage.getItem('bookUrl')
+    const name = sessionStorage.getItem('bookName')
+    const author = sessionStorage.getItem('bookAuthor')
+    const chapterIndex = Number(sessionStorage.getItem('chapterIndex') || 0)
+    const chapterPos = Number(sessionStorage.getItem('chapterPos') || 0)
+    const isSeachBook = sessionStorage.getItem('isSeachBook') === 'true'
+    if (isNullOrBlank(bookUrl) || isNullOrBlank(name) || author === null) {
+      ElMessage.warning('书籍信息为空，即将自动返回书架页面...')
+      returnTimer = setTimeout(toShelf, 500)
+      return
+    }
+    const book: typeof store.readingBook = {
+      // @ts-expect-error: bookUrl name author is NON_Blank string here
+      bookUrl,
+      // @ts-expect-error: bookUrl name author is NON_Blank string here
+      name,
+      author,
+      chapterIndex,
+      chapterPos,
+      isSeachBook,
+    }
+    onResize()
+    window.addEventListener('resize', onResize)
+    await store.loadWebCatalog(book, lifetime.signal).then(chapters => {
+      if (lifetime.signal.aborted) return
       store.setReadingBook(book)
       if (!chapters.length) {
         ElMessage.warning('暂无章节目录')
@@ -589,11 +610,20 @@ onMounted(async () => {
           ' | ' +
           chapters[Math.min(Math.max(0, chapterIndex), chapters.length - 1)]
             ?.title || ''
-    }),
-  )
+    })
+  } catch (error) {
+    if (!lifetime.signal.aborted && !isCancel(error))
+      ElMessage.error('读取章节目录失败')
+  } finally {
+    initializing = false
+    syncLoading()
+  }
 })
 
 onUnmounted(() => {
+  lifetime.abort()
+  requests.dispose()
+  clearTimeout(returnTimer)
   window.removeEventListener('keydown', onFocusEscape)
   window.removeEventListener('keyup', handleKeyPress)
   window.removeEventListener('keydown', ignoreKeyPress)
