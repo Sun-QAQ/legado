@@ -39,8 +39,14 @@ jobs:
             echo "telegram=yes" >> $GITHUB_OUTPUT
           fi
 
-  build:
+  unit_tests:
     needs: prepare
+    permissions:
+      contents: read
+    uses: ./.github/workflows/jvm-tests.yml
+
+  build:
+    needs: [ prepare, unit_tests ]
     strategy:
       matrix:
         product: [ app ]

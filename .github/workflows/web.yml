@@ -44,14 +44,15 @@ jobs:
         name: Setup pnpm cache
         with:
           path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
-          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/web/package.json') }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/web/pnpm-lock.yaml') }}
           restore-keys: |
             ${{ runner.os }}-pnpm-store-
 
       - name: Build and move files
         working-directory: modules/web
         run: |
-          pnpm i
+          pnpm install --frozen-lockfile
+          pnpm test
           pnpm build
           version="v$(date -d "8 hour" -u +3.%y.%m%d%H)"
           echo "APP_VER=$version" >> $GITHUB_ENV

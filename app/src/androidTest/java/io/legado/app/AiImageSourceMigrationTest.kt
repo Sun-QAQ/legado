@@ -6,6 +6,7 @@ import androidx.sqlite.db.framework.FrameworkSQLiteOpenHelperFactory
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import io.legado.app.data.AppDatabase
+import io.legado.app.data.DatabaseMigrations
 import io.legado.app.data.entities.AiImageSource
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -55,7 +56,9 @@ class AiImageSourceMigrationTest {
 
     private fun withDatabase(name: String, block: (AppDatabase) -> Unit) {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
-        val db = Room.databaseBuilder(context, AppDatabase::class.java, name).build()
+        val db = Room.databaseBuilder(context, AppDatabase::class.java, name)
+            .addMigrations(*DatabaseMigrations.migrations)
+            .build()
         try {
             block(db)
         } finally {
