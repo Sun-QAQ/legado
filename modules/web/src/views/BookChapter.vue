@@ -10,8 +10,13 @@
     }"
   >
     <header class="reader-toolbar">
-      <el-button @click="toShelf">← 返回书架</el-button
-      ><span class="reader-book"
+      <div class="reader-back-actions">
+        <el-button @click="toShelf">← 返回书架</el-button>
+        <el-button :disabled="!store.readingBook.bookUrl" @click="toDetail"
+          >返回详情</el-button
+        >
+      </div>
+      <span class="reader-book"
         >{{ store.readingBook.name
         }}<small>{{ store.readingBook.author }}</small></span
       >
@@ -304,10 +309,16 @@ const toBottom = () => {
   jump(bottom.value)
 }
 
-// 书架路由切换
+// 阅读页返回导航
 const router = useRouter()
 const toShelf = () => {
   router.push('/')
+}
+const toDetail = () => {
+  router.push({
+    name: 'book-detail',
+    query: { url: store.readingBook.bookUrl, from: 'shelf' },
+  })
 }
 
 // 获取章节内容
@@ -695,6 +706,14 @@ onBeforeRouteLeave(async (to, from, next) => {
   background: var(--web-surface);
   color: var(--web-text);
   border-bottom: 1px solid var(--web-line);
+}
+.reader-back-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.reader-back-actions .el-button + .el-button {
+  margin-left: 0;
 }
 .reader-book {
   font-size: 14px;
