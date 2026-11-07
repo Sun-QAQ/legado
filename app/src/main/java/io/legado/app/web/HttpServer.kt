@@ -1,7 +1,6 @@
 package io.legado.app.web
 
 import android.graphics.Bitmap
-import com.google.gson.JsonParser
 import fi.iki.elonen.NanoHTTPD
 import io.legado.app.api.ReturnData
 import io.legado.app.api.controller.BookController
@@ -31,10 +30,6 @@ class HttpServer(port: Int, private val onRequest: () -> Unit = { WebService.ser
     fun closeChat() = aiChat.close()
 
     override fun serve(session: IHTTPSession): Response {
-        val authEndpoint = session.uri in setOf("/webAuth", "/webAuth/pair")
-        if (session.method != Method.OPTIONS && !authEndpoint &&
-            (session.method != Method.GET || !WebAccessPolicy.isPublicAsset(session.uri)) &&
-            !WebAuth.authorize(session)) return WebAuth.unauthorized(session.headers["origin"])
         onRequest()
         var returnData: ReturnData? = null
         val ct = ContentType(session.headers["content-type"]).tryUTF8()
@@ -43,7 +38,7 @@ class HttpServer(port: Int, private val onRequest: () -> Unit = { WebService.ser
 
         val startAt = System.currentTimeMillis()
         LogUtils.d(TAG) {
-            "${session.method.name} - $uri - ${WebAccessPolicy.redactQuery(session.queryParameterString)} - Start($startAt)"
+            "${session.method.name} - $uri - ${WebRequestLog.redactQuery(session.queryParameterString)} - Start($startAt)"
         }
 
         try {
@@ -52,9 +47,7 @@ class HttpServer(port: Int, private val onRequest: () -> Unit = { WebService.ser
                     val response = newFixedLengthResponse("")
                     response.addHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
                     response.addHeader("Access-Control-Allow-Headers", "content-type, authorization")
-                    session.headers["origin"]?.takeIf {
-                        WebAuth.allowsOrigin(it) || authEndpoint
-                    }?.let { response.addHeader("Access-Control-Allow-Origin", it) }
+                    session.headers["origin"]?.let { response.addHeader("Access-Control-Allow-Origin", it) }
                     response.addHeader("Vary", "Origin")
                     //response.addHeader("Access-Control-Max-Age", "3600");
                     return response
@@ -65,13 +58,7 @@ class HttpServer(port: Int, private val onRequest: () -> Unit = { WebService.ser
                     session.parseBody(files)
                     val postData = files["postData"]
 
-                    returnData = if (uri == "/webAuth/pair") {
-                        val key = runCatching {
-                            JsonParser.parseString(postData ?: "{}").asJsonObject.get("key")?.asString
-                        }.getOrNull()
-                        if (!WebAuth.pair(key, session.headers["origin"])) return WebAuth.unauthorized(session.headers["origin"])
-                        ReturnData().setData(true)
-                    } else runBlocking {
+                    returnData = runBlocking {
                         when (uri) {
                             "/aiChat" -> aiChat.action(postData)
                             "/saveBookSource" -> BookSourceController.saveSource(postData)
@@ -98,7 +85,6 @@ class HttpServer(port: Int, private val onRequest: () -> Unit = { WebService.ser
                     val parameters = session.parameters
 
                     returnData = when (uri) {
-                        "/webAuth" -> ReturnData().setData(mapOf("enabled" to WebAuth.enabled))
                         "/getAiChatConfig" -> runBlocking { aiChat.config() }
                         "/getAiChat" -> runBlocking { aiChat.state(parameters["revision"]?.firstOrNull()) }
                         "/getAiChatHistory" -> runBlocking { aiChat.history() }
@@ -170,20 +156,18 @@ class HttpServer(port: Int, private val onRequest: () -> Unit = { WebService.ser
             if (uri == "/cover" && coverFile == null) {
                 response.addHeader("Cache-Control", "no-store")
             }
-            if (authEndpoint || uri == "/aiChat" || uri.startsWith("/getAiChat")) {
+            if (uri == "/aiChat" || uri.startsWith("/getAiChat")) {
                 response.addHeader("Cache-Control", "no-store")
             }
-            session.headers["origin"]?.takeIf {
-                WebAuth.allowsOrigin(it) || authEndpoint
-            }?.let { response.addHeader("Access-Control-Allow-Origin", it) }
+            session.headers["origin"]?.let { response.addHeader("Access-Control-Allow-Origin", it) }
             response.addHeader("Vary", "Origin")
             LogUtils.d(TAG) {
-                "${session.method.name} - $uri - ${WebAccessPolicy.redactQuery(session.queryParameterString)} - End($startAt)"
+                "${session.method.name} - $uri - ${WebRequestLog.redactQuery(session.queryParameterString)} - End($startAt)"
             }
             return response
         } catch (e: Exception) {
             LogUtils.d(TAG) {
-                "${session.method.name} - $uri - ${WebAccessPolicy.redactQuery(session.queryParameterString)} - Error End($startAt)\n$e\n${e.stackTraceStr}"
+                "${session.method.name} - $uri - ${WebRequestLog.redactQuery(session.queryParameterString)} - Error End($startAt)\n$e\n${e.stackTraceStr}"
             }
             return newFixedLengthResponse(e.message)
         }

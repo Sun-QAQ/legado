@@ -25,8 +25,6 @@ import io.legado.app.lib.prefs.fragment.PreferenceFragment
 import io.legado.app.model.CheckSource
 import io.legado.app.model.ImageProvider
 import io.legado.app.receiver.SharedReceiverActivity
-import io.legado.app.web.WebAuth
-import io.legado.app.utils.sendToClip
 import io.legado.app.service.WebService
 import io.legado.app.ui.file.HandleFileContract
 import io.legado.app.ui.widget.number.NumberPickerDialog
@@ -121,7 +119,6 @@ class OtherConfigFragment : PreferenceFragment(),
                     AppConfig.webPort = it
                 }
 
-            PreferKey.webAuthKey -> showWebAccessKey()
             PreferKey.cleanCache -> clearCache()
             PreferKey.uploadRule -> showDialogFragment<DirectLinkUploadConfig>()
             PreferKey.checkSource -> showDialogFragment<CheckSourceConfig>()
@@ -168,18 +165,6 @@ class OtherConfigFragment : PreferenceFragment(),
         return super.onPreferenceTreeClick(preference)
     }
 
-    private fun showWebAccessKey() {
-        requireContext().alert(R.string.web_auth_key_title) {
-            setMessage(WebAuth.accessKey())
-            positiveButton(R.string.copy_text) { requireContext().sendToClip(WebAuth.accessKey()) }
-            neutralButton(R.string.web_auth_reset) {
-                WebAuth.reset()
-                showWebAccessKey()
-            }
-            negativeButton(R.string.cancel)
-        }
-    }
-
     override fun onSharedPreferenceChanged(sharedPreferences: SharedPreferences?, key: String?) {
         when (key) {
             PreferKey.preDownloadNum -> {
@@ -191,12 +176,6 @@ class OtherConfigFragment : PreferenceFragment(),
                 postEvent(PreferKey.threadCount, "")
             }
 
-            PreferKey.webAuthEnabled, PreferKey.webAuthKey -> {
-                if (WebService.isRun) {
-                    WebService.stop(requireContext())
-                    WebService.start(requireContext())
-                }
-            }
             PreferKey.webPort -> {
                 upPreferenceSummary(key, AppConfig.webPort.toString())
                 if (WebService.isRun) {

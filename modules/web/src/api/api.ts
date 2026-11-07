@@ -4,7 +4,6 @@
 import type { webReadConfig } from '@/web'
 import ajax from './axios'
 import { sourceMode } from '@/config/sourceContext'
-import { withWebAccessKey } from '@/utils/webCredentials'
 import type {
   BaseBook,
   Book,
@@ -69,10 +68,7 @@ const saveBookProgressWithBeacon = (bookProgress: BookProgress) => {
   if (!bookProgress) return
   // 常规请求可能会被取消 使用Fetch keep-alive 或者 navigator.sendBeacon
   navigator.sendBeacon(
-    withWebAccessKey(
-      new URL('saveBookProgress', legado_http_entry_point).toString(),
-      legado_http_entry_point,
-    ),
+    new URL('saveBookProgress', legado_http_entry_point).toString(),
     JSON.stringify(bookProgress),
   )
 }
@@ -143,10 +139,7 @@ const search = (
   group = '',
 ) => {
   const socket = new WebSocket(
-    withWebAccessKey(
-      new URL('searchBook', legado_webSocket_entry_point).toString(),
-      legado_http_entry_point,
-    ),
+    new URL('searchBook', legado_webSocket_entry_point).toString(),
   )
   socket.onerror = event => {
     onFinish()
@@ -210,9 +203,7 @@ const debug = (
     legado_webSocket_entry_point,
   )
 
-  const socket = new WebSocket(
-    withWebAccessKey(url.toString(), legado_http_entry_point),
-  )
+  const socket = new WebSocket(url.toString())
   socket.onerror = event => {
     onFinish()
     wsOnError?.call(socket, event)
@@ -245,7 +236,7 @@ const getProxyCoverUrl = (coverUrl: string) => {
       )
   // 固定版本绕过旧首帧缓存，后续仍使用浏览器缓存。
   url.searchParams.set('v', 'original2')
-  return withWebAccessKey(url.toString(), legado_http_entry_point)
+  return url.toString()
 }
 /**
  * 正文图片统一通过阅读 App 获取，沿用书源请求头、缓存及解密逻辑。
@@ -259,20 +250,16 @@ const getProxyImageUrl = (
   width: number | `${number}`,
 ) => {
   const proxyEndpoint = new URL('image', legado_http_entry_point).toString()
-  if (src.startsWith(proxyEndpoint + '?'))
-    return withWebAccessKey(src, legado_http_entry_point)
-  return withWebAccessKey(
-    new URL(
-      'image?path=' +
-        encodeURIComponent(src) +
-        '&url=' +
-        encodeURIComponent(bookUrl) +
-        '&width=' +
-        width,
-      legado_http_entry_point,
-    ).toString(),
+  if (src.startsWith(proxyEndpoint + '?')) return src
+  return new URL(
+    'image?path=' +
+      encodeURIComponent(src) +
+      '&url=' +
+      encodeURIComponent(bookUrl) +
+      '&width=' +
+      width,
     legado_http_entry_point,
-  )
+  ).toString()
 }
 
 export default {

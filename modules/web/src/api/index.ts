@@ -1,4 +1,4 @@
-import { isAxiosError, isCancel, type AxiosResponse } from 'axios'
+import { isCancel, type AxiosResponse } from 'axios'
 import type { LeagdoApiResponse } from './api'
 import API, {
   setWebsocketOnError,
@@ -55,10 +55,6 @@ const reportConnectionError = () => {
   connectionStore().setConnectStatus('连接异常')
 }
 const axiosErrorInterceptor = (err: unknown) => {
-  if (isAxiosError(err) && err.response?.status === 401) {
-    window.dispatchEvent(new Event('legado-web-unauthorized'))
-    throw err
-  }
   if (!isCancel(err)) {
     reportConnectionError()
   }

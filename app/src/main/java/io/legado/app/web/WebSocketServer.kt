@@ -6,11 +6,6 @@ import io.legado.app.web.socket.*
 
 class WebSocketServer(port: Int, private val onRequest: () -> Unit = { WebService.serve() }) : NanoWSD("::", port) {
 
-    override fun serve(session: IHTTPSession): Response {
-        if (!WebAuth.authorize(session, socket = true)) return WebAuth.unauthorized()
-        return super.serve(session)
-    }
-
     override fun openWebSocket(handshake: IHTTPSession): WebSocket? {
         onRequest()
         return when (handshake.uri) {
