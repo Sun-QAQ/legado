@@ -2,6 +2,7 @@ package io.legado.app.help.config
 
 import android.content.SharedPreferences
 import android.os.Build
+import android.webkit.WebSettings
 import io.legado.app.BuildConfig
 import io.legado.app.constant.AppConst
 import io.legado.app.constant.PreferKey
@@ -554,7 +555,7 @@ object AppConfig : SharedPreferences.OnSharedPreferenceChangeListener {
     private fun getPrefUserAgent(): String {
         val ua = appCtx.getPrefString(PreferKey.userAgent)
         if (ua.isNullOrBlank()) {
-            return "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/" + BuildConfig.Cronet_Main_Version + " Safari/537.36"
+            return WebSettings.getDefaultUserAgent(appCtx)
         }
         return ua
     }
