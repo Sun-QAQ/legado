@@ -2,6 +2,7 @@ package io.legado.app.ui.login
 
 import android.app.Application
 import android.content.Intent
+import android.webkit.WebSettings
 import com.script.rhino.runScriptWithContext
 import io.legado.app.base.BaseViewModel
 import io.legado.app.constant.AppLog
@@ -25,7 +26,10 @@ class SourceLoginViewModel(application: Application) : BaseViewModel(application
                 "httpTts" -> source = appDb.httpTTSDao.get(sourceKey.toLong())
             }
             headerMap = runScriptWithContext {
-                source?.getHeaderMap(true) ?: emptyMap()
+                source?.getHeaderMap(
+                    hasLoginHeader = true,
+                    defaultUserAgent = WebSettings.getDefaultUserAgent(context)
+                ) ?: emptyMap()
             }
             source
         }.onSuccess {

@@ -79,6 +79,8 @@ class WebViewLoginFragment : BaseFragment(R.layout.fragment_web_view_login) {
             }
         }
         val cookieManager = CookieManager.getInstance()
+        cookieManager.setAcceptCookie(true)
+        cookieManager.setAcceptThirdPartyCookies(binding.webView, true)
         binding.webView.webViewClient = object : WebViewClient() {
             override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
                 val cookie = cookieManager.getCookie(url)
@@ -89,6 +91,7 @@ class WebViewLoginFragment : BaseFragment(R.layout.fragment_web_view_login) {
             override fun onPageFinished(view: WebView?, url: String?) {
                 val cookie = cookieManager.getCookie(url)
                 CookieStore.setCookie(source.getKey(), cookie)
+                cookieManager.flush()
                 if (checking) {
                     activity?.finish()
                 }
