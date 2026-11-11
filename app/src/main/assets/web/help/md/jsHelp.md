@@ -36,6 +36,23 @@
 
 ## 当前类对象的可使用的部分方法
 
+### 登录 UI
+
+`loginUi` 支持 JSON 数组、`@js:` 和 `<js>...</js>`。脚本可返回 JSON 字符串或原生数组，能够使用 JS 库、登录 URL 中定义的函数和 `source`。界面生成和回调在后台执行。
+
+控件类型包括 `text`、`password`、`button`、`select` 和 `toggle`。`name` 是表单键；可选的 `viewName` 是显示名称表达式；`default` 是初始值。`select` 的 `chars` 提供选项，`toggle` 的 `chars` 必须包含关闭、开启两个值。表单提交和选项回调使用这些值，不使用选项下标。初始化、程序更新和重建界面不会触发选项回调。
+
+按钮及选项的 `action` 可调用登录 URL 中定义的函数，通过 `result.get(name)` 读取当前表单。登录窗口中的 `java` 保留通用 JS 扩展，并增加：
+
+| 方法 | 作用 |
+| --- | --- |
+| `java.upLoginData(values)` | 合并更新表单值，可传入 JavaScript 对象或 Map |
+| `java.reLoginView(saveLoginData)` | 重新生成界面；传入 `false` 时不保存登录表单，省略参数时保存 |
+
+`source.putVariable(value)` 与 `source.setVariable(value)` 等效。书源可调用 `source.refreshExplore()` 清除发现分类缓存。
+
+脚本或表单解析失败时，登录窗口会显示错误及重试入口。此格式与 NG JS 的 `loginUi` / `loginAction` 接口分别处理。
+
 ### [RssJsExtensions](https://github.com/gedoor/legado/blob/master/app/src/main/java/io/legado/app/ui/rss/read/RssJsExtensions.kt)
 > 只能在订阅源`shouldOverrideUrlLoading`规则中使用  
 > 订阅添加跳转url拦截, js, 返回true拦截,js变量url,可以通过js打开url  

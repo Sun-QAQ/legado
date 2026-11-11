@@ -6,53 +6,62 @@ import android.os.Bundle
 import android.text.InputType
 import android.view.View
 import android.view.ViewGroup
+import android.widget.AdapterView
+import android.widget.ArrayAdapter
+import android.widget.LinearLayout
+import android.widget.Spinner
 import android.widget.TextView
 import androidx.core.view.setPadding
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
+import com.google.android.flexbox.FlexboxLayout
+import com.google.android.material.switchmaterial.SwitchMaterial
+import com.google.gson.JsonParser
 import com.script.rhino.runScriptWithContext
 import io.legado.app.R
 import io.legado.app.base.BaseDialogFragment
 import io.legado.app.constant.AppLog
 import io.legado.app.data.entities.BaseSource
 import io.legado.app.data.entities.BookSource
-import io.legado.app.help.source.NgJsSource
-import io.legado.app.model.webBook.NgJsRuntime
-import com.google.gson.JsonParser
-import io.legado.app.utils.fromJsonArray
 import io.legado.app.data.entities.rule.RowUi
 import io.legado.app.databinding.DialogLoginBinding
 import io.legado.app.databinding.ItemFilletTextBinding
 import io.legado.app.databinding.ItemSourceEditBinding
+import io.legado.app.help.source.NgJsSource
+import io.legado.app.help.source.SourceLoginScript
+import io.legado.app.help.source.SourceLoginUi
 import io.legado.app.lib.dialogs.alert
 import io.legado.app.lib.theme.Selector
 import io.legado.app.lib.theme.accentColor
+import io.legado.app.model.webBook.NgJsRuntime
 import io.legado.app.ui.about.AppLogDialog
 import io.legado.app.utils.ColorUtils
 import io.legado.app.utils.GSON
 import io.legado.app.utils.applyTint
 import io.legado.app.utils.dpToPx
+import io.legado.app.utils.fromJsonArray
 import io.legado.app.utils.isAbsUrl
 import io.legado.app.utils.openUrl
-import io.legado.app.utils.printOnDebug
 import io.legado.app.utils.sendToClip
 import io.legado.app.utils.setLayout
 import io.legado.app.utils.showDialogFragment
 import io.legado.app.utils.toastOnUi
 import io.legado.app.utils.viewbindingdelegate.viewBinding
 import kotlinx.coroutines.Dispatchers.IO
-import kotlinx.coroutines.Dispatchers.Main
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import splitties.init.appCtx
-import splitties.views.onClick
 
 
 class SourceLoginDialog : BaseDialogFragment(R.layout.dialog_login, true) {
 
     private val binding by viewBinding(DialogLoginBinding::bind)
     private val viewModel by activityViewModels<SourceLoginViewModel>()
+    private lateinit var loginScript: SourceLoginScript
+    private var loginRows: List<RowUi> = emptyList()
+    private var loginBusy = false
+    private var loginUiReady = false
     private var ngState: com.google.gson.JsonElement? = null
 
     override fun onStart() {
@@ -68,62 +77,13 @@ class SourceLoginDialog : BaseDialogFragment(R.layout.dialog_login, true) {
         }
         // 工具栏保持透明，让圆角卡片背景透出，避免直角覆盖顶部圆角
         binding.toolBar.title = getString(R.string.login_source, source.getTag())
-        val loginInfo = source.getLoginInfoMap()
-        val loginUi = source.loginUi()
-        try {
-            loginUi?.forEachIndexed { index, rowUi ->
-                when (rowUi.type) {
-                    RowUi.Type.text -> ItemSourceEditBinding.inflate(
-                        layoutInflater,
-                        binding.root,
-                        false
-                    ).let {
-                        binding.flexbox.addView(it.root)
-                        it.root.id = index + 1000
-                        it.textInputLayout.hint = rowUi.name
-                        it.editText.setText(loginInfo?.get(rowUi.name))
-                    }
-
-                    RowUi.Type.password -> ItemSourceEditBinding.inflate(
-                        layoutInflater,
-                        binding.root,
-                        false
-                    ).let {
-                        binding.flexbox.addView(it.root)
-                        it.root.id = index + 1000
-                        it.textInputLayout.hint = rowUi.name
-                        it.editText.inputType =
-                            InputType.TYPE_TEXT_VARIATION_PASSWORD or InputType.TYPE_CLASS_TEXT
-                        it.editText.setText(loginInfo?.get(rowUi.name))
-                    }
-
-                    RowUi.Type.button -> ItemFilletTextBinding.inflate(
-                        layoutInflater,
-                        binding.root,
-                        false
-                    ).let {
-                        binding.flexbox.addView(it.root)
-                        rowUi.style().apply(it.root)
-                        it.root.id = index + 1000
-                        it.textView.text = rowUi.name
-                        it.textView.setPadding(16.dpToPx())
-                        applyAccentColor(it.textView)
-                        it.root.onClick {
-                            handleButtonClick(source, rowUi, loginUi)
-                        }
-                    }
-                }
-            }
-        } catch (e: NullPointerException) {
-            AppLog.put("登录UI JSON 数据错误", e, true)
-        }
+        loginScript = SourceLoginScript(source)
         binding.toolBar.inflateMenu(R.menu.source_login)
         binding.toolBar.menu.applyTint(requireContext())
         binding.toolBar.setOnMenuItemClickListener { item ->
             when (item.itemId) {
                 R.id.menu_ok -> {
-                    val loginData = getLoginData(loginUi)
-                    login(source, loginData)
+                    if (!loginBusy) login(source, getLoginData(loginRows))
                 }
 
                 R.id.menu_show_login_header -> alert {
@@ -141,6 +101,7 @@ class SourceLoginDialog : BaseDialogFragment(R.layout.dialog_login, true) {
             }
             return@setOnMenuItemClickListener true
         }
+        refreshLoginUi(source, initialize = true)
     }
 
     private fun initNgLogin(source: BookSource) {
@@ -231,30 +192,147 @@ class SourceLoginDialog : BaseDialogFragment(R.layout.dialog_login, true) {
         )
     }
 
-    private fun handleButtonClick(source: BaseSource, rowUi: RowUi, loginUi: List<RowUi>) {
-        lifecycleScope.launch(IO) {
-            if (rowUi.action.isAbsUrl()) {
-                context?.openUrl(rowUi.action!!)
-            } else if (rowUi.action != null) {
-                // JavaScript
-                val buttonFunctionJS = rowUi.action!!
-                val loginJS = source.getLoginJs() ?: return@launch
-                kotlin.runCatching {
+    private fun setLoginBusy(busy: Boolean) {
+        loginBusy = busy
+        fun enable(view: View) {
+            view.isEnabled = !busy
+            if (view is ViewGroup) {
+                for (index in 0 until view.childCount) enable(view.getChildAt(index))
+            }
+        }
+        enable(binding.flexbox)
+        binding.toolBar.menu.findItem(R.id.menu_ok)?.isEnabled = !busy && loginUiReady
+    }
+
+    private fun refreshLoginUi(source: BaseSource, initialize: Boolean = false, action: String? = null) {
+        if (loginBusy) return
+        if (!initialize) loginScript.data.putAll(getLoginData(loginRows))
+        setLoginBusy(true)
+        viewLifecycleOwner.lifecycleScope.launch {
+            try {
+                val rows = withContext(IO) {
                     runScriptWithContext {
-                        source.evalJS("$loginJS\n$buttonFunctionJS") {
-                            put("result", getLoginData(loginUi))
-                        }
+                        if (initialize) loginScript.data.putAll(source.getLoginInfoMap().orEmpty())
+                        if (action != null) loginScript.runAction(action)
+                        if (action == null || loginScript.reloadRequested) loginScript.readUi() else loginRows
                     }
-                }.onFailure { e ->
-                    ensureActive()
-                    AppLog.put("LoginUI Button ${rowUi.name} JavaScript error", e)
                 }
+                renderLoginUi(source, rows)
+                loginUiReady = true
+            } catch (e: Exception) {
+                ensureActive()
+                AppLog.put("登录 UI 执行失败", e)
+                context?.toastOnUi("登录 UI 执行失败：${e.localizedMessage}")
+                if (loginRows.isEmpty()) {
+                    binding.flexbox.removeAllViews()
+                    val error = TextView(requireContext()).apply {
+                        text = "登录 UI 加载失败\n${e.localizedMessage}"
+                        setPadding(16.dpToPx())
+                    }
+                    binding.flexbox.addView(error, FlexboxLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT
+                    ))
+                    val retry = ItemFilletTextBinding.inflate(layoutInflater, binding.flexbox, false)
+                    retry.textView.setText(R.string.retry)
+                    applyAccentColor(retry.textView)
+                    retry.root.setOnClickListener { refreshLoginUi(source, initialize = initialize) }
+                    binding.flexbox.addView(retry.root)
+                }
+            } finally {
+                if (view != null) setLoginBusy(false)
             }
         }
     }
 
+    private fun renderLoginUi(source: BaseSource, rows: List<RowUi>) {
+        binding.flexbox.removeAllViews()
+        loginRows = rows
+        rows.forEachIndexed { index, row ->
+            val title = row.viewName ?: row.name
+            val value = loginScript.data[row.name].orEmpty()
+            val view = when (row.type) {
+                RowUi.Type.text, RowUi.Type.password -> {
+                    val item = ItemSourceEditBinding.inflate(layoutInflater, binding.flexbox, false)
+                    item.root.id = index + 1000
+                    item.textInputLayout.hint = title
+                    if (row.type == RowUi.Type.password) item.editText.inputType =
+                        InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
+                    item.editText.setText(value)
+                    item.root
+                }
+                RowUi.Type.button -> {
+                    val item = ItemFilletTextBinding.inflate(layoutInflater, binding.flexbox, false)
+                    item.textView.text = title
+                    item.textView.maxLines = Int.MAX_VALUE
+                    item.textView.ellipsize = null
+                    item.textView.setPadding(16.dpToPx())
+                    applyAccentColor(item.textView)
+                    item.root.setOnClickListener { handleButtonClick(source, row) }
+                    item.root
+                }
+                RowUi.Type.select -> {
+                    val choices = row.chars.orEmpty()
+                    val selected = choices.indexOf(value).coerceAtLeast(0)
+                    loginScript.data[row.name] = choices[selected]
+                    LinearLayout(requireContext()).apply {
+                        orientation = LinearLayout.VERTICAL
+                        setPadding(16.dpToPx(), 8.dpToPx(), 16.dpToPx(), 8.dpToPx())
+                        addView(TextView(context).apply { text = title })
+                        addView(Spinner(context).apply {
+                            id = index + 1000
+                            adapter = ArrayAdapter(context, android.R.layout.simple_spinner_item, choices).apply {
+                                setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+                            }
+                            setSelection(selected)
+                            onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+                                override fun onNothingSelected(parent: AdapterView<*>?) = Unit
+                                override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+                                    val next = choices[position]
+                                    if (loginBusy || loginScript.data[row.name] == next) return
+                                    loginScript.data[row.name] = next
+                                    handleButtonClick(source, row)
+                                }
+                            }
+                        }, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+                    }
+                }
+                RowUi.Type.toggle -> {
+                    val choices = row.chars.orEmpty()
+                    SwitchMaterial(requireContext()).apply {
+                        isChecked = value == choices[1]
+                        loginScript.data[row.name] = choices[if (isChecked) 1 else 0]
+                        text = "$title  ${loginScript.data[row.name]}"
+                        setPadding(16.dpToPx())
+                        setOnCheckedChangeListener { _, checked ->
+                            if (!loginBusy) {
+                                loginScript.data[row.name] = choices[if (checked) 1 else 0]
+                                text = "$title  ${loginScript.data[row.name]}"
+                                handleButtonClick(source, row)
+                            }
+                        }
+                    }
+                }
+                else -> return@forEachIndexed
+            }
+            if (view.layoutParams !is FlexboxLayout.LayoutParams) {
+                view.layoutParams = FlexboxLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT
+                )
+            }
+            binding.flexbox.addView(view)
+            row.style().apply(view)
+        }
+    }
+
+    private fun handleButtonClick(source: BaseSource, row: RowUi) {
+        if (loginBusy) return
+        val action = row.action ?: return
+        if (action.isAbsUrl()) context?.openUrl(action)
+        else refreshLoginUi(source, action = action)
+    }
+
     private fun getLoginData(loginUi: List<RowUi>?): HashMap<String, String> {
-        val loginData = hashMapOf<String, String>()
+        val loginData = if (::loginScript.isInitialized) HashMap(loginScript.data) else hashMapOf<String, String>()
         loginUi?.forEachIndexed { index, rowUi ->
             when (rowUi.type) {
                 "text", "password" -> {
@@ -269,26 +347,33 @@ class SourceLoginDialog : BaseDialogFragment(R.layout.dialog_login, true) {
     }
 
     private fun login(source: BaseSource, loginData: HashMap<String, String>) {
-        lifecycleScope.launch(IO) {
-            if (loginData.isEmpty()) {
-                source.removeLoginInfo()
-                withContext(Main) {
-                    dismiss()
-                }
-            } else if (source.putLoginInfo(GSON.toJson(loginData))) {
-                try {
-                    runScriptWithContext {
-                        source.login()
+        setLoginBusy(true)
+        viewLifecycleOwner.lifecycleScope.launch {
+            try {
+                withContext(IO) {
+                    if (loginData.isEmpty()) {
+                        // 动态菜单可能没有输入项，关闭时保留其脚本管理的登录信息。
+                        if (SourceLoginUi.script(source.loginUi.orEmpty()) == null) {
+                            source.removeLoginInfo()
+                        }
+                    } else {
+                        check(source.putLoginInfo(GSON.toJson(loginData))) { "保存登录信息失败" }
+                        runScriptWithContext {
+                            source.login {
+                                put("java", loginScript)
+                                put("result", loginData)
+                            }
+                        }
+                        context?.toastOnUi(R.string.success)
                     }
-                    context?.toastOnUi(R.string.success)
-                    withContext(Main) {
-                        dismiss()
-                    }
-                } catch (e: Exception) {
-                    AppLog.put("登录出错\n${e.localizedMessage}", e)
-                    context?.toastOnUi("登录出错\n${e.localizedMessage}")
-                    e.printOnDebug()
                 }
+                dismiss()
+            } catch (e: Exception) {
+                ensureActive()
+                AppLog.put("登录出错", e)
+                context?.toastOnUi("登录出错\n${e.localizedMessage}")
+            } finally {
+                if (view != null) setLoginBusy(false)
             }
         }
     }

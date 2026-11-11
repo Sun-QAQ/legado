@@ -12,13 +12,12 @@ import io.legado.app.help.JsExtensions
 import io.legado.app.help.config.AppConfig
 import io.legado.app.help.crypto.SymmetricCryptoAndroid
 import io.legado.app.help.http.CookieStore
+import io.legado.app.help.source.SourceLoginUi
 import io.legado.app.help.source.getShareScope
 import io.legado.app.utils.GSON
 import io.legado.app.utils.GSONStrict
-import io.legado.app.utils.fromJsonArray
 import io.legado.app.utils.fromJsonObject
 import io.legado.app.utils.has
-import io.legado.app.utils.printOnDebug
 import org.intellij.lang.annotations.Language
 
 /**
@@ -64,10 +63,13 @@ interface BaseSource : JsExtensions {
         return this
     }
 
-    fun loginUi(): List<RowUi>? {
-        return GSON.fromJsonArray<RowUi>(loginUi).onFailure {
-            it.printOnDebug()
-        }.getOrNull()
+    fun loginUi(): List<RowUi>? = loginUi {}
+
+    fun loginUi(bindingsConfig: ScriptBindings.() -> Unit): List<RowUi>? {
+        if (loginUi.isNullOrBlank()) return null
+        return SourceLoginUi.parse(loginUi!!) { script ->
+            evalJS("${getLoginJs().orEmpty()}\n$script", bindingsConfig)
+        }
     }
 
     fun getLoginJs(): String? {
@@ -83,7 +85,9 @@ interface BaseSource : JsExtensions {
     /**
      * 调用login函数 实现登录请求
      */
-    fun login() {
+    fun login() = login {}
+
+    fun login(bindingsConfig: ScriptBindings.() -> Unit) {
         val loginJs = getLoginJs()
         if (!loginJs.isNullOrBlank()) {
             @Language("js")
@@ -94,7 +98,7 @@ interface BaseSource : JsExtensions {
                     throw('Function login not implements!!!')
                 }
             """.trimIndent()
-            evalJS(js)
+            evalJS(js, bindingsConfig)
         }
     }
 
@@ -216,6 +220,9 @@ interface BaseSource : JsExtensions {
             CacheManager.delete("sourceVariable_${getKey()}")
         }
     }
+
+    /** 兼容使用 putVariable 保存书源自定义变量的脚本。 */
+    fun putVariable(variable: String?) = setVariable(variable)
 
     /**
      * 获取自定义变量
