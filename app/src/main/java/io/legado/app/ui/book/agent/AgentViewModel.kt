@@ -201,7 +201,7 @@ class AgentViewModel @JvmOverloads constructor(
     private var editingSource: BookSource? = null
     private var savedSourceResult: String? = null
     private val readingContextProvider = ReadingContextProvider()
-    internal var bookQuestionContext: String? = null
+    internal var bookQuestionContext: BookQuestionContext? = null
 
     fun selectSupplier(id: Long, name: String) {
         supplierSelection.select(id)
@@ -1724,19 +1724,25 @@ class AgentViewModel @JvmOverloads constructor(
         val disabled = AgentToolPreferences.disabled(context).let {
             if (sourceAgent) BookSourceAgent.disabledTools(it) else BookSourceAgent.mainDisabledTools(it)
         }
-        val tool = AgentTools.find(name, disabled)
+        val questionContext = bookQuestionContext.takeUnless { sourceAgent }
+        val currentChapterTool = questionContext?.currentChapterTool(disabled)
+        val tool = currentChapterTool?.takeIf { it.name == name } ?: AgentTools.find(name, disabled)
         if (tool == null) {
             return ExecutedAgentTool("未知工具: $name")
         }
-        val parsed = runCatching { JsonParser.parseString(arguments).asJsonObject }
-            .getOrDefault(JsonObject())
+        val parsed = if (name == BookQuestionContext.CURRENT_CHAPTER_TOOL) {
+            requireNotNull(questionContext).currentChapterArguments()
+        } else {
+            runCatching { JsonParser.parseString(arguments).asJsonObject }.getOrDefault(JsonObject())
+        }
+        val resultToolName = if (name == BookQuestionContext.CURRENT_CHAPTER_TOOL) "read_book_content" else name
         val stepId = startStep(
             getString(R.string.agent_step_tool_calling, name),
-            summarizeToolArguments(name, parsed)
+            summarizeToolArguments(resultToolName, parsed)
         )
         return try {
             var readingContext: ChapterContext? = null
-            val result = if (name == "read_book_content") {
+            val result = if (resultToolName == "read_book_content") {
                 readBookContentWithContext(
                     parsed.get("book")?.takeIf { !it.isJsonNull }?.asString.orEmpty(),
                     parsed.get("startIndex")?.takeIf { !it.isJsonNull }?.asInt ?: 0,
@@ -1746,8 +1752,8 @@ class AgentViewModel @JvmOverloads constructor(
             } else {
                 tool.execute(this, parsed)
             }
-            val summary = summarizeToolResult(name, result)
-            if (isToolFailure(name, result)) {
+            val summary = summarizeToolResult(resultToolName, result)
+            if (isToolFailure(resultToolName, result)) {
                 failStep(stepId, Exception(summary ?: result))
             } else {
                 finishStep(stepId, summary = summary)
@@ -2372,18 +2378,24 @@ class AgentViewModel @JvmOverloads constructor(
 
     private fun buildChatRequest(supplier: io.legado.app.data.entities.AiSource, requestTurns: List<AgentChatTurn>): JsonObject {
         val disabledTools = BookSourceAgent.mainDisabledTools(AgentToolPreferences.disabled(context))
-        val toolOverview = AgentTools.overview(disabledTools)
+        val currentChapterTool = bookQuestionContext?.currentChapterTool(disabledTools)
+        val toolOverview = listOfNotNull(
+            AgentTools.overview(disabledTools).takeIf { it.isNotBlank() },
+            currentChapterTool?.let { "${it.name}：${it.description}" }
+        ).joinToString("；")
             .ifBlank { "当前没有启用的工具。" }
-        return buildAgentRequest(supplier, requestTurns, composeAgentSystemPrompt(
+        val systemPrompt = composeAgentSystemPrompt(
             currentPersonaPrompt, AgentPresetPreferences.selectedPrompt(context), toolOverview
-        ) + bookQuestionContext?.let { "\n\n$it" }.orEmpty(), disabledTools)
+        ) + bookQuestionContext?.let { "\n\n${it.prompt(currentChapterTool != null)}" }.orEmpty()
+        return buildAgentRequest(supplier, requestTurns, systemPrompt, disabledTools, currentChapterTool)
     }
 
     private fun buildAgentRequest(
         supplier: AiSource,
         requestTurns: List<AgentChatTurn>,
         systemPrompt: String,
-        disabledTools: Set<String>
+        disabledTools: Set<String>,
+        currentChapterTool: AgentTool? = null
     ): JsonObject {
         val root = JsonObject()
         root.addProperty("model", supplier.model)
@@ -2412,7 +2424,9 @@ class AgentViewModel @JvmOverloads constructor(
             )
         }
         root.add("messages", messages)
-        AgentTools.toJsonArray(disabledTools).takeIf { it.size() > 0 }?.let {
+        AgentTools.toJsonArray(disabledTools).apply {
+            currentChapterTool?.let { add(it.toJson()) }
+        }.takeIf { it.size() > 0 }?.let {
             root.add("tools", it)
         }
         return root

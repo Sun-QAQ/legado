@@ -97,9 +97,9 @@ class BookQuestionDialog : BaseDialogFragment(R.layout.dialog_book_question) {
         val context = BookQuestionContext(
             args.getString("name").orEmpty(), args.getString("author").orEmpty(),
             args.getString("bookUrl").orEmpty(), args.getString("chapter").orEmpty(),
-            args.getString("excerpt").orEmpty()
+            args.getString("excerpt").orEmpty(), args.getInt("chapterIndex", -1)
         )
-        viewModel.bookQuestionContext = context.prompt()
+        viewModel.bookQuestionContext = context
         binding.tvBook.text = getString(R.string.book_question_book, context.name)
         binding.btnClose.setOnClickListener { dismiss() }
         binding.btnModel.setOnClickListener { startActivity<AiSourceManageActivity>() }
@@ -248,13 +248,14 @@ class BookQuestionDialog : BaseDialogFragment(R.layout.dialog_book_question) {
     }
 
     companion object {
-        fun newInstance(name: String, author: String, bookUrl: String, chapter: String, excerpt: String) =
+        fun newInstance(name: String, author: String, bookUrl: String, chapter: String, excerpt: String, chapterIndex: Int) =
             BookQuestionDialog().apply {
                 arguments = Bundle().apply {
                     putString("name", name)
                     putString("author", author)
                     putString("bookUrl", bookUrl)
                     putString("chapter", chapter)
+                    putInt("chapterIndex", chapterIndex)
                     putString("excerpt", excerpt.takeLast(BookQuestionContext.MAX_EXCERPT_LENGTH))
                 }
             }

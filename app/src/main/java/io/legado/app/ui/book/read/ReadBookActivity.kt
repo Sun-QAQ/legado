@@ -1531,12 +1531,14 @@ class ReadBookActivity : BaseReadBookActivity(),
         val book = ReadBook.book ?: return
         if (supportFragmentManager.findFragmentByTag("bookQuestion") != null) return
         autoPageStop()
-        val chapter = ReadBook.curTextChapter
+        val chapterIndex = ReadBook.durChapterIndex
+        val chapter = ReadBook.curTextChapter?.takeIf { it.chapter.index == chapterIndex }
         BookQuestionDialog.newInstance(
             book.name, book.author, book.bookUrl, chapter?.title.orEmpty(),
             chapter?.pages?.take(ReadBook.durPageIndex + 1)
                 ?.joinToString("\n") { it.text }.orEmpty()
-                .takeLast(BookQuestionContext.MAX_EXCERPT_LENGTH)
+                .takeLast(BookQuestionContext.MAX_EXCERPT_LENGTH),
+            chapterIndex
         ).showNow(supportFragmentManager, "bookQuestion")
     }
 

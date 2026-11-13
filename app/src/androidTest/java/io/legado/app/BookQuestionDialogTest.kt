@@ -47,7 +47,7 @@ class BookQuestionDialogTest {
     fun questionDialogKeepsBookAndDraftAfterRecreationAndAvoidsKeyboard() {
         ActivityScenario.launch(SearchActivity::class.java).use { scenario ->
             scenario.onActivity { activity ->
-                BookQuestionDialog.newInstance("界面测试书籍", "测试作者", "local://ui-test", "第一章", "已读正文")
+                BookQuestionDialog.newInstance("界面测试书籍", "测试作者", "local://ui-test", "重逢", "已读正文", 17)
                     .showNow(activity.supportFragmentManager, "questionTest")
                 activity.supportFragmentManager.executePendingTransactions()
                 val root = activity.supportFragmentManager.findFragmentByTag("questionTest")!!.requireView()
@@ -59,6 +59,7 @@ class BookQuestionDialogTest {
             scenario.recreate()
             scenario.onActivity { activity ->
                 val fragment = activity.supportFragmentManager.findFragmentByTag("questionTest") as BookQuestionDialog
+                assertEquals(17, fragment.requireArguments().getInt("chapterIndex", -1))
                 val root = fragment.requireView()
                 assertEquals("《界面测试书籍》", root.findViewById<TextView>(R.id.tv_book).text.toString())
                 assertEquals("尚未发送的问题", root.findViewById<EditText>(R.id.et_input).text.toString())
