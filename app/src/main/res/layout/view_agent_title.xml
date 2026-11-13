@@ -9,7 +9,7 @@
     android:minHeight="48dp"
     android:paddingStart="8dp"
     android:paddingEnd="8dp"
-    android:background="?attr/selectableItemBackground"
+    android:background="@drawable/bg_agent_control_ripple"
     android:clickable="true"
     android:focusable="true"
     android:gravity="center"
