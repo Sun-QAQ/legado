@@ -77,6 +77,35 @@ class AgentContextManagerTest {
     }
 
     @Test
+    fun `恢复长对话后可压缩多章节上下文并保留原文和附件`() {
+        val original = reading("历史章节正文").let {
+            it.copy(
+                attachments = listOf(AgentAttachment("笔记.txt", "text/plain", "/notes.txt", 10)),
+                readingContext = it.readingContext!!.copy(chapters = listOf(
+                    ChapterReference(11, "旧信", "chapter-url"),
+                    ChapterReference(12, "重逢", "next-chapter-url")
+                ))
+            )
+        }
+        val turns = listOf(AgentChatTurn("user", "阅读章节"), original) +
+            (1..3).map { AgentChatTurn("user", "追问$it") }
+        val restored = AgentConversationCodec.decodeTurns(AgentConversationCodec.encodeTurns(turns))
+        val compact = AgentContextManager.compactIndices(restored)
+        val projected = AgentContextManager.project(restored, compact)
+
+        assertEquals(setOf(1), compact)
+        assertEquals(original, restored[1])
+        assertEquals("笔记.txt", restored[1].attachments!!.single().name)
+        assertEquals(12, restored[1].readingContext!!.chapters[1].index)
+        assertTrue(projected[1].content.contains("startIndex=11, count=1, url=chapter-url"))
+        assertTrue(projected[1].content.contains("startIndex=12, count=1, url=next-chapter-url"))
+        assertTrue(projected[1].content.contains("摘要暂不可用"))
+        assertEquals("历史章节正文", restored[1].content)
+        assertEquals("read", projected[1].toolCallId)
+        assertEquals(turns.last(), projected.last())
+    }
+
+    @Test
     fun `新字段完整恢复旧会话缺失字段兼容`() {
         val turn = reading("正文").let {
             it.copy(readingContext = it.readingContext!!.copy(

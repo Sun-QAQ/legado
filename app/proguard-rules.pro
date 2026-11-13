@@ -32,9 +32,12 @@
 # 避免混淆泛型
 -keepattributes Signature
 
-# Gson 通过字段泛型恢复 AI 会话；R8 移除 AgentMessage 的泛型签名会使 steps
-# 被反序列化为 LinkedTreeMap，恢复会话时触发 ClassCastException。
+# Gson 通过字段泛型恢复 AI 会话；除消息外，还需保留工具上下文和章节列表的
+# 类型信息，否则 steps、attachments 或 chapters 会被恢复为 LinkedTreeMap。
 -keep,allowoptimization,allowobfuscation class io.legado.app.ui.book.agent.AgentMessage { <fields>; }
+-keep,allowoptimization,allowobfuscation class io.legado.app.ui.book.agent.AgentChatTurn { <fields>; }
+-keep,allowoptimization,allowobfuscation class io.legado.app.ui.book.agent.ChapterContext { <fields>; }
+-keep,allowoptimization,allowobfuscation class io.legado.app.ui.book.agent.ChapterReference { <fields>; }
 
 # 指定混淆是采用的算法，后面的参数是一个过滤器
 # 这个过滤器是谷歌推荐的算法，一般不做更改
