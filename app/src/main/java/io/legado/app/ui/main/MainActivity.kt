@@ -256,7 +256,7 @@ class MainActivity : VMBaseActivity<ActivityMainBinding, MainViewModel>(),
         bottomNavigationContainer.setOnApplyWindowInsetsListenerCompat { view, windowInsets ->
             val height = windowInsets.navigationBarHeight
             view.updateLayoutParams<ViewGroup.MarginLayoutParams> {
-                bottomMargin = height + 26.dpToPx()
+                bottomMargin = height + 18.dpToPx()
             }
             windowInsets.inset(0, 0, 0, height)
         }
