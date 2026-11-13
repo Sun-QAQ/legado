@@ -677,6 +677,7 @@
     <string name="agent_step_source_repository_done">找到 %1$d 个书源</string>
     <string name="agent_clear_chat">清空对话</string>
     <string name="agent_new_chat">新对话</string>
+    <string name="agent_already_new_chat">当前已是全新对话</string>
     <string name="agent_chat_history">历史对话</string>
     <string name="agent_chat_history_empty">暂无历史对话</string>
     <string name="agent_chat_history_load_failed">历史对话加载失败</string>

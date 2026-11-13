@@ -299,6 +299,9 @@ class AgentViewModel @JvmOverloads constructor(
         context.putPrefString(conversationPreferenceKey, id ?: "")
     }
 
+    internal fun isNewConversation(): Boolean =
+        _currentConversationId.value == null && _messages.value.isEmpty() && canModifyMessages()
+
     fun newConversation(): Job {
         val selection = ++conversationSelection
         return viewModelScope.launch {

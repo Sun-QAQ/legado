@@ -684,6 +684,7 @@
     <string name="agent_step_source_repository_done">Found %1$d source(s)</string>
     <string name="agent_clear_chat">Clear chat</string>
     <string name="agent_new_chat">New chat</string>
+    <string name="agent_already_new_chat">Already in a brand-new chat</string>
     <string name="agent_chat_history">Chat history</string>
     <string name="agent_chat_history_empty">No chat history</string>
     <string name="agent_chat_history_load_failed">Failed to load chat history</string>

@@ -78,18 +78,22 @@ class AgentConversationStorageTest {
         )))
         val agent = AgentViewModel(context.applicationContext as Application, preference, false)
         try {
+            assertTrue(agent.isNewConversation())
             appDb.aiConversationDao.insert(conversation)
             context.putPrefString(preference, conversation.id)
             agent.startConversationHistory()?.join()
+            assertFalse(agent.isNewConversation())
             assertEquals(conversation.id, agent.currentConversationId.value)
             assertEquals(listOf("原始问题", "原始回复"), agent.messages.value.map { it.text })
             agent.renameConversation(conversation.id, "大体积历史").join()
             agent.newConversation().join()
+            assertTrue(agent.isNewConversation())
             val stored = appDb.aiConversationDao.get(conversation.id)!!
             assertEquals("大体积历史", stored.title)
             assertEquals(largeText, AgentConversationCodec.decodeTurns(stored.turnsJson)[1].content)
             agent.openConversation(conversation.id)?.join()
             assertEquals(conversation.id, agent.currentConversationId.value)
+            assertFalse(agent.isNewConversation())
         } finally {
             agent.newConversation().join()
             appDb.aiConversationDao.delete(conversation.id)

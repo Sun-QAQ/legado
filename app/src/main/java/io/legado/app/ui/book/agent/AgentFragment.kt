@@ -561,8 +561,12 @@ class AgentFragment() : BaseFragment(R.layout.fragment_agent), MainFragmentInter
             )) return
         when (item.itemId) {
             R.id.menu_new_chat -> {
-                autoScroll?.followLatest()
-                viewModel.newConversation()
+                if (viewModel.isNewConversation()) {
+                    toastOnUi(R.string.agent_already_new_chat)
+                } else {
+                    autoScroll?.followLatest()
+                    viewModel.newConversation()
+                }
             }
             R.id.menu_chat_history -> {
                 autoScroll?.followLatest()
