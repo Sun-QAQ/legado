@@ -156,5 +156,3 @@ cn.hutool.core.util.**{*;}
 # Throwable
 -keepnames class * extends java.lang.Throwable
 -keepclassmembernames,allowobfuscation class * extends java.lang.Throwable{*;}
-# JNI looks up sherpa-onnx configuration fields and result constructors by name.
--keep class com.k2fsa.sherpa.onnx.** { *; }

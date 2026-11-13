@@ -1,2 +1,0 @@
-# Preserve upstream speech dictionaries and their recorded SHA-256 across Windows checkouts.
-app/src/main/assets/voice_assistant/**/*.txt text eol=lf
