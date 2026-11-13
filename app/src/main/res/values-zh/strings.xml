@@ -978,8 +978,8 @@
     <string name="read_record_clear_all">清空记录</string>
     <string name="read_record_filter_all">全部</string>
     <string name="read_record_filter_today">今天</string>
-    <string name="read_record_filter_week">近 7 天</string>
-    <string name="read_record_filter_earlier">更早</string>
+    <string name="read_record_filter_week">近七天</string>
+    <string name="read_record_filter_month">近一个月</string>
     <string name="read_record_today_at">今天 %1$s</string>
     <string name="read_record_yesterday">昨天</string>
     <string name="read_record_days_ago">%1$d 天前</string>

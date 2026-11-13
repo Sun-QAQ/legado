@@ -196,7 +196,7 @@
     <string name="read_record_filter_all">すべて</string>
     <string name="read_record_filter_today">今日</string>
     <string name="read_record_filter_week">過去 7 日間</string>
-    <string name="read_record_filter_earlier">以前</string>
+    <string name="read_record_filter_month">過去1か月</string>
     <string name="read_record_today_at">今日 %1$s</string>
     <string name="read_record_yesterday">昨日</string>
     <string name="read_record_days_ago">%1$d 日前</string>

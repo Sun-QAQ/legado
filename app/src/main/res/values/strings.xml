@@ -993,7 +993,7 @@
     <string name="read_record_filter_all">All</string>
     <string name="read_record_filter_today">Today</string>
     <string name="read_record_filter_week">Past 7 days</string>
-    <string name="read_record_filter_earlier">Earlier</string>
+    <string name="read_record_filter_month">Past month</string>
     <string name="read_record_today_at">Today %1$s</string>
     <string name="read_record_yesterday">Yesterday</string>
     <string name="read_record_days_ago">%1$d days ago</string>

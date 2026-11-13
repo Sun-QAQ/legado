@@ -51,10 +51,6 @@ import kotlin.math.roundToInt
 
 class ReadRecordActivity : BaseActivity<ActivityReadRecordBinding>() {
 
-    private enum class RecordFilter {
-        ALL, TODAY, WEEK, EARLIER
-    }
-
     private data class DailyReadTime(
         val date: LocalDate,
         val readTime: Long,
@@ -62,7 +58,7 @@ class ReadRecordActivity : BaseActivity<ActivityReadRecordBinding>() {
 
     private val adapter by lazy { RecordAdapter(this) }
     private val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-    private var recordFilter = RecordFilter.ALL
+    private var recordFilter = ReadRecordFilter.TODAY
     private var searchKey = ""
     private val headerBinding by lazy {
         ItemReadRecordHeaderBinding.inflate(layoutInflater, binding.recyclerView, false)
@@ -78,10 +74,10 @@ class ReadRecordActivity : BaseActivity<ActivityReadRecordBinding>() {
         }
     private val filterViews by lazy {
         mapOf(
-            RecordFilter.ALL to headerBinding.tvFilterAll,
-            RecordFilter.TODAY to headerBinding.tvFilterToday,
-            RecordFilter.WEEK to headerBinding.tvFilterWeek,
-            RecordFilter.EARLIER to headerBinding.tvFilterEarlier,
+            ReadRecordFilter.TODAY to headerBinding.tvFilterToday,
+            ReadRecordFilter.WEEK to headerBinding.tvFilterWeek,
+            ReadRecordFilter.MONTH to headerBinding.tvFilterMonth,
+            ReadRecordFilter.ALL to headerBinding.tvFilterAll,
         )
     }
     private val weekBarViews: List<View> by lazy {
@@ -373,16 +369,8 @@ class ReadRecordActivity : BaseActivity<ActivityReadRecordBinding>() {
     }
 
     private fun filterRecords(records: List<ReadRecordShow>): List<ReadRecordShow> {
-        val todayStart = startOfToday()
-        val weekStart = todayStart - TimeUnit.DAYS.toMillis(6)
-        return records.filter { record ->
-            when (recordFilter) {
-                RecordFilter.ALL -> true
-                RecordFilter.TODAY -> record.lastRead >= todayStart
-                RecordFilter.WEEK -> record.lastRead >= weekStart
-                RecordFilter.EARLIER -> record.lastRead in 1L until weekStart
-            }
-        }
+        val startTime = recordFilter.startTime(LocalDate.now())
+        return records.filter { it.lastRead >= startTime }
     }
 
     private fun startOfToday(): Long = Calendar.getInstance().apply {

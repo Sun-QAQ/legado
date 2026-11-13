@@ -196,7 +196,7 @@
     <string name="read_record_filter_all">Todos</string>
     <string name="read_record_filter_today">Hoje</string>
     <string name="read_record_filter_week">Últimos 7 dias</string>
-    <string name="read_record_filter_earlier">Anteriores</string>
+    <string name="read_record_filter_month">Último mês</string>
     <string name="read_record_today_at">Hoje %1$s</string>
     <string name="read_record_yesterday">Ontem</string>
     <string name="read_record_days_ago">Há %1$d dias</string>

@@ -198,7 +198,7 @@
     <string name="read_record_filter_all">Tất cả</string>
     <string name="read_record_filter_today">Hôm nay</string>
     <string name="read_record_filter_week">7 ngày qua</string>
-    <string name="read_record_filter_earlier">Trước đó</string>
+    <string name="read_record_filter_month">Tháng qua</string>
     <string name="read_record_today_at">Hôm nay %1$s</string>
     <string name="read_record_yesterday">Hôm qua</string>
     <string name="read_record_days_ago">%1$d ngày trước</string>
