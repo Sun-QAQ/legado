@@ -603,7 +603,7 @@ class AgentFragment() : BaseFragment(R.layout.fragment_agent), MainFragmentInter
 }
 
 internal fun View.applyAgentInputInsets() {
-    val bottomBarOffset = 80.dpToPx()
+    val bottomBarOffset = 72.dpToPx()
     val keyboardGap = 10.dpToPx()
     setOnApplyWindowInsetsListenerCompat { view, windowInsets ->
         view.updateLayoutParams<ViewGroup.MarginLayoutParams> {
