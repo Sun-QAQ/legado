@@ -140,7 +140,11 @@ import API from '@api'
 import type { BookGroupSelection } from '@api'
 import type { Book } from '@/book'
 import { bookProgress } from '@/utils/bookPresentation'
-import { restoreDetailBook, startBookReading } from '@/utils/bookNavigation'
+import {
+  restoreDetailBook,
+  returnToBookList,
+  startBookReading,
+} from '@/utils/bookNavigation'
 
 const route = useRoute(),
   router = useRouter(),
@@ -156,10 +160,7 @@ const from = computed(() =>
 const fromLabel = computed(
   () => ({ search: '搜索', explore: '发现', shelf: '书架' })[from.value],
 )
-const goBack = () => {
-  if (router.options.history.state.back) router.back()
-  else void router.push({ name: from.value })
-}
+const goBack = () => returnToBookList(router, from.value)
 const snapshot = computed(() => restoreDetailBook(url.value, origin.value))
 const shelfBook = computed(() =>
   store.shelf.find(book => book.bookUrl === url.value),

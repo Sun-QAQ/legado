@@ -4,6 +4,11 @@ import type { Router } from 'vue-router'
 export type DetailBook = Book | SeachBook
 const detailKey = 'web-book-detail'
 
+export const returnToBookList = (
+  router: Router,
+  from: 'shelf' | 'search' | 'explore',
+) => router.push({ name: from })
+
 export const openBookDetail = (
   router: Router,
   book: DetailBook,
